@@ -29,7 +29,7 @@
         </button>
         <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-950/70 border border-cyan-500/30 text-[11px] font-mono text-cyan-300 backdrop-blur-md shadow-lg">
             <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-            <span>PRJ301 • RBL G4</span>
+            <span>PRJ301 • RBL G7</span>
         </div>
     </div>
 
@@ -148,7 +148,7 @@
                         <i data-lucide="shield-alert" class="w-5 h-5 text-white font-bold"></i>
                     </div>
                     <h2 class="text-lg font-bold text-white tracking-wide flex items-center gap-1.5">
-                        AITA <span class="text-cyan-400 font-mono text-[11px] px-2 py-0.5 rounded-full border border-cyan-500/40 bg-cyan-950/30">G4 - CodeDefend</span>
+                        AITA <span class="text-cyan-400 font-mono text-[11px] px-2 py-0.5 rounded-full border border-cyan-500/40 bg-cyan-950/30">G7 - CodeDefend</span>
                     </h2>
                     <p class="text-[11px] text-slate-400 mt-0.5">Hệ Thống Kiểm Soát Mã Nguồn &amp; Phòng Thi (PRJ301)</p>
                 </div>
@@ -233,6 +233,32 @@
                         </svg>
                         <span class="font-medium text-[12.5px] text-slate-700 group-hover:text-slate-900 tracking-tight">Đăng nhập bằng tài khoản Google</span>
                     </button>
+                </div>
+
+                <!-- Bảng Chọn Nhanh Tài Khoản Demo (Kiểm Thử Nhanh) -->
+                <div class="mt-3 pt-2.5 border-t border-white/5 space-y-1.5">
+                    <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                        <span>Bảng Tài Khoản (Nhấp để điền):</span>
+                        <span class="text-cyan-400">Pass: 123456</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5 text-[10.5px]">
+                        <button type="button" onclick="fillAccount('ha.nh@fpt.edu.vn', 'lecturer')" class="px-2 py-1.5 rounded-lg bg-slate-900/90 border border-violet-500/30 hover:border-violet-400 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all truncate text-left">
+                            <i data-lucide="graduation-cap" class="w-3 h-3 text-violet-400 shrink-0"></i>
+                            <span class="truncate">TS. Hoàng Hà (GV)</span>
+                        </button>
+                        <button type="button" onclick="fillAccount('kietnta@fpt.edu.vn', 'lecturer')" class="px-2 py-1.5 rounded-lg bg-slate-900/90 border border-cyan-500/30 hover:border-cyan-400 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all truncate text-left">
+                            <i data-lucide="award" class="w-3 h-3 text-cyan-400 shrink-0"></i>
+                            <span class="truncate">Anh Kiệt (Leader)</span>
+                        </button>
+                        <button type="button" onclick="fillAccount('phuctv@fpt.edu.vn', 'student')" class="px-2 py-1.5 rounded-lg bg-slate-900/90 border border-emerald-500/30 hover:border-emerald-400 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all truncate text-left">
+                            <i data-lucide="user" class="w-3 h-3 text-emerald-400 shrink-0"></i>
+                            <span class="truncate">Văn Phúc (SV)</span>
+                        </button>
+                        <button type="button" onclick="fillAccount('admin@aita.edu.vn', 'admin')" class="px-2 py-1.5 rounded-lg bg-slate-900/90 border border-amber-500/30 hover:border-amber-400 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all truncate text-left">
+                            <i data-lucide="shield-check" class="w-3 h-3 text-amber-400 shrink-0"></i>
+                            <span class="truncate">Khảo Thí (Admin)</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

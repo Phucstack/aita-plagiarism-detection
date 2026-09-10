@@ -170,12 +170,33 @@ public class UserDAO {
         return null;
     }
 
+    public List<User> getAllUsers() {
+        List<User> list = new ArrayList<>();
+        String sql = "SELECT user_id, username, full_name, email, role, avatar_url, created_at FROM Users ORDER BY user_id ASC";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(mapUser(rs));
+            }
+        } catch (Exception e) {
+            return getFallbackUsers();
+        }
+        return list.isEmpty() ? getFallbackUsers() : list;
+    }
+
     private List<User> getFallbackUsers() {
         List<User> list = new ArrayList<>();
-        list.add(new User(1, "teacher_ha", "TS. Nguyễn Hoàng Hà", "ha.nh@fpt.edu.vn", "INSTRUCTOR"));
-        list.add(new User(2, "student_102", "Trần Văn Long (SE1701)", "longtvse1701@fpt.edu.vn", "STUDENT"));
-        list.add(new User(3, "student_108", "Lê Quốc Anh (SE1702)", "anhlqse1702@fpt.edu.vn", "STUDENT"));
-        list.add(new User(4, "student_115", "Phạm Minh Tuấn (SE1703)", "tuanpmse1703@fpt.edu.vn", "STUDENT"));
+        list.add(new User(1, "admin", "Quản Trị Viên AITA", "admin@aita.edu.vn", "ADMIN"));
+        list.add(new User(2, "teacher_ha", "TS. Nguyễn Hoàng Hà", "ha.nh@fpt.edu.vn", "INSTRUCTOR"));
+        list.add(new User(3, "kietnta", "Nguyễn Trần Anh Kiệt (Leader)", "kietnta@fpt.edu.vn", "INSTRUCTOR"));
+        list.add(new User(4, "phuctv", "Trần Văn Phúc", "phuctv@fpt.edu.vn", "STUDENT"));
+        list.add(new User(5, "khanhdvp", "Đinh Vũ Phương Khánh", "khanhdvp@fpt.edu.vn", "STUDENT"));
+        list.add(new User(6, "nhinh", "Nguyễn Hoài Nhi", "nhinh@fpt.edu.vn", "STUDENT"));
+        list.add(new User(7, "tienn", "Nguyễn Tiến", "tienn@fpt.edu.vn", "STUDENT"));
+        list.add(new User(8, "student_102", "Trần Văn Long (SE1701)", "longtvse1701@fpt.edu.vn", "STUDENT"));
+        list.add(new User(9, "student_108", "Lê Quốc Anh (SE1702)", "anhlqse1702@fpt.edu.vn", "STUDENT"));
+        list.add(new User(10, "student_115", "Phạm Minh Tuấn (SE1703)", "tuanpmse1703@fpt.edu.vn", "STUDENT"));
         return list;
     }
 }
