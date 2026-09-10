@@ -1,0 +1,408 @@
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<!DOCTYPE html>
+<html lang="vi" class="dark scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AITA CodeDefend - 3D Camera Scrollytelling & Academic Integrity Engine</title>
+    <meta name="description" content="Nền tảng kiểm định mã nguồn thông minh và phát hiện đạo văn AI bằng Google Gemini 2.0 Flash & Chuẩn hóa Cây Cú Pháp AST. Dự án Nghiên cứu RBL Nhóm 4 môn PRJ301.">
+
+    <!-- Tailwind CSS with Cyber Dark Palette -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        deepBg: '#080911',
+                        cardBg: '#0e101d',
+                        neonCyan: '#06b6d4',
+                        neonViolet: '#8b5cf6',
+                        neonEmerald: '#10b981',
+                        neonAmber: '#f59e0b',
+                        neonRose: '#f43f5e'
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Core Project Stylesheets -->
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css?v=2.1">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/motion-effects.css?v=2.1">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/liquid-glass-2026.css?v=2.1">
+</head>
+<body class="cinema-grain bg-[#080911] text-slate-200 min-h-screen font-sans selection:bg-cyan-500/30 selection:text-cyan-200 overflow-x-hidden">
+
+    <!-- ==========================================================================
+         1. PRELOADER OVERLAY (Progressive 150 Frames Loading)
+         ========================================================================== -->
+    <div id="scrolly-preloader" class="fixed inset-0 z-[9999] bg-[#080911] flex flex-col items-center justify-center transition-opacity duration-500 px-6">
+        <!-- Top-Right Fast-Track Login Button -->
+        <a href="${pageContext.request.contextPath}/login" class="absolute top-6 right-6 sm:top-8 sm:right-10 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-500/40 text-slate-300 hover:text-cyan-300 text-xs font-mono flex items-center gap-2 transition-all shadow-sm group backdrop-blur-md">
+            <span>Đăng Nhập</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-cyan-400 group-hover:translate-x-0.5 transition-transform"></i>
+        </a>
+
+        <!-- Glowing Cyber Logo Icon -->
+        <div class="relative mb-6">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-violet-600 flex items-center justify-center shadow-[0_0_40px_rgba(6,182,212,0.5)] animate-pulse">
+                <i data-lucide="shield-alert" class="w-8 h-8 text-white"></i>
+            </div>
+            <div class="absolute -inset-2 rounded-2xl border border-cyan-500/30 animate-ping pointer-events-none"></div>
+        </div>
+
+        <h2 class="text-lg sm:text-xl font-bold tracking-widest text-white uppercase mb-1 flex items-center gap-2">
+            <span>AITA CODEDEFEND</span>
+            <span class="text-xs px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-500/40 font-mono">RBL G4</span>
+        </h2>
+        <p class="text-xs text-slate-400 font-mono tracking-wider mb-6 text-center max-w-md">
+            Khởi động hành trình 3D Camera Scrollytelling // Đang nạp kết cấu không gian mạng...
+        </p>
+
+        <!-- Progress Bar Container -->
+        <div class="w-full max-w-md h-2 bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/10 shadow-inner relative">
+            <div id="preloader-bar" class="h-full bg-gradient-to-r from-cyan-500 via-indigo-500 to-violet-500 rounded-full transition-all duration-150 shadow-[0_0_15px_rgba(6,182,212,0.8)]" style="width: 5%;"></div>
+        </div>
+
+        <!-- Live Status Metrics -->
+        <div class="flex items-center justify-between w-full max-w-md mt-3 text-[11px] font-mono text-slate-400">
+            <span class="flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                <span>NẠP VÀO BỘ NHỚ RAM</span>
+            </span>
+            <span id="preloader-percent" class="text-cyan-400 font-bold">5%</span>
+        </div>
+
+    </div>
+
+    <!-- ==========================================================================
+         2. TOP FLOATING NAVIGATION HEADER (Unified PRJ301 HUD Bar)
+         ========================================================================== -->
+    <header class="fixed top-0 inset-x-0 z-50 h-16 border-b border-white/10 bg-[#080911]/80 backdrop-blur-xl px-4 sm:px-8 flex items-center justify-between transition-all">
+        <!-- Left: Brand Logo & Rubric Badge -->
+        <div class="flex items-center gap-3 sm:gap-4">
+            <a href="${pageContext.request.contextPath}/" class="flex items-center gap-3 group">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-violet-600 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.4)] group-hover:scale-105 transition-all">
+                    <i data-lucide="shield-alert" class="w-5 h-5 text-white"></i>
+                </div>
+                <div class="flex flex-col">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base font-extrabold tracking-wider text-white">AITA</span>
+                        <span class="text-xs font-bold text-cyan-400 font-mono">CodeDefend</span>
+                        <span class="hidden sm:inline text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950/60 text-cyan-400 border border-cyan-500/30">RBL G4</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400 font-mono tracking-tight hidden sm:block">AI Plagiarism &amp; Academic Integrity</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Center: Technology Core Indicators -->
+        <div class="hidden xl:flex items-center gap-6 text-xs font-mono text-slate-400">
+            <div class="flex items-center gap-2">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-400"></i>
+                <span class="text-slate-300 font-medium">Google Gemini 2.0 Flash</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <i data-lucide="git-branch" class="w-3.5 h-3.5 text-violet-400"></i>
+                <span class="text-slate-300 font-medium">AST Normalization</span>
+            </div>
+        </div>
+
+        <!-- Right: Action Controls (Audio Toggle, Login/Dashboard) -->
+        <div class="flex items-center gap-2 sm:gap-3">
+            <!-- Audio Toggle Button -->
+            <button onclick="CyberAudio.toggle()" class="audio-hud-toggle px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-cyan-300 text-xs font-mono flex items-center gap-2 transition-all shadow-sm" title="Bật/Tắt Âm thanh Procedural Web Audio">
+                <i data-lucide="volume-x" class="w-4 h-4 text-cyan-400"></i>
+                <span class="hidden md:inline text-[11px]">Âm Thanh HUD</span>
+            </button>
+
+            <!-- Dynamic Session / Direct Navigation Shortcut -->
+            <c:choose>
+                <c:when test="${not empty sessionScope.currentUser}">
+                    <a href="${pageContext.request.contextPath}/dashboard" class="px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/80 text-cyan-300 hover:bg-cyan-500/30 text-xs font-semibold flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)]" data-sound="tick">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Vào Dashboard (${sessionScope.currentUser.fullName})</span>
+                        <span class="sm:hidden">Dashboard</span>
+                    </a>
+                </c:when>
+                <c:otherwise>
+                    <!-- Login Button -->
+                    <a href="${pageContext.request.contextPath}/login" class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-600 text-white font-semibold text-xs flex items-center gap-2 hover:opacity-95 transition-all shadow-[0_0_20px_rgba(6,182,212,0.35)]" data-sound="tick">
+                        <i data-lucide="log-in" class="w-3.5 h-3.5"></i>
+                        <span>Đăng Nhập</span>
+                    </a>
+                </c:otherwise>
+            </c:choose>
+        </div>
+    </header>
+
+    <section id="scrolly-container" class="scrolly-container" style="height: 1600vh;">
+        <!-- Sticky Full-Screen Canvas Viewport -->
+        <div class="scrolly-sticky-viewport">
+            <!-- The 3D Video Sequence Canvas -->
+            <canvas id="scrolly-canvas" class="scrolly-canvas"></canvas>
+
+            <!-- Cinematic Vignette & Cyber Aurora Shadows -->
+            <div class="scrolly-vignette"></div>
+
+            <!-- ==================================================================
+                 4 WAYPOINTS STORY CARDS (Compact, Elegant Liquid Glass Panels)
+                 ================================================================== -->
+            <div class="scrolly-cards-layer flex items-center justify-center p-4 sm:p-8">
+
+                <!-- CHẶNG 01: Artifact Ingestion & SHA-256 (0% - 28%) -->
+                <div class="waypoint-card left-5 sm:left-12 lg:left-16 top-24 sm:top-28 max-w-[370px] p-5 sm:p-5">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[10px] font-mono font-bold tracking-wider">CHẶNG 01</span>
+                        <span class="text-[11px] font-mono text-slate-400">SHA-256 Ingest</span>
+                    </div>
+                    <h3 class="text-base sm:text-lg font-bold text-white tracking-tight mb-2">
+                        Tiếp Nhận &amp; Khắc Dấu Vân Tay Số
+                    </h3>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Hệ thống tự động giải nén gói <code class="text-cyan-300 font-mono text-[11px]">.zip</code> và tính toán mã băm <strong>SHA-256 Checksum</strong>, bảo toàn toàn vẹn dữ liệu trước khi đối chiếu.
+                    </p>
+                    <div class="flex items-center gap-2 mt-3.5 pt-2.5 border-t border-white/10 text-[11px] font-mono text-cyan-400">
+                        <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        <span>Mã băm toàn vẹn đã xác thực</span>
+                    </div>
+                </div>
+
+                <!-- CHẶNG 02: AST Syntax Normalization (29% - 58%) -->
+                <div class="waypoint-card right-5 sm:right-12 lg:right-16 top-24 sm:top-28 max-w-[370px] p-5 sm:p-5">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 text-[10px] font-mono font-bold tracking-wider">CHẶNG 02</span>
+                        <span class="text-[11px] font-mono text-slate-400">AST Normalizer</span>
+                    </div>
+                    <h3 class="text-base sm:text-lg font-bold text-white tracking-tight mb-2">
+                        Chuẩn Hóa Cây Cú Pháp Trừu Tượng
+                    </h3>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Bóc tách mã nguồn thành cây <strong>Abstract Syntax Tree (AST)</strong>, loại bỏ triệt để các kỹ thuật đổi tên biến, xáo trộn hàm hay chèn mã rác.
+                    </p>
+                    <div class="flex items-center gap-2 mt-3.5 pt-2.5 border-t border-white/10 text-[11px] font-mono text-violet-400">
+                        <i data-lucide="shield" class="w-3.5 h-3.5 text-violet-400"></i>
+                        <span>Khử ngụy trang cú pháp 100%</span>
+                    </div>
+                </div>
+
+                <!-- CHẶNG 03: Google Gemini AI 2.0 Flash (59% - 84%) -->
+                <div class="waypoint-card left-5 sm:left-12 lg:left-16 top-24 sm:top-28 max-w-[370px] p-5 sm:p-5">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-mono font-bold tracking-wider">CHẶNG 03</span>
+                        <span class="text-[11px] font-mono text-slate-400">Gemini 2.0 Flash</span>
+                    </div>
+                    <h3 class="text-base sm:text-lg font-bold text-white tracking-tight mb-2">
+                        Lõi Thẩm Định Ngữ Nghĩa Gemini AI
+                    </h3>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Mô hình <strong>gemini-2.0-flash</strong> phân tích ngữ nghĩa thuật toán sâu sắc, vạch trần mã nguồn do AI sinh và các bài sao chép logic tinh vi.
+                    </p>
+                    <div class="flex items-center gap-2 mt-3.5 pt-2.5 border-t border-white/10 text-[11px] font-mono text-amber-400">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+                        <span>Phân tích vector ngữ nghĩa đa chiều</span>
+                    </div>
+                </div>
+
+                <!-- CHẶNG 04: Command Center & Academic Integrity Verdict (85% - 100%) -->
+                <div class="waypoint-card inset-x-4 sm:inset-x-auto sm:w-[440px] top-24 sm:top-28 mx-auto p-6 text-center">
+                    <div class="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono mb-3">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>CHẶNG 04 • PHÁN QUYẾT LIÊM CHÍNH</span>
+                    </div>
+                    <h3 class="text-lg sm:text-xl font-bold text-white tracking-tight mb-2">
+                        Bảo Vệ Liêm Chính Học Thuật
+                    </h3>
+                    <p class="text-xs text-slate-300 leading-relaxed mb-5 max-w-sm mx-auto">
+                        Tổng hợp phân tích cú pháp và ngữ nghĩa thành báo cáo đối chiếu trực quan, giúp giảng viên IT tiết kiệm <strong>90% thời gian chấm bài</strong>.
+                    </p>
+
+                    <!-- Action CTAs -->
+                    <div class="flex justify-center">
+                        <c:choose>
+                            <c:when test="${not empty sessionScope.currentUser}">
+                                <a href="${pageContext.request.contextPath}/dashboard" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 via-indigo-600 to-violet-600 text-white font-bold text-xs flex items-center gap-2 shadow-[0_0_25px_rgba(6,182,212,0.4)] hover:scale-105 transition-all" data-sound="laser">
+                                    <i data-lucide="scan" class="w-4 h-4"></i>
+                                    <span>VÀO DASHBOARD</span>
+                                </a>
+                            </c:when>
+                            <c:otherwise>
+                                <a href="${pageContext.request.contextPath}/login" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 via-indigo-600 to-violet-600 text-white font-bold text-xs flex items-center gap-2 shadow-[0_0_25px_rgba(6,182,212,0.4)] hover:scale-105 transition-all" data-sound="laser">
+                                    <i data-lucide="log-in" class="w-4 h-4"></i>
+                                    <span>ĐĂNG NHẬP ĐỂ BẮT ĐẦU</span>
+                                </a>
+                            </c:otherwise>
+                        </c:choose>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ==========================================================================
+         4. MINIMAL FLOATING STAGE CAPSULE & PROGRESS LINE
+         ========================================================================== -->
+    <!-- Minimal Floating Capsule Control at Bottom Center -->
+    <div id="hud-capsule" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-4 py-2 rounded-full backdrop-blur-xl bg-[#080a18]/80 border border-white/10 shadow-2xl transition-all hover:border-cyan-500/40 duration-300">
+        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+        <span id="hud-stage-name" class="text-xs font-mono font-medium text-slate-200">01 • Tiếp Nhận &amp; SHA-256</span>
+        <span class="h-3 w-px bg-white/15"></span>
+        <button id="auto-fly-btn" class="flex items-center gap-1.5 text-xs font-mono text-cyan-400 hover:text-cyan-300 transition-colors" title="Tự động lướt trang có nhịp điệu để thuyết trình">
+            <i data-lucide="play" class="w-3.5 h-3.5"></i>
+            <span class="auto-fly-text">Tự Động Bay</span>
+        </button>
+    </div>
+
+    <!-- Minimal Scroll Progress Line (Pinned to bottom edge) -->
+    <div class="fixed bottom-0 inset-x-0 z-40 h-[3px] bg-white/5 pointer-events-none">
+        <div id="scrolly-progress-line" class="h-full w-0 bg-gradient-to-r from-cyan-400 via-indigo-500 to-violet-500 shadow-[0_0_10px_rgba(6,182,212,0.8)] transition-all duration-75"></div>
+    </div>
+
+    <!-- ==========================================================================
+         5. TECHNICAL SPECIFICATIONS BENTO GRID (PRJ301 Rubric Pillars)
+         ========================================================================== -->
+    <section class="relative z-20 max-w-6xl mx-auto px-4 sm:px-6 py-20 border-t border-white/10">
+        <!-- Section Header -->
+        <div class="text-center max-w-2xl mx-auto mb-14">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 text-xs font-mono mb-3">
+                <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                <span>APPLICATION &amp; ARCHITECTURE EXCELLENCE</span>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                Kiến Trúc Kỹ Thuật Đạt Chuẩn Đánh Giá 100đ
+            </h2>
+            <p class="text-sm text-slate-400 mt-2 font-mono">
+                Thỏa mãn toàn diện các yêu cầu của Khung Barem PRJ30x &amp; Đề cương RBL Nhóm 4
+            </p>
+        </div>
+
+        <!-- 4-Card Bento Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+            <!-- Bento Card 1: MVC2 & Jakarta Servlets -->
+            <div class="cyber-card p-6 rounded-2xl flex flex-col justify-between hover:border-cyan-500/50 transition-all group">
+                <div>
+                    <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-4 group-hover:scale-110 transition-transform">
+                        <i data-lucide="server" class="w-5 h-5"></i>
+                    </div>
+                    <span class="text-[10px] font-mono uppercase text-cyan-400 tracking-wider">APPLICATION (25Đ)</span>
+                    <h4 class="text-base font-bold text-white mt-1 mb-2">Mô Hình MVC2 Jakarta</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Triển khai Jakarta Servlet 6.0 trên Apache Tomcat 10.1. Tách biệt hoàn toàn Controller (<code class="text-cyan-300">DashboardServlet</code>), Service Layer, và View JSP với JSTL taglib.
+                    </p>
+                </div>
+                <div class="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                    <span>Tomcat 10.1+</span>
+                    <span class="text-emerald-400 font-semibold">100% MVC2</span>
+                </div>
+            </div>
+
+            <!-- Bento Card 2: MSSQL JDBC & Transactions -->
+            <div class="cyber-card p-6 rounded-2xl flex flex-col justify-between hover:border-violet-500/50 transition-all group">
+                <div>
+                    <div class="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-violet-400 mb-4 group-hover:scale-110 transition-transform">
+                        <i data-lucide="database" class="w-5 h-5"></i>
+                    </div>
+                    <span class="text-[10px] font-mono uppercase text-violet-400 tracking-wider">DATABASE &amp; JDBC</span>
+                    <h4 class="text-base font-bold text-white mt-1 mb-2">Microsoft SQL Server</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Tích hợp driver <code class="text-violet-300">mssql-jdbc 12.4</code> với kết nối Connection Pool tối ưu, bảo toàn dữ liệu sinh viên, bài nộp, và toàn bộ lịch sử phân tích liêm chính học thuật.
+                    </p>
+                </div>
+                <div class="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                    <span>DBContext.java</span>
+                    <span class="text-violet-400 font-semibold">ACID Ready</span>
+                </div>
+            </div>
+
+            <!-- Bento Card 3: Google Gemini AI 2.0 Flash -->
+            <div class="cyber-card p-6 rounded-2xl flex flex-col justify-between hover:border-amber-500/50 transition-all group">
+                <div>
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-4 group-hover:scale-110 transition-transform">
+                        <i data-lucide="sparkles" class="w-5 h-5"></i>
+                    </div>
+                    <span class="text-[10px] font-mono uppercase text-amber-400 tracking-wider">AI INTEGRATION (10Đ + 5Đ)</span>
+                    <h4 class="text-base font-bold text-white mt-1 mb-2">Gemini 2.0 Flash AI</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Kết nối trực tiếp Google AI Studio qua Java HTTP Client. Bóc tách logic ngữ nghĩa, giải thích cụ thể điểm tương đồng và danh sách biến bị thay thế (renamed variables).
+                    </p>
+                </div>
+                <div class="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                    <span>gemini-2.0-flash</span>
+                    <span class="text-amber-400 font-semibold">Async HTTP</span>
+                </div>
+            </div>
+
+            <!-- Bento Card 4: RBAC & AuthFilter Security -->
+            <div class="cyber-card p-6 rounded-2xl flex flex-col justify-between hover:border-emerald-500/50 transition-all group">
+                <div>
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-4 group-hover:scale-110 transition-transform">
+                        <i data-lucide="shield-check" class="w-5 h-5"></i>
+                    </div>
+                    <span class="text-[10px] font-mono uppercase text-emerald-400 tracking-wider">SECURITY &amp; FILTER</span>
+                    <h4 class="text-base font-bold text-white mt-1 mb-2">Bảo Mật RBAC &amp; AuthFilter</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Áp dụng <code class="text-emerald-300">AuthFilter.java</code> kiểm soát phiên làm việc Session và JWT Token Cookie. Phân quyền đa người dùng chặt chẽ giữa Giảng viên (Lecturer) và Sinh viên (Student).
+                    </p>
+                </div>
+                <div class="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                    <span>JWT + Session</span>
+                    <span class="text-emerald-400 font-semibold">Role Guard</span>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ==========================================================================
+         6. FOOTER (PRJ301 Team Attribution)
+         ========================================================================== -->
+    <footer class="relative z-20 border-t border-white/10 bg-[#06070d] py-10 px-4 text-center text-xs text-slate-500 font-mono">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                <span class="text-slate-300 font-bold">AITA CodeDefend</span>
+                <span>— Hệ thống Kiểm định Đạo văn &amp; Tương đồng Mã nguồn</span>
+            </div>
+            <div>
+                <span>PRJ301 Research-Based Learning (RBL) • Nhóm 4 • FPT University</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ==========================================================================
+         7. JAVASCRIPT ENGINE & CONTROLLERS INITIALIZATION
+         ========================================================================== -->
+    <script src="${pageContext.request.contextPath}/assets/js/cyber-audio.js?v=2.1"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/scrollytelling-engine.js?v=2.1"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/scrollytelling-hud.js?v=2.1"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Khởi tạo icons Lucide
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+
+            // Khởi tạo Scrollytelling Canvas Engine
+            const contextPath = '${pageContext.request.contextPath}';
+            const engine = new ScrollytellingEngine({
+                canvasId: 'scrolly-canvas',
+                containerId: 'scrolly-container',
+                totalFrames: 240,
+                framePathPattern: contextPath + '/assets/frames/frame_{index}.webp',
+                lerpFactor: 0.18,
+                dprCap: 1.0
+            });
+
+            // Khởi tạo HUD Telemetry, Timeline Scrubber & Auto-Fly Controller
+            const hud = new ScrollytellingHUD(engine);
+        });
+    </script>
+</body>
+</html>

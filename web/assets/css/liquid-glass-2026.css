@@ -1,0 +1,192 @@
+/* ==========================================================================
+   AITA 2026 Tactile Grain & Liquid Glass Enhancement Suite
+   Designed for PRJ301 - AITA CodeDefend (RBL & École 42 Standard)
+   ========================================================================== */
+
+/* 1. Lớp phủ phim nhiễu điện ảnh (SVG Cinema Grain Overlay - 1.8% Opacity) */
+body.cinema-grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 99999;
+  opacity: 0.022;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* 2. Apple Liquid Glass Container (Phản xạ viền và hòa sắc sâu) */
+.liquid-glass-card {
+  background: linear-gradient(135deg, rgba(14, 16, 29, 0.78) 0%, rgba(9, 10, 21, 0.88) 100%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 10px 30px -10px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.4);
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.liquid-glass-card:hover {
+  border-color: rgba(6, 182, 212, 0.35);
+  box-shadow: 
+    0 16px 36px -10px rgba(6, 182, 212, 0.18),
+    inset 0 1px 2px 0 rgba(6, 182, 212, 0.25);
+  transform: translateY(-2px);
+}
+
+/* 3. Phản xạ mép ánh sáng động theo con trỏ chuột (Specular Rim Light) */
+.specular-rim-border {
+  position: relative;
+}
+.specular-rim-border::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: radial-gradient(
+    200px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
+    rgba(6, 182, 212, 0.85),
+    rgba(139, 92, 246, 0.35) 40%,
+    transparent 80%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  z-index: 10;
+}
+.specular-rim-border:hover::after {
+  opacity: 1;
+}
+
+/* 4. Haptic Error Shake (Input Validation Feedback) */
+.haptic-shake {
+  animation: hapticShakeAnim 0.38s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+@keyframes hapticShakeAnim {
+  10%, 90% { transform: translate3d(-1.5px, 0, 0); }
+  20%, 80% { transform: translate3d(2.5px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-3.5px, 0, 0); }
+  40%, 60% { transform: translate3d(3.5px, 0, 0); }
+}
+
+/* 5. Cyber HUD Corner Brackets (Trực quan hóa phong cách an ninh quốc phòng) */
+.hud-corner-box {
+  position: relative;
+}
+.hud-corner-box::before,
+.hud-corner-box::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  pointer-events: none;
+  border-color: rgba(6, 182, 212, 0.6);
+  z-index: 12;
+}
+.hud-corner-box::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid;
+  border-left: 2px solid;
+}
+.hud-corner-box::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid;
+  border-right: 2px solid;
+}
+
+/* 6. Glowing Rubric Metric Badges */
+.badge-rubric-pass {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+.badge-rubric-risk {
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #f87171;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.25);
+}
+.badge-rubric-warning {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+}
+
+/* 7. Sound Toggle Floating Button */
+.audio-hud-toggle {
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.audio-hud-toggle.active {
+  color: #06b6d4;
+  border-color: rgba(6, 182, 212, 0.45);
+  background: rgba(6, 182, 212, 0.12);
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
+}
+
+/* 8. Reduced Motion Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .liquid-glass-card,
+  .specular-rim-border::after,
+  .haptic-shake,
+  .stagger-row,
+  .ast-modal-card {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* 9. Spring Physics Dynamics for Modals & Drawers */
+.ast-modal-backdrop {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ast-modal-backdrop.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.ast-modal-backdrop .ast-modal-card {
+  transform: scale(0.94) translateY(12px);
+  opacity: 0;
+  transition: transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+}
+.ast-modal-backdrop.active .ast-modal-card {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+/* 10. Staggered Entry for Lists & Rows */
+@keyframes staggerFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.stagger-row {
+  opacity: 0;
+  animation: staggerFadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* 11. Subtle Micro-glow on active focus */
+.glow-focus:focus-within {
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.35);
+  border-color: rgba(6, 182, 212, 0.7) !important;
+}
+

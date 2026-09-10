@@ -1,0 +1,453 @@
+/* ==========================================================================
+   AITA Modern Motion & Micro-interactions Suite
+   Inspired by Aceternity UI & Magic UI
+   ========================================================================== */
+
+/* 1. Master Collapsible Sidebar */
+#master-sidebar {
+  transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+              padding 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: width, padding;
+}
+
+#master-sidebar.collapsed {
+  width: 4.5rem !important; /* 72px compact rail */
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+}
+
+#master-sidebar.collapsed .sidebar-label,
+#master-sidebar.collapsed .sidebar-badge,
+#master-sidebar.collapsed .sidebar-heading,
+#master-sidebar.collapsed .sidebar-footer-detail {
+  display: none !important;
+  opacity: 0;
+}
+
+#master-sidebar.collapsed .sidebar-nav-item {
+  justify-content: center !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+#master-sidebar.collapsed .sidebar-quota-box {
+  padding: 0.5rem !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 2. Interactive Mouse Spotlight Card (Aceternity UI) */
+.spotlight-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.spotlight-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    380px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
+    rgba(6, 182, 212, 0.15),
+    rgba(139, 92, 246, 0.05) 40%,
+    transparent 80%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 2;
+}
+
+.spotlight-card:hover::before {
+  opacity: 1;
+}
+
+/* 3. Magic UI Traveling Border Beam */
+.border-beam-container {
+  position: relative;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.border-beam-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(from var(--beam-angle, 0deg) at 50% 50%, transparent 0%, rgba(6, 182, 212, 0.9) 12%, rgba(139, 92, 246, 0.9) 24%, transparent 36%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: borderBeamSpin 4s linear infinite;
+  z-index: 10;
+}
+@property --beam-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+@keyframes borderBeamSpin { from { --beam-angle: 0deg; } to { --beam-angle: 360deg; } }
+
+/* 4. Button Shimmer Wave Effect */
+.btn-shimmer { position: relative; overflow: hidden; }
+.btn-shimmer::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(60deg, transparent 30%, rgba(255, 255, 255, 0.2) 45%, rgba(6, 182, 212, 0.4) 50%, rgba(255, 255, 255, 0.2) 55%, transparent 70%);
+  transform: rotate(25deg) translateY(-140%);
+  animation: btnShimmerSweep 4.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+@keyframes btnShimmerSweep {
+  0%, 65% { transform: rotate(25deg) translateY(-140%); }
+  100% { transform: rotate(25deg) translateY(140%); }
+}
+
+
+/* 5. Cyber Ambient Aurora Glow */
+.cyber-aurora-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.aurora-blob-1 {
+  position: absolute;
+  top: -12%;
+  left: -8%;
+  width: 580px;
+  height: 580px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.09) 0%, rgba(6, 182, 212, 0) 70%);
+  filter: blur(70px);
+  animation: auroraBreathe1 10s ease-in-out infinite alternate;
+}
+
+.aurora-blob-2 {
+  position: absolute;
+  bottom: -15%;
+  right: -10%;
+  width: 640px;
+  height: 640px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, rgba(139, 92, 246, 0) 70%);
+  filter: blur(80px);
+  animation: auroraBreathe2 12s ease-in-out infinite alternate;
+}
+
+@keyframes auroraBreathe1 {
+  0%   { transform: translate(0, 0) scale(1); opacity: 0.7; }
+  100% { transform: translate(60px, 40px) scale(1.15); opacity: 1; }
+}
+
+@keyframes auroraBreathe2 {
+  0%   { transform: translate(0, 0) scale(1); opacity: 0.6; }
+  100% { transform: translate(-50px, -30px) scale(1.12); opacity: 0.9; }
+}
+
+/* 6. Threat Ripple Ping Rings */
+.threat-ripple {
+  position: relative;
+}
+.threat-ripple::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 1px solid rgba(239, 68, 68, 0.6);
+  animation: rippleRing 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  pointer-events: none;
+}
+@keyframes rippleRing {
+  0%   { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* 7. Floating Bento Badges */
+.float-slow {
+  animation: floatSlow 6s ease-in-out infinite;
+}
+.float-delayed {
+  animation: floatDelayed 7s ease-in-out 1.5s infinite;
+}
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+@keyframes floatDelayed {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* 8. Cyber Code Grid & Laser Scanline Beam */
+.cyber-grid-bg {
+  background-image: 
+    linear-gradient(to right, rgba(6, 182, 212, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(6, 182, 212, 0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.scanline-beam {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.9) 50%, transparent);
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.7);
+  animation: scanlineSweep 4.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 15;
+}
+@keyframes scanlineSweep {
+  0%   { transform: translateY(-10px); opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { transform: translateY(320px); opacity: 0; }
+}
+
+/* 9. Cyber Terminal Blink & Staggered Transitions */
+.terminal-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 13px;
+  background: #06b6d4;
+  vertical-align: middle;
+  margin-left: 2px;
+  animation: terminalBlink 1s step-end infinite;
+}
+@keyframes terminalBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@keyframes cyberFadeInUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-cyber-in { animation: cyberFadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.stagger-1 { animation-delay: 0.12s; }
+.stagger-2 { animation-delay: 0.24s; }
+.stagger-3 { animation-delay: 0.36s; }
+
+/* 10. Interactive Canvas & Sliding Morphing Tab Indicator */
+#cyber-canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.role-pill-indicator {
+  position: absolute;
+  top: 4px; bottom: 4px; left: 0;
+  border-radius: 8px;
+  background: rgba(139, 92, 246, 0.25);
+  border: 1px solid rgba(139, 92, 246, 0.55);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 11. Raycast-style Global Command Palette (Ctrl+K) */
+.command-palette-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 5, 12, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 14vh;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.command-palette-backdrop.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.command-palette-modal {
+  width: 90%;
+  max-width: 640px;
+  background: #0d0f1e;
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 35px rgba(6, 182, 212, 0.2);
+  border-radius: 16px;
+  overflow: hidden;
+  transform: translateY(-12px) scale(0.97);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.command-palette-backdrop.active .command-palette-modal {
+  transform: translateY(0) scale(1);
+}
+.command-palette-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(14, 16, 30, 0.6);
+}
+.command-palette-header input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #f8fafc;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+}
+.cmd-kbd {
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+}
+.cmd-kbd-sm {
+  font-size: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+}
+.command-palette-list {
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 8px;
+}
+.cmd-group-label {
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 8px 12px 4px 12px;
+  font-weight: 600;
+}
+.cmd-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.cmd-item:hover, .cmd-item.selected {
+  background: rgba(6, 182, 212, 0.12);
+  color: #ffffff;
+  border: 1px solid rgba(6, 182, 212, 0.25);
+}
+.cmd-item.selected .cmd-enter-tag {
+  opacity: 1;
+}
+.cmd-enter-tag {
+  opacity: 0;
+  font-size: 11px;
+  font-family: monospace;
+  color: #06b6d4;
+  transition: opacity 0.12s ease;
+}
+.command-palette-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(10, 11, 22, 0.8);
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* 12. Glowing SVG Connector Bridges for Code Diff */
+.diff-connector-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 25;
+}
+.diff-glow-curve {
+  fill: none;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.7));
+  stroke-dasharray: 8 5;
+  animation: dashFlow 1.4s linear infinite;
+  pointer-events: stroke;
+}
+@keyframes dashFlow {
+  to { stroke-dashoffset: -26; }
+}
+.connector-node-dot {
+  filter: drop-shadow(0 0 8px currentColor);
+  animation: nodeDotPulse 1.8s ease-in-out infinite alternate;
+}
+@keyframes nodeDotPulse {
+  0% { transform-origin: center; transform: scale(0.9); opacity: 0.8; }
+  100% { transform-origin: center; transform: scale(1.3); opacity: 1; }
+}
+.diff-connector-group:hover .diff-glow-curve {
+  stroke-width: 4.5px;
+  filter: drop-shadow(0 0 12px rgba(239, 68, 68, 1));
+}
+
+/* 13. Code Minimap Rail */
+.code-minimap-rail {
+  width: 14px;
+  height: 100%;
+  position: absolute;
+  right: 2px;
+  top: 0;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  pointer-events: none;
+}
+.minimap-match-tick {
+  position: absolute;
+  width: 100%;
+  height: 4px;
+  background: #ef4444;
+  box-shadow: 0 0 6px #ef4444;
+  border-radius: 2px;
+}
+.minimap-match-tick.medium {
+  background: #f59e0b;
+  box-shadow: 0 0 6px #f59e0b;
+}
+
+/* 14. Infinite Two-Row Kinetic Marquee (ai-kinetic-3d-web) */
+@keyframes marqueeLeft {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes marqueeRight {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+.animate-marquee-left {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: marqueeLeft 32s linear infinite;
+}
+.animate-marquee-right {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: marqueeRight 36s linear infinite;
+}
+.marquee-pause-hover:hover .animate-marquee-left,
+.marquee-pause-hover:hover .animate-marquee-right {
+  animation-play-state: running !important;
+}
+.marquee-mask-fade {
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+
