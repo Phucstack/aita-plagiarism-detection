@@ -8,7 +8,7 @@
 [![GSAP](https://img.shields.io/badge/GSAP-3.12-88CE02?style=for-the-badge&logo=greensock&logoColor=white)](https://greensock.com/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
-> **Hệ thống Phát hiện Trùng lặp Mã nguồn & Đạo văn Tích hợp AI** — Dự án Nghiên cứu Ứng dụng (RBL - Research-Based Learning) môn **PRJ301** (Nhóm 4).
+> **Hệ thống Phát hiện Trùng lặp Mã nguồn & Đạo văn Tích hợp AI** — Dự án Nghiên cứu Ứng dụng (RBL - Research-Based Learning) môn **PRJ301** (Nhóm 7).
 > Nền tảng cho phép giảng viên và sinh viên nộp bài hàng loạt, phân tích tương đồng thuật toán (Code Similarity) và kiểm tra dấu vết văn bản/mã nguồn sinh bởi AI (LLM Detection).
 
 ---
@@ -186,5 +186,13 @@ AITA-CodeDefend-PRJ301/
 ## 👥 Thành viên Nhóm
 
 - **Môn học:** PRJ301 — Web Applications Development (FPT University)
-- **Nhóm thực hiện:** RBL Nhóm 4
+- **Nhóm thực hiện:** RBL Nhóm 7
 - **Đề tài:** AITA CodeDefend - AI Plagiarism & Code Similarity Detection Suite
+
+| STT | Họ và Tên | Vai trò | Trách nhiệm chính |
+| :---: | :--- | :---: | :--- |
+| 1 | **Nguyễn Trần Anh Kiệt** | **Trưởng nhóm (Leader)** | Quản lý dự án, kiến trúc hệ thống & điều phối |
+| 2 | **Đinh Vũ Phương Khánh** | **Thành viên** | Phát triển Backend Servlet, API & tích hợp dịch vụ |
+| 3 | **Nguyễn Hoài Nhi** | **Thành viên** | Thuật toán đối soát mã nguồn & xử lý văn bản NLP |
+| 4 | **Trần Văn Phúc** | **Thành viên** | Frontend 3D Scrollytelling, WebGL & trải nghiệm người dùng |
+| 5 | **Nguyễn Tiến** | **Thành viên** | Thiết kế cơ sở dữ liệu, kiểm thử hệ thống & tài liệu |

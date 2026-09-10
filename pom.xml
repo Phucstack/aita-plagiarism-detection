@@ -10,7 +10,7 @@
     <packaging>war</packaging>
 
     <name>AITA CodeDefend - AI Plagiarism &amp; Code Similarity</name>
-    <description>PRJ301 Research-Based Learning Project - Group 4</description>
+    <description>PRJ301 Research-Based Learning Project - Group 7</description>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
