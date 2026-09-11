@@ -32,6 +32,9 @@
   // 2. Draw Bezier Connectors with Traveling Photons
   function drawConnectors() {
     svg.innerHTML = '';
+    if (window.CyberEffects && !window.CyberEffects.isEnabled()) {
+      return;
+    }
     const containerRect = container.getBoundingClientRect();
     svg.setAttribute('width', containerRect.width);
     svg.setAttribute('height', containerRect.height);

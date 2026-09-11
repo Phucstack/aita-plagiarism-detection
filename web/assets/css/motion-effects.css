@@ -482,21 +482,32 @@ html.effects-disabled .cinema-grain::before {
   visibility: hidden !important;
 }
 
-/* 2. Tắt tất cả hiệu ứng ánh sáng, border beam, scanlines, shimmers, spotlights */
-html.effects-disabled .border-beam-container::after,
-html.effects-disabled .scanline-beam,
-html.effects-disabled .spotlight-card::before,
-html.effects-disabled .btn-shimmer::after,
-html.effects-disabled .radar-circle::after,
-html.effects-disabled .specular-rim-border::after,
-html.effects-disabled .pillar-bracket-corner::before,
-html.effects-disabled .pillar-bracket-corner::after {
+/* 2. Xóa hoàn toàn Tech Marquee ticker trong Dashboard */
+html.effects-disabled .tech-marquee-container,
+html.effects-disabled .marquee-track {
   display: none !important;
-  opacity: 0 !important;
-  animation: none !important;
 }
 
-/* 3. Tắt tất cả hiệu ứng equalizer sóng âm và pulse trong Batch Scanner */
+/* 3. Xóa hoàn toàn Active Radar Scope graphic trong Dashboard */
+html.effects-disabled .radar-scope-container,
+html.effects-disabled .radar-circle,
+html.effects-disabled .radar-beam,
+html.effects-disabled .radar-dot {
+  display: none !important;
+}
+html.effects-disabled .radar-clean-summary {
+  display: flex !important;
+}
+
+/* 4. Xóa hoàn toàn 3D Cyber Security Shield & Containment Pillars trong Batch Scanner */
+html.effects-disabled .batch-shield-3d-container,
+html.effects-disabled #batch-shield-3d-viewport,
+html.effects-disabled .group\/shield,
+html.effects-disabled .containment-pillar,
+html.effects-disabled #containment-pillar-left,
+html.effects-disabled #containment-pillar-right,
+html.effects-disabled .laser-beam-line,
+html.effects-disabled .pillar-eq-bar,
 html.effects-disabled .eq-bar-1,
 html.effects-disabled .eq-bar-2,
 html.effects-disabled .eq-bar-3,
@@ -504,17 +515,37 @@ html.effects-disabled .eq-bar-4,
 html.effects-disabled .eq-bar-5,
 html.effects-disabled .eq-bar-6,
 html.effects-disabled .eq-bar-7,
-html.effects-disabled .eq-bar-8,
-html.effects-disabled .pillar-eq-bar,
-html.effects-disabled .containment-pillar,
-html.effects-disabled .radar-circle {
-  animation: none !important;
-  transform: none !important;
+html.effects-disabled .eq-bar-8 {
+  display: none !important;
+}
+html.effects-disabled .batch-clean-upload-fallback {
+  display: flex !important;
 }
 
-/* 4. Tắt Tailwind animation utility classes */
+/* 5. Xóa hoàn toàn SVG Curved Connectors trong Diff Inspector */
+html.effects-disabled #diff-connector-svg,
+html.effects-disabled .diff-connector-canvas,
+html.effects-disabled .diff-connector-group {
+  display: none !important;
+}
+
+/* 6. Tắt tất cả hiệu ứng ánh sáng, border beam, scanlines, shimmers, spotlights */
+html.effects-disabled .border-beam-container::after,
+html.effects-disabled .scanline-beam,
+html.effects-disabled .spotlight-card::before,
+html.effects-disabled .btn-shimmer::after,
+html.effects-disabled .radar-circle::after,
+html.effects-disabled .specular-rim-border::after,
+html.effects-disabled .pillar-bracket-corner::before,
+html.effects-disabled .pillar-bracket-corner::after,
+html.effects-disabled .animate-ping {
+  display: none !important;
+  opacity: 0 !important;
+  animation: none !important;
+}
+
+/* 7. Tắt Tailwind animation utility classes */
 html.effects-disabled .animate-pulse,
-html.effects-disabled .animate-ping,
 html.effects-disabled .animate-spin,
 html.effects-disabled .animate-bounce,
 html.effects-disabled .animate-marquee-left,
@@ -522,7 +553,7 @@ html.effects-disabled .animate-marquee-right {
   animation: none !important;
 }
 
-/* 5. Tối ưu hiệu năng: Tắt backdrop-filter blur nặng nề */
+/* 8. Tối ưu hiệu năng: Tắt backdrop-filter blur nặng nề */
 html.effects-disabled .liquid-glass-card,
 html.effects-disabled .liquid-glass-input,
 html.effects-disabled .backdrop-blur-md,
@@ -531,7 +562,7 @@ html.effects-disabled .backdrop-blur-xl {
   -webkit-backdrop-filter: none !important;
 }
 
-/* 6. Tắt 3D Tilt transforms */
+/* 9. Tắt 3D Tilt transforms */
 html.effects-disabled .tilt-card {
   transform: none !important;
   transition: none !important;

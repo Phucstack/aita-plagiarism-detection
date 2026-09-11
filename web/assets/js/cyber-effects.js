@@ -97,6 +97,11 @@
           window.CyberShield3D.pause();
         }
       }
+
+      // Đồng bộ tới Diff Connector SVG nếu có
+      if (typeof window.refreshDiffConnectors === 'function') {
+        window.refreshDiffConnectors();
+      }
     },
 
     /**

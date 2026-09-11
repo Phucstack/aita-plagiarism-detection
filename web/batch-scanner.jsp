@@ -366,12 +366,20 @@
                 </div>
 
                 <!-- 3D Holographic Cyber Security Shield (Tripo3D/Three.js Studio PBR Engine) -->
-                <div class="relative w-[340px] h-[240px] max-w-full flex flex-col items-center justify-center pointer-events-auto my-0.5 group/shield" title="AITA 3D Cyber Security Shield - Giám sát toàn vẹn mã nguồn thời gian thực (Kéo chuột để xoay 3D)">
+                <div class="batch-shield-3d-container relative w-[340px] h-[240px] max-w-full flex flex-col items-center justify-center pointer-events-auto my-0.5 group/shield" title="AITA 3D Cyber Security Shield - Giám sát toàn vẹn mã nguồn thời gian thực (Kéo chuột để xoay 3D)">
                     <div id="batch-shield-3d-viewport" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
                     <div class="absolute bottom-1 text-[10px] font-mono text-cyan-300 bg-[#070914]/90 px-3.5 py-0.5 rounded-full border border-cyan-500/30 backdrop-blur-md pointer-events-none flex items-center gap-1.5 shadow-lg z-10">
                         <span id="shield-status-dot" class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
                         <span id="shield-status-text">Cyber Shield Ready</span>
                     </div>
+                </div>
+
+                <!-- Clean Upload Fallback Icon khi TẮT hiệu ứng (không hiển thị 3D Shield) -->
+                <div class="batch-clean-upload-fallback hidden flex-col items-center justify-center py-6 pointer-events-none">
+                    <div class="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-2 shadow-sm">
+                        <i data-lucide="cloud-upload" class="w-8 h-8 text-cyan-400"></i>
+                    </div>
+                    <span class="text-xs font-mono text-slate-400">Khu vực nhận tệp tải lên (Chế độ tĩnh)</span>
                 </div>
 
                 <!-- Center Scanning Text with Stepper Details -->

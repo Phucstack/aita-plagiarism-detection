@@ -280,7 +280,7 @@
             </div>
 
             <!-- Infinite Two-Row Tech Marquee (ai-kinetic-3d-web) -->
-            <div class="mb-6 rounded-2xl bg-[#0a0c18]/80 border border-white/5 p-3 overflow-hidden space-y-2 marquee-mask-fade shadow-lg backdrop-blur-md">
+            <div class="tech-marquee-container mb-6 rounded-2xl bg-[#0a0c18]/80 border border-white/5 p-3 overflow-hidden space-y-2 marquee-mask-fade shadow-lg backdrop-blur-md">
                 <!-- Track 1: Running Left -->
                 <div class="marquee-track flex gap-4 whitespace-nowrap animate-marquee-left">
                     <div class="flex items-center gap-4 text-xs font-mono">
@@ -372,7 +372,7 @@
                     </div>
 
                     <!-- Circular Radar Scope with Concentric Circles, Compass Graduation & Azimuth Crosshairs -->
-                    <div class="flex justify-center my-3 relative items-center">
+                    <div class="radar-scope-container flex justify-center my-3 relative items-center min-h-[240px]">
                         <div class="absolute w-[240px] h-[240px] rounded-full border border-dashed border-violet-500/40 pointer-events-none shadow-[0_0_20px_rgba(139,92,246,0.15)] flex items-center justify-center">
                             <div class="absolute inset-1.5 rounded-full border border-violet-500/20"></div>
                             <div class="absolute top-1 text-[8px] font-mono text-violet-400/80">0°</div>
@@ -392,6 +392,33 @@
                             <div class="absolute top-16 right-10 w-2 h-2 rounded-full bg-cyan-400 radar-dot shadow-[0_0_10px_#06b6d4]"></div>
                             <div class="absolute bottom-12 left-16 w-2 h-2 rounded-full bg-pink-400 radar-dot shadow-[0_0_10px_#ec4899]"></div>
                             <div class="absolute bottom-9 right-16 w-3 h-3 rounded-full bg-cyan-400 radar-dot shadow-[0_0_12px_#06b6d4]"></div>
+                        </div>
+                    </div>
+
+                    <!-- Chế độ Clean View khi TẮT hiệu ứng: Hiển thị tóm tắt liêm chính mã nguồn dạng thẻ phẳng thay thế cho radar đồ họa -->
+                    <div class="radar-clean-summary hidden flex-col justify-center my-3 p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-3 min-h-[240px]">
+                        <div class="flex items-center justify-between pb-2 border-b border-white/5 text-xs font-mono">
+                            <span class="text-slate-400">Trạng thái đối soát</span>
+                            <span class="text-cyan-400 font-bold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-cyan-400"></span> ĐANG THEO DÕI</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 text-xs font-mono">
+                            <div class="p-2.5 rounded-lg bg-black/20 border border-white/5">
+                                <span class="text-slate-500 text-[10px] block">Cụm đối soát AST</span>
+                                <span class="text-emerald-400 font-bold text-sm">38 / 42 An toàn</span>
+                            </div>
+                            <div class="p-2.5 rounded-lg bg-black/20 border border-white/5">
+                                <span class="text-slate-500 text-[10px] block">Cảnh báo Gemini AI</span>
+                                <span class="text-rose-400 font-bold text-sm">4 Bài nghi vấn</span>
+                            </div>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-black/20 border border-white/5 space-y-1.5 text-xs font-mono">
+                            <div class="flex justify-between text-[11px]">
+                                <span class="text-slate-400">Tiến độ quét đợt #DP-2026</span>
+                                <span class="text-cyan-400 font-bold">100% HOÀN TẤT</span>
+                            </div>
+                            <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <div class="w-full h-full bg-cyan-400"></div>
+                            </div>
                         </div>
                     </div>
 
