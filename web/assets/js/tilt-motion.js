@@ -11,6 +11,10 @@
       card.style.transformStyle = 'preserve-3d';
 
       card.addEventListener('mousemove', (e) => {
+        if (window.CyberEffects && !window.CyberEffects.isEnabled()) {
+          card.style.transform = 'none';
+          return;
+        }
         const rect = card.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;

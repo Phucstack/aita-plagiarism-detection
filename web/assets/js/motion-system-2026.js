@@ -30,6 +30,16 @@
         const duration = 850; // ms
         const startTime = performance.now();
 
+        // Hiển thị ngay giá trị cuối cùng nếu chế độ tắt hiệu ứng đang kích hoạt
+        if (window.CyberEffects && !window.CyberEffects.isEnabled()) {
+            if (decimals > 0) {
+                el.innerText = prefix + target.toFixed(decimals) + suffix;
+            } else {
+                el.innerText = prefix + Math.round(target).toLocaleString() + suffix;
+            }
+            return;
+        }
+
         function update(now) {
             const elapsed = now - startTime;
             const progress = Math.min(elapsed / duration, 1);

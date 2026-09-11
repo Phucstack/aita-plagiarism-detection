@@ -24,6 +24,8 @@
   let particleSystem, coreLight, whiteKeyLight, cyanFillLight, rimLight;
 
   let animId = null;
+  let animateFn = null;
+  let isShieldAnimating = false;
   let currentStage = 0; // 0: Idle, 1: SHA-256, 2: AST, 3: Gemini, 4: Breach Flagged
   let targetRotationX = 0, targetRotationY = 0;
   let laserY = 0, laserDirection = 1;
@@ -712,7 +714,13 @@
 
     // Render Animation Loop
     let clock = new THREE.Clock();
+
     function animate() {
+      if (window.CyberEffects && !window.CyberEffects.isEnabled()) {
+        isShieldAnimating = false;
+        return;
+      }
+      isShieldAnimating = true;
       animId = requestAnimationFrame(animate);
       const delta = clock.getDelta();
       const t = clock.getElapsedTime();
@@ -799,6 +807,7 @@
 
       renderer.render(scene, camera);
     }
+    animateFn = animate;
     animate();
 
     // Responsive Resize Handler
@@ -905,7 +914,19 @@
     init: initCyberShield3D,
     setStage: setStage,
     reset: reset,
-    getStage: () => currentStage
+    getStage: () => currentStage,
+    resume: function () {
+      if (!isShieldAnimating && renderer && animateFn) {
+        animateFn();
+      }
+    },
+    pause: function () {
+      isShieldAnimating = false;
+      if (animId) {
+        cancelAnimationFrame(animId);
+        animId = null;
+      }
+    }
   };
 
   document.addEventListener('DOMContentLoaded', () => {

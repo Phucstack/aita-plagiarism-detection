@@ -42,6 +42,10 @@ document.addEventListener("DOMContentLoaded", () => {
  * Hiệu ứng nhảy số động mượt mà bằng requestAnimationFrame (Cubic Ease-Out)
  */
 function animateCounter(element, targetValue, suffix = "", duration = 1200) {
+    if (window.CyberEffects && !window.CyberEffects.isEnabled()) {
+        element.innerText = (targetValue % 1 === 0 ? targetValue : targetValue.toFixed(1)) + suffix;
+        return;
+    }
     let startTimestamp = null;
     const step = (timestamp) => {
         if (!startTimestamp) startTimestamp = timestamp;
@@ -193,6 +197,7 @@ function updateSidebarToggleIcon(isCollapsed) {
  */
 function initSpotlightCards() {
     document.addEventListener("mousemove", (e) => {
+        if (window.CyberEffects && !window.CyberEffects.isEnabled()) return;
         const cards = document.querySelectorAll(".spotlight-card, .specular-rim-border");
         cards.forEach(card => {
             const rect = card.getBoundingClientRect();

@@ -27,6 +27,17 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css?v=2.6">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/liquid-glass-2026.css?v=2.6">
+    <!-- Chế độ Tắt Toàn Bộ Hiệu Ứng (Mặc định: TẮT sau khi đăng nhập) -->
+    <script>
+        (function() {
+            var fx = localStorage.getItem('aita_effects_enabled');
+            if (fx !== 'true') {
+                document.documentElement.classList.add('effects-disabled');
+            } else {
+                document.documentElement.classList.add('effects-enabled');
+            }
+        })();
+    </script>
     <style id="quantum-pillars-style">
         @keyframes eqPulse1 { 0%, 100% { transform: scaleY(0.22); } 50% { transform: scaleY(0.92); } }
         @keyframes eqPulse2 { 0%, 100% { transform: scaleY(0.72); } 50% { transform: scaleY(0.18); } }
@@ -130,6 +141,12 @@
 
         <!-- Right Profile & Utilities Section -->
         <div class="flex items-center gap-4">
+            <!-- Visual Effects Toggle Button (Mặc định: TẮT sau khi đăng nhập) -->
+            <button onclick="CyberEffects.toggle()" class="effects-hud-toggle px-2.5 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all flex items-center gap-1.5 text-xs font-mono shrink-0" title="Bật/Tắt Toàn Bộ Hiệu Ứng (Mặc định: TẮT)">
+                <i data-lucide="zap-off" class="w-3.5 h-3.5 text-amber-400"></i>
+                <span class="hidden sm:inline text-[11px]">Hiệu ứng: <span class="effects-status-val font-bold text-amber-400">TẮT</span></span>
+            </button>
+
             <!-- Cyber Audio HUD Toggle Button -->
             <button onclick="CyberAudio.toggle()" class="audio-hud-toggle p-2 rounded-xl border border-white/10 bg-white/5 hover:bg-cyan-500/10 hover:border-cyan-500/40 text-slate-400 hover:text-cyan-300 transition-all flex items-center justify-center shrink-0" title="Bật/Tắt Âm Thanh Tương Tác HUD">
                 <i data-lucide="volume-x" class="w-4 h-4"></i>
@@ -885,6 +902,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="${pageContext.request.contextPath}/assets/models/cyber-shield-data.js"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/cyber-effects.js"></script>
     <script src="${pageContext.request.contextPath}/assets/js/cyber-audio.js"></script>
     <script src="${pageContext.request.contextPath}/assets/js/cyber-particles.js"></script>
     <script src="${pageContext.request.contextPath}/assets/js/cyber-shield-3d.js"></script>

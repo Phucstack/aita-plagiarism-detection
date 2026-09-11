@@ -107,8 +107,22 @@
     particles.push(new Particle3D(i));
   }
 
+  let isLoopRunning = false;
+
   function render() {
-    if (!isTabActive) return;
+    if (!isTabActive) {
+      isLoopRunning = false;
+      return;
+    }
+
+    // Nếu CyberEffects đang TẮT, dừng render ngay lập tức để tiết kiệm GPU/CPU
+    if (window.CyberEffects && !window.CyberEffects.isEnabled()) {
+      isLoopRunning = false;
+      ctx.clearRect(0, 0, width, height);
+      return;
+    }
+
+    isLoopRunning = true;
     ctx.clearRect(0, 0, width, height);
 
     // Smooth camera rotation damping (lerp)
@@ -154,6 +168,19 @@
     requestAnimationFrame(render);
   }
 
+  // Cung cấp API điều khiển toàn cục cho CyberEffects
+  window.CyberParticles = {
+    resume: function () {
+      if (!isLoopRunning) {
+        render();
+      }
+    },
+    pause: function () {
+      isLoopRunning = false;
+      if (ctx) ctx.clearRect(0, 0, width, height);
+    }
+  };
+
   // Window Resize
   window.addEventListener('resize', () => {
     width = canvas.width = window.innerWidth;
@@ -162,6 +189,7 @@
 
   // Mouse camera tilt in 3D
   window.addEventListener('mousemove', (e) => {
+    if (window.CyberEffects && !window.CyberEffects.isEnabled()) return;
     mouseX = (e.clientX - width / 2) / (width / 2);
     mouseY = (e.clientY - height / 2) / (height / 2);
     targetRotY = mouseX * 0.22; // subtle +/- 12 degrees
@@ -171,8 +199,13 @@
   // Page visibility awareness (saves battery & GPU when tab is inactive)
   document.addEventListener('visibilitychange', () => {
     isTabActive = !document.hidden;
-    if (isTabActive) render();
+    if (isTabActive && (!window.CyberEffects || window.CyberEffects.isEnabled())) {
+      render();
+    }
   });
 
-  render();
+  // Khởi chạy ban đầu nếu hiệu ứng được bật
+  if (!window.CyberEffects || window.CyberEffects.isEnabled()) {
+    render();
+  }
 })();
