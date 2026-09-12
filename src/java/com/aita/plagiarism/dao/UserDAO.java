@@ -35,13 +35,13 @@ public class UserDAO {
                     if (PasswordUtil.verifyPassword(rawPassword, storedHash)) {
                         return mapUser(rs);
                     }
+                    return null; // Tìm thấy tài khoản trong DB nhưng mật khẩu sai -> từ chối ngay
                 }
             }
-        } catch (Exception e) {
-            // Khi kết nối SQL Server gặp lỗi TCP/IP ngoại cảnh, kích hoạt Fallback Resilient Pattern
-            return authenticateFallback(usernameOrEmail.trim(), rawPassword);
-        }
-        return null;
+        } catch (Exception ignored) {}
+
+        // Fallback Resilient Pattern cho tài khoản mẫu
+        return authenticateFallback(usernameOrEmail.trim(), rawPassword);
     }
 
     public User getUserById(int userId) {
@@ -54,15 +54,16 @@ public class UserDAO {
                     return mapUser(rs);
                 }
             }
-        } catch (Exception e) {
-            for (User u : getFallbackUsers()) {
-                if (u.getUserId() == userId) return u;
-            }
+        } catch (Exception ignored) {}
+
+        for (User u : getFallbackUsers()) {
+            if (u.getUserId() == userId) return u;
         }
         return null;
     }
 
     public User getUserByUsername(String username) {
+        if (username == null || username.trim().isEmpty()) return null;
         String sql = "SELECT user_id, username, full_name, email, role, avatar_url, created_at FROM Users WHERE LOWER(username) = LOWER(?)";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -72,10 +73,10 @@ public class UserDAO {
                     return mapUser(rs);
                 }
             }
-        } catch (Exception e) {
-            for (User u : getFallbackUsers()) {
-                if (u.getUsername().equalsIgnoreCase(username.trim())) return u;
-            }
+        } catch (Exception ignored) {}
+
+        for (User u : getFallbackUsers()) {
+            if (u.getUsername().equalsIgnoreCase(username.trim())) return u;
         }
         return null;
     }
@@ -91,10 +92,10 @@ public class UserDAO {
                     return mapUser(rs);
                 }
             }
-        } catch (Exception e) {
-            for (User u : getFallbackUsers()) {
-                if (u.getEmail().equalsIgnoreCase(email.trim())) return u;
-            }
+        } catch (Exception ignored) {}
+
+        for (User u : getFallbackUsers()) {
+            if (u.getEmail().equalsIgnoreCase(email.trim())) return u;
         }
         return null;
     }
