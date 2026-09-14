@@ -32,6 +32,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Custom Motion CSS -->
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/aita-copilot.css?v=2.0">
     <!-- Chế độ Tắt Toàn Bộ Hiệu Ứng (Mặc định: TẮT sau khi đăng nhập) -->
     <script>
         (function() {

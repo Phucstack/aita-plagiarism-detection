@@ -16,5 +16,11 @@
         lucide.createIcons();
     </script>
     <script src="${pageContext.request.contextPath}/assets/js/motion.js"></script>
+    <!-- AITA Realtime AI Copilot (ZeroTTS Voice Engine) -->
+    <script src="${pageContext.request.contextPath}/assets/js/aita-copilot-context.js?v=2.0"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/aita-copilot-voice.js?v=2.0"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/aita-copilot-chat.js?v=2.0"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/aita-copilot-observer.js?v=2.0"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/aita-copilot.js?v=2.0"></script>
 </body>
 </html>

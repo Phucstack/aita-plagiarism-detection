@@ -34,6 +34,7 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css?v=2.1">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/motion-effects.css?v=2.1">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/liquid-glass-2026.css?v=2.1">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/aita-copilot.css?v=2.0">
 </head>
 <body class="cinema-grain bg-[#080911] text-slate-200 min-h-screen font-sans selection:bg-cyan-500/30 selection:text-cyan-200 overflow-x-hidden">
 
@@ -404,5 +405,10 @@
             const hud = new ScrollytellingHUD(engine);
         });
     </script>
+    <!-- AITA Realtime AI Copilot (ZeroTTS Voice Engine) -->
+    <script src="${pageContext.request.contextPath}/assets/js/aita-copilot-context.js?v=2.0"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/aita-copilot-voice.js?v=2.0"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/aita-copilot-chat.js?v=2.0"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/aita-copilot.js?v=2.0"></script>
 </body>
 </html>

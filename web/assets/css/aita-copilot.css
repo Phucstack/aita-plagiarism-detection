@@ -1,0 +1,851 @@
+/**
+ * AITA CodeDefend - AI Copilot & Realtime ZeroTTS Voice HUD
+ * Liquid Glass 2026 & Cyberpunk HUD Design System
+ */
+
+/* ==========================================================================
+   1. Floating AI Copilot Container & Orb
+   ========================================================================== */
+.aita-copilot-root {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9990;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  pointer-events: none;
+}
+
+.aita-copilot-interactive {
+  pointer-events: auto;
+}
+
+/* Floating Avatar Button */
+.aita-copilot-orb-btn {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0b0f19 0%, #151b2e 100%);
+  border: 1px solid rgba(6, 182, 212, 0.4);
+  box-shadow: 0 0 25px rgba(6, 182, 212, 0.35), 0 8px 32px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  outline: none;
+}
+
+.aita-copilot-orb-btn:hover {
+  transform: scale(1.08) translateY(-2px);
+  border-color: rgba(6, 182, 212, 0.8);
+  box-shadow: 0 0 35px rgba(6, 182, 212, 0.6), 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+.aita-copilot-orb-btn:active {
+  transform: scale(0.96);
+}
+
+/* Multi-layer Rotating Rings */
+.aita-copilot-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, #06b6d4, #8b5cf6, #10b981, #06b6d4);
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), black calc(100% - 2px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), black calc(100% - 2px));
+  animation: aita-spin 6s linear infinite;
+  opacity: 0.85;
+}
+
+.aita-copilot-orb-btn.is-speaking .aita-copilot-ring {
+  animation: aita-spin 2s linear infinite;
+  opacity: 1;
+  filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.8));
+}
+
+@keyframes aita-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Pulsing Ambient Aura */
+.aita-copilot-aura {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.35) 0%, transparent 70%);
+  animation: aita-pulse 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.aita-copilot-orb-btn.is-speaking .aita-copilot-aura {
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.6) 0%, rgba(139, 92, 246, 0.3) 50%, transparent 75%);
+  animation: aita-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes aita-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.25); opacity: 0.85; }
+}
+
+/* Hologram Avatar Center Icon */
+.aita-copilot-icon {
+  position: relative;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  color: #22d3ee;
+  transition: transform 0.3s ease;
+}
+
+.aita-copilot-orb-btn:hover .aita-copilot-icon {
+  transform: rotate(15deg);
+}
+
+/* Animated Sound Wave Bars in Orb */
+.aita-wave-bars {
+  position: absolute;
+  bottom: 8px;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+  z-index: 3;
+}
+
+.aita-wave-bar {
+  width: 2.5px;
+  background-color: #06b6d4;
+  border-radius: 2px;
+  height: 3px;
+  transition: height 0.1s ease;
+}
+
+.aita-copilot-orb-btn.is-speaking .aita-wave-bar:nth-child(1) {
+  animation: aita-bar-bounce 0.8s ease-in-out infinite alternate;
+}
+.aita-copilot-orb-btn.is-speaking .aita-wave-bar:nth-child(2) {
+  animation: aita-bar-bounce 0.6s ease-in-out 0.2s infinite alternate;
+}
+.aita-copilot-orb-btn.is-speaking .aita-wave-bar:nth-child(3) {
+  animation: aita-bar-bounce 0.7s ease-in-out 0.4s infinite alternate;
+}
+.aita-copilot-orb-btn.is-speaking .aita-wave-bar:nth-child(4) {
+  animation: aita-bar-bounce 0.9s ease-in-out 0.1s infinite alternate;
+}
+
+@keyframes aita-bar-bounce {
+  0% { height: 3px; background-color: #06b6d4; }
+  100% { height: 14px; background-color: #a78bfa; }
+}
+
+/* Status Dot */
+.aita-copilot-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #10b981;
+  color: #ffffff;
+  border: 2px solid #080911;
+  border-radius: 9999px;
+  width: 14px;
+  height: 14px;
+  z-index: 4;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.7);
+}
+
+/* ==========================================================================
+   2. Speech Bubble (Codex Pet Style Transparent HUD Balloon)
+   ========================================================================== */
+.aita-bubble-container {
+  position: absolute;
+  bottom: 74px;
+  right: 0;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  background: rgba(2, 6, 23, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(6, 182, 212, 0.7);
+  border-radius: 18px;
+  box-shadow: 0 0 25px rgba(6, 182, 212, 0.35), inset 0 0 12px rgba(6, 182, 212, 0.08);
+  padding: 10px 14px;
+  color: #ffffff;
+  pointer-events: auto;
+  transform-origin: bottom right;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0;
+  transform: translateY(10px) scale(0.96);
+  visibility: hidden;
+  z-index: 100;
+}
+
+.aita-bubble-container.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  visibility: visible;
+}
+
+/* Codex Pet Tail pointing to Orb */
+.aita-bubble-tail {
+  position: absolute;
+  bottom: -7px;
+  right: 26px;
+  width: 12px;
+  height: 12px;
+  background: rgba(2, 6, 23, 0.15);
+  border-right: 1.5px solid rgba(6, 182, 212, 0.7);
+  border-bottom: 1.5px solid rgba(6, 182, 212, 0.7);
+  transform: rotate(45deg);
+}
+
+/* Subtle Topbar with Pet Status & Mini Tools */
+.aita-bubble-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  opacity: 0.85;
+}
+
+.aita-bubble-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #22d3ee;
+  letter-spacing: 0.05em;
+  font-family: monospace;
+}
+
+.aita-badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #22d3ee;
+  box-shadow: 0 0 6px #22d3ee;
+}
+
+.aita-bubble-mini-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.aita-mini-tool {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 3px;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.aita-mini-tool:hover {
+  border-color: #22d3ee;
+  color: #22d3ee;
+  background: rgba(6, 182, 212, 0.15);
+}
+
+.aita-mini-tool.active {
+  color: #22d3ee;
+  border-color: #06b6d4;
+  background: rgba(6, 182, 212, 0.25);
+}
+
+/* Bubble Content Text */
+.aita-bubble-text {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(6, 182, 212, 0.35);
+  min-height: 36px;
+  word-break: break-word;
+}
+
+.aita-bubble-text strong,
+.aita-bubble-text .highlight {
+  color: #38bdf8;
+  font-weight: 600;
+  text-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+}
+
+/* 3 Bouncing Dots while AI is Thinking */
+.aita-thinking-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 0;
+}
+.aita-thinking-dots span {
+  width: 7px;
+  height: 7px;
+  background-color: #22d3ee;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.8);
+  animation: aita-dot-bounce 1.2s infinite ease-in-out both;
+}
+.aita-thinking-dots span:nth-child(1) { animation-delay: -0.32s; }
+.aita-thinking-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes aita-dot-bounce {
+  0%, 80%, 100% { transform: scale(0.6) translateY(0); opacity: 0.35; }
+  40% { transform: scale(1.25) translateY(-5px); opacity: 1; }
+}
+
+.aita-typewriter-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 14px;
+  background-color: #06b6d4;
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: aita-blink 0.8s infinite;
+}
+
+@keyframes aita-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Bubble Quick Input Row */
+.aita-bubble-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(6, 182, 212, 0.2);
+}
+.aita-bubble-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  color: #ffffff;
+  outline: none;
+  transition: all 0.2s;
+}
+.aita-bubble-input:focus {
+  border-color: #22d3ee;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
+}
+
+.aita-bubble-mic-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.aita-bubble-mic-btn:hover {
+  background: rgba(6, 182, 212, 0.2);
+  border-color: #06b6d4;
+  color: #22d3ee;
+}
+.aita-bubble-mic-btn.is-listening {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: #10b981;
+  color: #34d399;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+  animation: aita-mic-pulse 1.5s infinite;
+}
+@keyframes aita-mic-pulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(16, 185, 129, 0.3); }
+  50% { box-shadow: 0 0 14px rgba(16, 185, 129, 0.85); }
+}
+
+.aita-bubble-send-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  border: none;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.aita-bubble-send-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+}
+
+/* Bubble Bottom Actions */
+.aita-bubble-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 6px;
+}
+
+.aita-action-chip {
+  font-size: 11px;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.aita-action-chip:hover {
+  background: rgba(6, 182, 212, 0.2);
+  border-color: rgba(6, 182, 212, 0.5);
+  color: #38bdf8;
+}
+
+/* Autoplay Unblocker Toast Button */
+.aita-unblock-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(139, 92, 246, 0.25));
+  border: 1px solid #06b6d4;
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  animation: aita-unblock-glow 2s infinite alternate;
+  transition: all 0.2s;
+}
+
+.aita-unblock-btn:hover {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.4), rgba(139, 92, 246, 0.4));
+  transform: translateY(-1px);
+}
+
+@keyframes aita-unblock-glow {
+  0% { box-shadow: 0 0 10px rgba(6, 182, 212, 0.3); }
+  100% { box-shadow: 0 0 20px rgba(6, 182, 212, 0.7); }
+}
+
+/* ==========================================================================
+   3. Quick Help & Knowledge Floating Panel (Không chiếm toàn màn hình)
+   ========================================================================== */
+.aita-drawer-backdrop {
+  display: none; /* Tắt lớp phủ làm tối toàn màn hình */
+}
+
+.aita-drawer {
+  position: fixed;
+  bottom: 90px;
+  right: 24px;
+  width: 410px;
+  max-width: calc(100vw - 48px);
+  height: 520px;
+  max-height: calc(100vh - 120px);
+  background: rgba(9, 12, 23, 0.96);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75), 0 0 35px rgba(6, 182, 212, 0.2);
+  z-index: 9996;
+  transform: translateY(20px) scale(0.95);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  color: #f1f5f9;
+  pointer-events: auto;
+}
+
+.aita-drawer.is-open {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  visibility: visible;
+}
+
+.aita-drawer-header {
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(14, 18, 32, 0.8);
+}
+
+.aita-drawer-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aita-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.aita-faq-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.aita-faq-item:hover {
+  background: rgba(6, 182, 212, 0.08);
+  border-color: rgba(6, 182, 212, 0.35);
+  transform: translateY(-1px);
+}
+
+.aita-faq-question {
+  font-size: 13px;
+  font-weight: 600;
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.aita-faq-desc {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+/* Custom Scrollbar for Drawer */
+.aita-drawer-body::-webkit-scrollbar,
+.aita-chat-thread::-webkit-scrollbar {
+  width: 5px;
+}
+.aita-drawer-body::-webkit-scrollbar-track,
+.aita-chat-thread::-webkit-scrollbar-track {
+  background: transparent;
+}
+.aita-drawer-body::-webkit-scrollbar-thumb,
+.aita-chat-thread::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+/* ==========================================================================
+   4. Multimodal Chat Panel & Input Controls
+   ========================================================================== */
+.aita-suggestions-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(11, 15, 27, 0.6);
+  white-space: nowrap;
+}
+.aita-suggestions-bar::-webkit-scrollbar {
+  height: 3px;
+}
+.aita-suggestions-bar::-webkit-scrollbar-thumb {
+  background: rgba(6, 182, 212, 0.3);
+  border-radius: 2px;
+}
+
+.aita-sugg-chip {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 5px 10px;
+  font-size: 11px;
+  color: #cbd5e1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.aita-sugg-chip:hover {
+  background: rgba(6, 182, 212, 0.15);
+  border-color: rgba(6, 182, 212, 0.4);
+  color: #38bdf8;
+  transform: translateY(-1px);
+}
+
+.aita-chat-thread {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.aita-msg-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+.aita-msg-row.aita-msg-user {
+  justify-content: flex-end;
+}
+.aita-msg-row.aita-msg-ai {
+  justify-content: flex-start;
+}
+
+.aita-msg-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.aita-msg-bubble {
+  max-width: 82%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  word-break: break-word;
+}
+.aita-msg-bubble.user {
+  background: linear-gradient(135deg, rgba(14, 116, 144, 0.4), rgba(6, 182, 212, 0.3));
+  border: 1px solid rgba(6, 182, 212, 0.4);
+  color: #f0fdfa;
+  border-bottom-right-radius: 4px;
+}
+.aita-msg-bubble.ai {
+  background: rgba(17, 24, 39, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  border-bottom-left-radius: 4px;
+}
+.aita-msg-bubble code {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 11px;
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+.aita-msg-bubble strong {
+  color: #38bdf8;
+}
+
+.aita-msg-voice-btn {
+  margin-top: 8px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  color: #22d3ee;
+  font-size: 11px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+.aita-msg-voice-btn:hover {
+  background: rgba(6, 182, 212, 0.3);
+  border-color: #06b6d4;
+  color: #ffffff;
+}
+
+.aita-msg-img-preview {
+  max-width: 180px;
+  max-height: 120px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.aita-msg-file-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-family: monospace;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+/* Attachment preview bar above input */
+.aita-attachment-bar {
+  padding: 6px 14px;
+  background: rgba(15, 23, 42, 0.9);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  overflow-x: auto;
+}
+.aita-attach-chip {
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  border-radius: 8px;
+  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #e2e8f0;
+}
+.aita-attach-thumb {
+  width: 24px;
+  height: 24px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+.aita-attach-remove {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.aita-attach-remove:hover {
+  color: #f87171;
+}
+
+/* Multimodal Input Controls */
+.aita-input-container {
+  padding: 10px 14px;
+  background: rgba(14, 18, 32, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aita-icon-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.aita-icon-btn:hover {
+  background: rgba(6, 182, 212, 0.15);
+  border-color: rgba(6, 182, 212, 0.4);
+  color: #22d3ee;
+}
+
+.aita-chat-textarea {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 8px 12px;
+  color: #ffffff;
+  font-size: 12.5px;
+  resize: none;
+  max-height: 80px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.aita-chat-textarea:focus {
+  border-color: #06b6d4;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.25);
+}
+
+.aita-send-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  border: none;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.35);
+}
+.aita-send-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 18px rgba(6, 182, 212, 0.6);
+}
+
+.aita-input-hint {
+  padding: 4px 14px 10px;
+  font-size: 10.5px;
+  color: #64748b;
+  text-align: center;
+  background: rgba(14, 18, 32, 0.95);
+}
+
+.aita-typing-dots {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 0;
+}
+.aita-typing-dots span {
+  width: 6px;
+  height: 6px;
+  background-color: #06b6d4;
+  border-radius: 50%;
+  animation: aita-dot-pulse 1.2s infinite ease-in-out both;
+}
+.aita-typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.aita-typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes aita-dot-pulse {
+  0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+  40% { transform: scale(1); opacity: 1; }
+}
+

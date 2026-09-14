@@ -84,11 +84,14 @@ echo.
 echo   [6] MO TAI LIEU DO AN VA RUBRIC DANH GIA [Word DOCX]
 echo       -^> Mo Rubric cham diem va De cuong bao cao de tai PRJ301
 echo.
+echo   [7] KHOI CHAY TRO LY GIONG NOI REALTIME [ZeroTTS Port 8008]
+echo       -^> Khoi dong FastAPI ONNX Voice Server phuc vu AI Web Copilot
+echo.
 echo   [0] THOAT
 echo ==============================================================================
 echo.
 
-choice /C 1234560 /T 8 /D 1 /M "Nhap lua chon cua ban [Tu dong chay 1 sau 8 giay]: "
+choice /C 12345670 /T 8 /D 1 /M "Nhap lua chon cua ban [Tu dong chay 1 sau 8 giay]: "
 set "CHOICE_VAL=%errorlevel%"
 
 if "%CHOICE_VAL%"=="1" goto ACTION_RUN_WEB
@@ -97,7 +100,8 @@ if "%CHOICE_VAL%"=="3" goto ACTION_RUN_TESTS
 if "%CHOICE_VAL%"=="4" goto ACTION_RUN_ALL
 if "%CHOICE_VAL%"=="5" goto ACTION_GUIDE_DB
 if "%CHOICE_VAL%"=="6" goto ACTION_OPEN_DOCS
-if "%CHOICE_VAL%"=="7" goto ACTION_EXIT
+if "%CHOICE_VAL%"=="7" goto ACTION_RUN_ZEROTTS
+if "%CHOICE_VAL%"=="8" goto ACTION_EXIT
 goto MAIN_MENU
 
 :: ==============================================================================
@@ -143,6 +147,16 @@ start "AITA Web Server" powershell -NoProfile -ExecutionPolicy Bypass -File "%~d
 
 :WAIT_AND_OPEN
 echo [*] Dang chuan bi tai nguyen va nap 240 khung hinh 3D Scrollytelling...
+
+rem Kiem tra va khoi chay ZeroTTS Voice Engine (Port 8008)
+netstat -ano | findstr /r /c:":8008.*LISTENING" >nul 2>&1
+if !errorlevel! neq 0 (
+    echo [*] Tu dong khoi chay ZeroTTS Realtime Voice Engine tai cong 8008...
+    start "AITA ZeroTTS Voice Engine" /min cmd /c "%~dp0START_ZEROTTS_SERVICE.bat"
+) else (
+    echo [+] ZeroTTS Voice Engine da san sang tai cong 8008 [Realtime Speech]
+)
+
 ping -n 3 127.0.0.1 >nul 2>&1
 
 :OPEN_BROWSER
@@ -332,6 +346,18 @@ if exist "%~dp0RBL PRJ301 Project.docx" (
 echo.
 echo [OK] Da gui yeu cau mo tai lieu.
 pause
+goto MAIN_MENU
+
+:: ==============================================================================
+:: ACTION 7: Khoi chay ZeroTTS Voice Engine (Port 8008)
+:: ==============================================================================
+:ACTION_RUN_ZEROTTS
+cls
+echo ==============================================================================
+echo             KHOI CHAY ZEROTTS VOICE ENGINE (PORT 8008)
+echo ==============================================================================
+echo.
+call "%~dp0START_ZEROTTS_SERVICE.bat"
 goto MAIN_MENU
 
 :ACTION_EXIT

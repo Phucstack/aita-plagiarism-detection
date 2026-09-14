@@ -27,6 +27,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css?v=2.6">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/liquid-glass-2026.css?v=2.6">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/aita-copilot.css?v=2.0">
     <!-- Chế độ Tắt Toàn Bộ Hiệu Ứng (Mặc định: TẮT sau khi đăng nhập) -->
     <script>
         (function() {
@@ -919,5 +920,10 @@
     <script src="${pageContext.request.contextPath}/assets/js/motion-system-2026.js"></script>
     <script src="${pageContext.request.contextPath}/assets/js/motion.js"></script>
     <script src="${pageContext.request.contextPath}/assets/js/command-palette.js"></script>
+    <!-- AITA Realtime AI Copilot (ZeroTTS Voice Engine) -->
+    <script src="${pageContext.request.contextPath}/assets/js/aita-copilot-context.js?v=2.0"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/aita-copilot-voice.js?v=2.0"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/aita-copilot-chat.js?v=2.0"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/aita-copilot.js?v=2.0"></script>
 </body>
 </html>

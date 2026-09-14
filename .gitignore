@@ -49,3 +49,13 @@ desktop.ini
 # Scratch helper files
 tools/read_templates.py
 tools/templates_content.txt
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Secrets & Environment Variables
+.env
+.env.*
+!.env.example
