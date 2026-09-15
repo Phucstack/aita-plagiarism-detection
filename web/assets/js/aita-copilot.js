@@ -18,7 +18,7 @@
 
   function mountUI() {
     if (document.getElementById('aita-copilot-root')) return;
-    const isVoice = window.AITAVoice ? window.AITAVoice.isEnabled() : true;
+    const isVoice = window.AITAVoice ? window.AITAVoice.isEnabled() : false;
     const root = document.createElement('div');
     root.id = 'aita-copilot-root';
     root.className = 'aita-copilot-root';

@@ -4,7 +4,7 @@
  */
 (function (global) {
   const ZEROTTS_BASE = 'http://127.0.0.1:8008';
-  let isVoiceEnabled = localStorage.getItem('aita_voice_enabled') !== 'false';
+  let isVoiceEnabled = localStorage.getItem('aita_voice_enabled') === 'true';
   let activeVoiceId = localStorage.getItem('aita_voice_id') || 'maichi';
   let audioInstance = null, activeSessionId = 0, onSpeechStateChanged = null;
   let isListening = false, recognition = null, onRecognizedCb = null, onListenStateCb = null;
