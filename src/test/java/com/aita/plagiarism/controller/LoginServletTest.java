@@ -118,7 +118,9 @@ public class LoginServletTest {
         Cookie capturedCookie = cookieCaptor.getValue();
         assertEquals(LoginServlet.AUTH_COOKIE_NAME, capturedCookie.getName());
         assertTrue(capturedCookie.isHttpOnly());
-        assertEquals("/", capturedCookie.getPath());
+        assertEquals("/aita", capturedCookie.getPath());
+        assertEquals("Strict", capturedCookie.getAttribute("SameSite"));
+        verify(request).changeSessionId();
         assertTrue(JWTUtil.validateToken(capturedCookie.getValue()));
 
         verify(session).setAttribute(eq("currentUser"), any(User.class));

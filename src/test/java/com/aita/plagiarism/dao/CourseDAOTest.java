@@ -34,9 +34,9 @@ public class CourseDAOTest {
     @Test
     @DisplayName("Lấy danh sách khóa học phụ trách bởi Giảng viên")
     void testGetCoursesByInstructor() {
-        List<Course> courses = courseDAO.getCoursesByInstructor(1);
+        List<Course> courses = courseDAO.getCoursesByInstructor(2);
         assertNotNull(courses);
-        assertFalse(courses.isEmpty(), "Giảng viên ID 1 phải phụ trách ít nhất 1 khóa học");
+        assertFalse(courses.isEmpty(), "Giảng viên ID 2 phải phụ trách ít nhất 1 khóa học");
         
         for (Course c : courses) {
             assertNotNull(c.getCourseCode());
@@ -67,9 +67,9 @@ public class CourseDAOTest {
     }
 
     @Test
-    @DisplayName("Truy vấn bài tập với ID không tồn tại trả về bài tập mặc định/fallback an toàn")
+    @DisplayName("Truy vấn bài tập với ID không tồn tại trả về null")
     void testGetAssignmentByIdNonExistent() {
         Assignment assignment = courseDAO.getAssignmentById(99999);
-        assertNotNull(assignment, "Không được văng NullPointerException khi ID không tìm thấy");
+        assertNull(assignment, "Unknown IDs must not return sample assignments");
     }
 }

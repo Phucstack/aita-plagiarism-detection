@@ -49,7 +49,7 @@ public class DashboardServletTest {
     @Test
     @DisplayName("GET: Giảng viên xem Dashboard mặc định -> Thiết lập đầy đủ Courses, Assignments, Reports")
     void testDoGetInstructorDefault() throws ServletException, IOException {
-        User instructor = new User(1, "teacher_ha", "TS. Hà", "ha.nh@fpt.edu.vn", "INSTRUCTOR");
+        User instructor = new User(2, "teacher_ha", "TS. Hà", "ha.nh@fpt.edu.vn", "INSTRUCTOR");
         when(session.getAttribute("currentUser")).thenReturn(instructor);
         when(request.getParameter("courseId")).thenReturn(null);
         when(request.getParameter("assignmentId")).thenReturn(null);
@@ -69,7 +69,7 @@ public class DashboardServletTest {
     @Test
     @DisplayName("GET: Truy vấn Dashboard với tham số courseId và assignmentId chỉ định")
     void testDoGetWithCustomParameters() throws ServletException, IOException {
-        User instructor = new User(1, "teacher_ha", "TS. Hà", "ha.nh@fpt.edu.vn", "INSTRUCTOR");
+        User instructor = new User(2, "teacher_ha", "TS. Hà", "ha.nh@fpt.edu.vn", "INSTRUCTOR");
         when(session.getAttribute("currentUser")).thenReturn(instructor);
         when(request.getParameter("courseId")).thenReturn("1");
         when(request.getParameter("assignmentId")).thenReturn("1");

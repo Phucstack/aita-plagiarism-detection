@@ -2,6 +2,7 @@ package com.aita.plagiarism.dao;
 
 import com.aita.plagiarism.config.DBContext;
 import com.aita.plagiarism.model.Assignment;
+import com.aita.plagiarism.model.User;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,10 +18,13 @@ import java.util.List;
  */
 public class AssignmentDAO {
 
-    public int createAssignment(Assignment a) {
+    public int createAssignment(Assignment a) { return createAssignment(a, null); }
+
+    public int createAssignment(Assignment a, User actor) {
         if (a == null) return -1;
         String sql = "INSERT INTO Assignments (course_id, title, description, max_score, deadline, similarity_threshold) " +
-                     "VALUES (?, ?, ?, ?, ?, ?)";
+                     "SELECT ?, ?, ?, ?, ?, ? FROM Courses WHERE course_id = ? " +
+                     "AND (? = 1 OR instructor_id = ? OR ? = 'ADMIN')";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, a.getCourseId());
@@ -28,7 +32,9 @@ public class AssignmentDAO {
             ps.setString(3, a.getDescription());
             ps.setDouble(4, a.getMaxScore() > 0 ? a.getMaxScore() : 100.0);
             ps.setTimestamp(5, a.getDeadline() != null ? a.getDeadline() : new Timestamp(System.currentTimeMillis() + 86400000L * 14));
-            ps.setDouble(6, a.getSimilarityThreshold() > 0 ? a.getSimilarityThreshold() : 75.0);
+            ps.setDouble(6, a.getSimilarityThreshold());
+            ps.setInt(7, a.getCourseId());
+            bindActor(ps, 8, actor);
 
             int affected = ps.executeUpdate();
             if (affected > 0) {
@@ -41,18 +47,18 @@ public class AssignmentDAO {
                 }
             }
         } catch (Exception e) {
-            // Fallback Resilient
+            throw new DataAccessException(e);
         }
-        int mockId = (int) (System.currentTimeMillis() % 100000);
-        a.setAssignmentId(mockId);
-        getFallbackAssignments().add(a);
-        return mockId;
+        return -1;
     }
 
-    public boolean updateAssignment(Assignment a) {
+    public boolean updateAssignment(Assignment a) { return updateAssignment(a, null); }
+
+    public boolean updateAssignment(Assignment a, User actor) {
         if (a == null || a.getAssignmentId() <= 0) return false;
         String sql = "UPDATE Assignments SET title = ?, description = ?, max_score = ?, deadline = ?, similarity_threshold = ? " +
-                     "WHERE assignment_id = ?";
+                     "WHERE assignment_id = ? AND EXISTS (SELECT 1 FROM Courses c WHERE c.course_id = Assignments.course_id " +
+                     "AND (? = 1 OR c.instructor_id = ? OR ? = 'ADMIN'))";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, a.getTitle());
@@ -61,31 +67,27 @@ public class AssignmentDAO {
             ps.setTimestamp(4, a.getDeadline());
             ps.setDouble(5, a.getSimilarityThreshold());
             ps.setInt(6, a.getAssignmentId());
+            bindActor(ps, 7, actor);
 
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            for (Assignment item : getFallbackAssignments()) {
-                if (item.getAssignmentId() == a.getAssignmentId()) {
-                    item.setTitle(a.getTitle());
-                    item.setDescription(a.getDescription());
-                    item.setMaxScore(a.getMaxScore());
-                    item.setDeadline(a.getDeadline());
-                    item.setSimilarityThreshold(a.getSimilarityThreshold());
-                    return true;
-                }
-            }
+            throw new DataAccessException(e);
         }
-        return false;
     }
 
-    public boolean deleteAssignment(int assignmentId) {
-        String sql = "DELETE FROM Assignments WHERE assignment_id = ?";
+    public boolean deleteAssignment(int assignmentId) { return deleteAssignment(assignmentId, null); }
+
+    public boolean deleteAssignment(int assignmentId, User actor) {
+        String sql = "DELETE FROM Assignments WHERE assignment_id = ? AND EXISTS " +
+                "(SELECT 1 FROM Courses c WHERE c.course_id = Assignments.course_id " +
+                "AND (? = 1 OR c.instructor_id = ? OR ? = 'ADMIN'))";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, assignmentId);
+            bindActor(ps, 2, actor);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            return getFallbackAssignments().removeIf(a -> a.getAssignmentId() == assignmentId);
+            throw new DataAccessException(e);
         }
     }
 
@@ -100,12 +102,9 @@ public class AssignmentDAO {
                 }
             }
         } catch (Exception e) {
-            for (Assignment a : getFallbackAssignments()) {
-                if (a.getAssignmentId() == assignmentId) return a;
-            }
+            throw new DataAccessException(e);
         }
-        List<Assignment> fallback = getFallbackAssignments();
-        return fallback.isEmpty() ? null : fallback.get(0);
+        return null;
     }
 
     public List<Assignment> getAssignmentsByCourse(int courseId) {
@@ -120,11 +119,9 @@ public class AssignmentDAO {
                 }
             }
         } catch (Exception e) {
-            for (Assignment a : getFallbackAssignments()) {
-                if (a.getCourseId() == courseId) list.add(a);
-            }
+            throw new DataAccessException(e);
         }
-        return list.isEmpty() ? getFallbackAssignments() : list;
+        return list;
     }
 
     public List<Assignment> getAllAssignments() {
@@ -137,9 +134,15 @@ public class AssignmentDAO {
                 list.add(mapAssignment(rs));
             }
         } catch (Exception e) {
-            return getFallbackAssignments();
+            throw new DataAccessException(e);
         }
-        return list.isEmpty() ? getFallbackAssignments() : list;
+        return list;
+    }
+
+    private void bindActor(PreparedStatement ps, int index, User actor) throws java.sql.SQLException {
+        ps.setInt(index, actor == null ? 1 : 0);
+        ps.setInt(index + 1, actor != null && "INSTRUCTOR".equals(actor.getRole()) ? actor.getUserId() : -1);
+        ps.setString(index + 2, actor == null ? "" : actor.getRole());
     }
 
     private Assignment mapAssignment(ResultSet rs) throws Exception {
@@ -159,24 +162,4 @@ public class AssignmentDAO {
         return a;
     }
 
-    private static List<Assignment> fallbackList;
-
-    private static synchronized List<Assignment> getFallbackAssignments() {
-        if (fallbackList == null) {
-            fallbackList = new ArrayList<>();
-            Assignment a1 = new Assignment(1, 1, "Assignment 1 - Java Lexer & Code Similarity Engine",
-                    "Xây dựng bộ quét Token và tính toán chỉ số tương đồng Jaccard giữa các file mã nguồn Java.",
-                    100.0, new Timestamp(System.currentTimeMillis() + 86400000L * 7));
-            a1.setSimilarityThreshold(70.0);
-
-            Assignment a2 = new Assignment(2, 1, "Assignment 2 - E-Commerce Web MVC2 & Payment Flow",
-                    "Xây dựng chức năng OrderManager, giỏ hàng Cart và thanh toán an toàn bằng mô hình MVC2.",
-                    100.0, new Timestamp(System.currentTimeMillis() + 86400000L * 14));
-            a2.setSimilarityThreshold(75.0);
-
-            fallbackList.add(a1);
-            fallbackList.add(a2);
-        }
-        return fallbackList;
-    }
 }

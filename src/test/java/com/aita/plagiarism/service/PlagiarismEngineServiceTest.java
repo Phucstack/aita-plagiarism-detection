@@ -70,7 +70,19 @@ public class PlagiarismEngineServiceTest {
     @Test
     @DisplayName("Kiểm thử quét toàn bộ bài tập (scanAssignment)")
     void testScanAssignment() {
-        int reportsGenerated = engineService.scanAssignment(2);
-        assertTrue(reportsGenerated >= 0, "Số lượng báo cáo tạo ra phải >= 0");
+        var assignments = new com.aita.plagiarism.dao.AssignmentDAO();
+        var assignment = new com.aita.plagiarism.model.Assignment();
+        assignment.setCourseId(1);
+        assignment.setTitle("Isolated empty scan");
+        assignment.setDeadline(new java.sql.Timestamp(System.currentTimeMillis() + 86400000L));
+        assignment.setMaxScore(100);
+        assignment.setSimilarityThreshold(75);
+        int id = assignments.createAssignment(assignment);
+        try {
+            assertEquals(0, engineService.scanAssignment(id));
+            assertTrue(new com.aita.plagiarism.dao.PlagiarismDAO().getReportsByAssignment(id).isEmpty());
+        } finally {
+            assertTrue(assignments.deleteAssignment(id));
+        }
     }
 }

@@ -3,141 +3,68 @@ package com.aita.plagiarism.controller;
 import com.aita.plagiarism.dao.AssignmentDAO;
 import com.aita.plagiarism.model.Assignment;
 import com.aita.plagiarism.model.User;
-
-import jakarta.servlet.ServletException;
+import com.aita.plagiarism.service.AccessPolicy;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
+import java.util.Set;
 
-/**
- * Controller xử lý các tác vụ CRUD Bài tập (Assignments) cho Giảng viên
- * URL Pattern: /assignment-action
- */
 @WebServlet("/assignment-action")
 public class AssignmentActionServlet extends HttpServlet {
-
     private final AssignmentDAO assignmentDAO = new AssignmentDAO();
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) 
-            throws ServletException, IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         request.setCharacterEncoding("UTF-8");
-        response.setContentType("text/html;charset=UTF-8");
-
-        HttpSession session = request.getSession(false);
-        User currentUser = (session != null) ? (User) session.getAttribute("currentUser") : null;
-
-        if (currentUser == null || (!"INSTRUCTOR".equalsIgnoreCase(currentUser.getRole()) && !"ADMIN".equalsIgnoreCase(currentUser.getRole()))) {
-            response.sendRedirect(request.getContextPath() + "/dashboard?error=unauthorized");
-            return;
-        }
-
+        User actor = request.getSession(false) == null ? null : (User) request.getSession(false).getAttribute("currentUser");
+        if (actor == null || !Set.of("ADMIN", "INSTRUCTOR").contains(actor.getRole())) { response.sendError(403); return; }
         String action = request.getParameter("action");
-        if (action == null) action = "";
-
-        switch (action.toLowerCase()) {
-            case "create": {
-                try {
-                    int courseId = Integer.parseInt(request.getParameter("courseId"));
-                    String title = request.getParameter("title");
-                    String description = request.getParameter("description");
-                    double maxScore = parseDoubleSafe(request.getParameter("maxScore"), 100.0);
-                    double threshold = parseDoubleSafe(request.getParameter("similarityThreshold"), 75.0);
-                    Timestamp deadline = parseTimestampSafe(request.getParameter("deadline"));
-
-                    if (title != null && !title.trim().isEmpty()) {
-                        Assignment a = new Assignment();
-                        a.setCourseId(courseId);
-                        a.setTitle(title.trim());
-                        a.setDescription(description != null ? description.trim() : "");
-                        a.setMaxScore(maxScore);
-                        a.setDeadline(deadline);
-                        a.setSimilarityThreshold(threshold);
-
-                        int newId = assignmentDAO.createAssignment(a);
-                        response.sendRedirect(request.getContextPath() + "/dashboard?courseId=" + courseId + "&assignmentId=" + newId + "&assignmentMsg=created");
-                    } else {
-                        response.sendRedirect(request.getContextPath() + "/dashboard?courseId=" + courseId + "&assignmentError=missing_title");
-                    }
-                } catch (Exception e) {
-                    response.sendRedirect(request.getContextPath() + "/dashboard?assignmentError=create_failed");
-                }
-                break;
-            }
-
-            case "update": {
-                try {
-                    int assignmentId = Integer.parseInt(request.getParameter("assignmentId"));
-                    int courseId = Integer.parseInt(request.getParameter("courseId"));
-                    String title = request.getParameter("title");
-                    String description = request.getParameter("description");
-                    double maxScore = parseDoubleSafe(request.getParameter("maxScore"), 100.0);
-                    double threshold = parseDoubleSafe(request.getParameter("similarityThreshold"), 75.0);
-                    Timestamp deadline = parseTimestampSafe(request.getParameter("deadline"));
-
-                    Assignment a = new Assignment();
-                    a.setAssignmentId(assignmentId);
-                    a.setCourseId(courseId);
-                    a.setTitle(title.trim());
-                    a.setDescription(description != null ? description.trim() : "");
-                    a.setMaxScore(maxScore);
-                    a.setDeadline(deadline);
-                    a.setSimilarityThreshold(threshold);
-
-                    assignmentDAO.updateAssignment(a);
-                    response.sendRedirect(request.getContextPath() + "/dashboard?courseId=" + courseId + "&assignmentId=" + assignmentId + "&assignmentMsg=updated");
-                } catch (Exception e) {
-                    response.sendRedirect(request.getContextPath() + "/dashboard?assignmentError=update_failed");
-                }
-                break;
-            }
-
-            case "delete": {
-                try {
-                    int assignmentId = Integer.parseInt(request.getParameter("assignmentId"));
-                    int courseId = Integer.parseInt(request.getParameter("courseId"));
-                    assignmentDAO.deleteAssignment(assignmentId);
-                    response.sendRedirect(request.getContextPath() + "/dashboard?courseId=" + courseId + "&assignmentMsg=deleted");
-                } catch (Exception e) {
-                    response.sendRedirect(request.getContextPath() + "/dashboard?assignmentError=delete_failed");
-                }
-                break;
-            }
-
-            default:
-                response.sendRedirect(request.getContextPath() + "/dashboard");
-                break;
-        }
-    }
-
-    private double parseDoubleSafe(String val, double defaultVal) {
-        if (val == null || val.trim().isEmpty()) return defaultVal;
+        if (action == null || !Set.of("create", "update", "delete").contains(action)) { response.sendError(400); return; }
         try {
-            return Double.parseDouble(val.trim());
-        } catch (NumberFormatException e) {
-            return defaultVal;
-        }
-    }
-
-    private Timestamp parseTimestampSafe(String val) {
-        if (val == null || val.trim().isEmpty()) {
-            return new Timestamp(System.currentTimeMillis() + 86400000L * 14); // 14 ngày tới
-        }
-        try {
-            // Định dạng HTML5 datetime-local: yyyy-MM-dd'T'HH:mm
-            String formatted = val.replace("T", " ");
-            if (formatted.length() == 16) {
-                formatted += ":00";
+            int courseId = positiveId(request.getParameter("courseId"));
+            int assignmentId = 0;
+            Assignment existing = null;
+            if (!"create".equals(action)) {
+                assignmentId = positiveId(request.getParameter("assignmentId"));
+                existing = assignmentDAO.getAssignmentById(assignmentId);
+                if (existing == null) { response.sendError(404); return; }
+                if (existing.getCourseId() != courseId) { response.sendError(403); return; }
             }
-            return Timestamp.valueOf(formatted);
-        } catch (Exception e) {
-            return new Timestamp(System.currentTimeMillis() + 86400000L * 14);
-        }
+            if (!AccessPolicy.canManageCourse(actor, courseId)) { response.sendError(403); return; }
+            boolean saved;
+            if ("delete".equals(action)) {
+                saved = assignmentDAO.deleteAssignment(assignmentId, actor);
+            } else {
+                String title = request.getParameter("title");
+                if (title == null || title.trim().isEmpty() || title.trim().length() > 150) { response.sendError(400); return; }
+                double max = number(request.getParameter("maxScore"), 100);
+                double threshold = number(request.getParameter("similarityThreshold"), 75);
+                if (!Double.isFinite(max) || max <= 0 || max > 999.99 || !Double.isFinite(threshold) || threshold < 0 || threshold > 100) {
+                    response.sendError(400); return;
+                }
+                Assignment a = new Assignment();
+                a.setAssignmentId(assignmentId); a.setCourseId(courseId); a.setTitle(title.trim());
+                a.setDescription(request.getParameter("description") == null ? "" : request.getParameter("description").trim());
+                a.setMaxScore(max); a.setSimilarityThreshold(threshold);
+                String deadline = request.getParameter("deadline");
+                a.setDeadline(deadline == null || deadline.isBlank() ? (existing == null ? Timestamp.valueOf(LocalDateTime.now().plusDays(14)) : existing.getDeadline())
+                        : Timestamp.valueOf(LocalDateTime.parse(deadline)));
+                if ("create".equals(action)) { assignmentId = assignmentDAO.createAssignment(a, actor); saved = assignmentId > 0; }
+                else saved = assignmentDAO.updateAssignment(a, actor);
+            }
+            if (!saved) { response.sendError(409); return; }
+            response.sendRedirect(request.getContextPath() + "/dashboard?courseId=" + courseId
+                    + ("delete".equals(action) ? "" : "&assignmentId=" + assignmentId)
+                    + "&assignmentMsg=" + action + "d");
+        } catch (IllegalArgumentException | DateTimeParseException e) { response.sendError(400); }
+    }
+    private static int positiveId(String value) {
+        int id = Integer.parseInt(value); if (id <= 0) throw new IllegalArgumentException(); return id;
+    }
+    private static double number(String value, double fallback) {
+        return value == null || value.isBlank() ? fallback : Double.parseDouble(value);
     }
 }

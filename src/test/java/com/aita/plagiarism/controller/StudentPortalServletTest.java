@@ -49,7 +49,7 @@ public class StudentPortalServletTest {
     @DisplayName("GET: Chặn khi chưa đăng nhập và điều hướng về trang Login")
     void testDoGetUnauthenticated() throws ServletException, IOException {
         when(request.getSession(false)).thenReturn(null);
-        when(request.getContextPath()).thenReturn("/aita");
+        lenient().when(request.getContextPath()).thenReturn("/aita");
 
         servlet.doGet(request, response);
 
@@ -73,12 +73,12 @@ public class StudentPortalServletTest {
     @Test
     @DisplayName("POST: Xử lý nộp đơn giải trình (Appeal) -> Chuyển hướng kèm appealSuccess=true")
     void testDoPostAppeal() throws ServletException, IOException {
-        when(request.getContextPath()).thenReturn("/aita");
+        lenient().when(request.getContextPath()).thenReturn("/aita");
 
         servlet.doPost(request, response);
 
         verify(request).setCharacterEncoding("UTF-8");
         verify(response).setContentType("text/html;charset=UTF-8");
-        verify(response).sendRedirect("/aita/student-portal?appealSuccess=true");
+        verify(response).sendError(eq(501), anyString());
     }
 }

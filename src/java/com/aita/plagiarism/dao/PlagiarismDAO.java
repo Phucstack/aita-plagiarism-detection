@@ -13,6 +13,25 @@ import java.util.List;
 
 public class PlagiarismDAO {
 
+    public List<PlagiarismReport> getResultsByStudent(int studentId) {
+        String sql = "SELECT pr.report_id, pr.similarity_score, pr.created_at FROM PlagiarismReports pr "
+                + "JOIN Submissions a ON a.submission_id = pr.submission_a_id "
+                + "JOIN Submissions b ON b.submission_id = pr.submission_b_id "
+                + "WHERE a.student_id = ? OR b.student_id = ? ORDER BY pr.created_at DESC";
+        List<PlagiarismReport> results = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, studentId); ps.setInt(2, studentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    PlagiarismReport report = new PlagiarismReport();
+                    report.setReportId(rs.getInt(1)); report.setSimilarityScore(rs.getDouble(2));
+                    report.setCreatedAt(rs.getTimestamp(3)); results.add(report);
+                }
+            }
+        } catch (Exception e) { throw new DataAccessException(e); }
+        return results;
+    }
+
     public int createReport(PlagiarismReport r) {
         if (r == null) return -1;
         String sql = "INSERT INTO PlagiarismReports (assignment_id, submission_a_id, submission_b_id, similarity_score, risk_level, ai_analysis_summary) " +
@@ -37,12 +56,9 @@ public class PlagiarismDAO {
                 }
             }
         } catch (Exception e) {
-            // Fallback
+            throw new DataAccessException(e);
         }
-        int mockId = (int) (System.currentTimeMillis() % 10000);
-        r.setReportId(mockId);
-        getFallbackReports(r.getAssignmentId()).add(r);
-        return mockId;
+        return -1;
     }
 
     public int createMatchingBlock(MatchingBlock b) {
@@ -71,12 +87,9 @@ public class PlagiarismDAO {
                 }
             }
         } catch (Exception e) {
-            // Fallback
+            throw new DataAccessException(e);
         }
-        int mockId = (int) (System.currentTimeMillis() % 10000);
-        b.setBlockId(mockId);
-        getFallbackMatchingBlocks().add(b);
-        return mockId;
+        return -1;
     }
 
     public boolean clearReportsByAssignment(int assignmentId) {
@@ -94,7 +107,7 @@ public class PlagiarismDAO {
             }
             return true;
         } catch (Exception e) {
-            return false;
+            throw new DataAccessException(e);
         }
     }
 
@@ -118,9 +131,9 @@ public class PlagiarismDAO {
                 }
             }
         } catch (Exception e) {
-            return getFallbackReports(assignmentId);
+            throw new DataAccessException(e);
         }
-        return list.isEmpty() ? getFallbackReports(assignmentId) : list;
+        return list;
     }
 
     public PlagiarismReport getReportById(int reportId) {
@@ -141,11 +154,9 @@ public class PlagiarismDAO {
                 }
             }
         } catch (Exception e) {
-            for (PlagiarismReport r : getFallbackReports(1)) {
-                if (r.getReportId() == reportId) return r;
-            }
+            throw new DataAccessException(e);
         }
-        return getFallbackReports(1).get(0);
+        return null;
     }
 
     public List<MatchingBlock> getMatchingBlocks(int reportId) {
@@ -171,9 +182,9 @@ public class PlagiarismDAO {
                 }
             }
         } catch (Exception e) {
-            return getFallbackMatchingBlocks();
+            throw new DataAccessException(e);
         }
-        return list.isEmpty() ? getFallbackMatchingBlocks() : list;
+        return list;
     }
 
     private PlagiarismReport mapReport(ResultSet rs) throws Exception {
@@ -185,60 +196,10 @@ public class PlagiarismDAO {
         r.setSimilarityScore(rs.getDouble("similarity_score"));
         r.setRiskLevel(rs.getString("risk_level"));
         r.setAiAnalysisSummary(rs.getString("ai_analysis_summary"));
+        r.setCreatedAt(rs.getTimestamp("created_at"));
         r.setStudentAName(rs.getString("student_a_name"));
         r.setStudentBName(rs.getString("student_b_name"));
         return r;
     }
 
-    private static List<PlagiarismReport> fallbackReports;
-
-    private static synchronized List<PlagiarismReport> getFallbackReports(int assignmentId) {
-        if (fallbackReports == null) {
-            fallbackReports = new ArrayList<>();
-            PlagiarismReport r = new PlagiarismReport();
-            r.setReportId(1);
-            r.setAssignmentId(assignmentId);
-            r.setSubmissionAId(1);
-            r.setSubmissionBId(2);
-            r.setSimilarityScore(88.50);
-            r.setRiskLevel("HIGH_RISK");
-            r.setAiAnalysisSummary("Gemini AI phát hiện 14 khối mã tương đồng logic, 7 phương thức trùng khớp kiến trúc AST. Sinh viên B đã thay đổi biến _cart thành _basket, total_amt thành final_cost.");
-            r.setStudentAName("Trần Văn Long (SE1701)");
-            r.setStudentBName("Lê Quốc Anh (SE1702)");
-            fallbackReports.add(r);
-        }
-        return fallbackReports;
-    }
-
-    private static List<MatchingBlock> fallbackMatchingBlocks;
-
-    private static synchronized List<MatchingBlock> getFallbackMatchingBlocks() {
-        if (fallbackMatchingBlocks == null) {
-            fallbackMatchingBlocks = new ArrayList<>();
-            MatchingBlock b1 = new MatchingBlock();
-            b1.setBlockId(1);
-            b1.setReportId(1);
-            b1.setFunctionName("calculateTotal()");
-            b1.setStudentAStartLine(24);
-            b1.setStudentAEndLine(30);
-            b1.setStudentBStartLine(66);
-            b1.setStudentBEndLine(75);
-            b1.setMatchedCodeSnippet("public double calculateTotal() { cartValue = cartValue; finalCost = finalCost; return cart; }");
-            b1.setVariableRenamingNotes("Biến cartValue đổi thành basketValue, finalCost giữ nguyên.");
-            fallbackMatchingBlocks.add(b1);
-
-            MatchingBlock b2 = new MatchingBlock();
-            b2.setBlockId(2);
-            b2.setReportId(1);
-            b2.setFunctionName("processPayment()");
-            b2.setStudentAStartLine(44);
-            b2.setStudentAEndLine(53);
-            b2.setStudentBStartLine(182);
-            b2.setStudentBEndLine(192);
-            b2.setMatchedCodeSnippet("public double processPayment(Order items) { List list = new Stock(orderItems); return pastValue; }");
-            b2.setVariableRenamingNotes("Logic xử lý thanh toán trùng khớp 100% về mặt luồng thực thi.");
-            fallbackMatchingBlocks.add(b2);
-        }
-        return fallbackMatchingBlocks;
-    }
 }

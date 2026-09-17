@@ -26,15 +26,18 @@ public class LoginServlet extends HttpServlet {
 
         // Kiểm tra nếu người dùng đã có token hợp lệ thì chuyển hướng ngay
         String existingToken = extractAuthToken(request);
-        if (existingToken != null && JWTUtil.validateToken(existingToken)) {
-            HttpSession session = request.getSession();
-            User currentUser = (User) session.getAttribute("currentUser");
+        java.util.Map<String, String> claims = JWTUtil.extractClaims(existingToken);
+        if (!claims.isEmpty()) {
+            int userId = Integer.parseInt(claims.get("userId"));
+            User currentUser = userDAO.getUserById(userId);
             if (currentUser != null && "STUDENT".equalsIgnoreCase(currentUser.getRole())) {
                 response.sendRedirect(request.getContextPath() + "/student-portal");
                 return;
             }
-            response.sendRedirect(request.getContextPath() + "/dashboard");
-            return;
+            if (currentUser != null) {
+                response.sendRedirect(request.getContextPath() + "/dashboard");
+                return;
+            }
         }
 
         request.getRequestDispatcher("/login.jsp").forward(request, response);
@@ -65,18 +68,26 @@ public class LoginServlet extends HttpServlet {
             return;
         }
 
+        completeLogin(request, response, user);
+    }
+
+    public static void completeLogin(HttpServletRequest request, HttpServletResponse response, User user) throws IOException {
         // Tạo JWT Token theo chuẩn RFC 7519 HMAC-SHA256 (Section 4.1.3)
         String jwtToken = JWTUtil.generateToken(user);
 
         // Lưu Token vào HttpOnly Cookie
         Cookie authCookie = new Cookie(AUTH_COOKIE_NAME, jwtToken);
         authCookie.setHttpOnly(true);
-        authCookie.setPath("/");
+        authCookie.setPath(request.getContextPath().isEmpty() ? "/" : request.getContextPath());
+        authCookie.setSecure(request.isSecure());
+        authCookie.setAttribute("SameSite", "Strict");
         authCookie.setMaxAge(24 * 60 * 60); // 1 ngày
         response.addCookie(authCookie);
 
         // Đồng thời lưu thông tin User vào Session cho JSP EL truy xuất nhanh
         HttpSession session = request.getSession();
+        request.changeSessionId();
+        session.setMaxInactiveInterval(30 * 60);
         session.setAttribute("currentUser", user);
         session.setAttribute("jwtToken", jwtToken);
 

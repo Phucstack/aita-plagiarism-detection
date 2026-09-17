@@ -33,6 +33,9 @@ public class BatchScannerServletTest {
     @BeforeEach
     void setUp() {
         servlet = new BatchScannerServlet();
+        var session = mock(jakarta.servlet.http.HttpSession.class);
+        lenient().when(request.getSession()).thenReturn(session);
+        lenient().when(session.getAttribute("currentUser")).thenReturn(new com.aita.plagiarism.model.User(2,"teacher_ha","Teacher","t@example.invalid","INSTRUCTOR"));
     }
 
     @Test
@@ -50,8 +53,13 @@ public class BatchScannerServletTest {
     @DisplayName("POST: Kích hoạt quét hàng loạt và chuyển hướng về Dashboard với scanSuccess=true")
     void testDoPost() throws ServletException, IOException {
         when(request.getContextPath()).thenReturn("/aita");
+        when(request.getParameter("assignmentId")).thenReturn("2");
 
-        servlet.doPost(request, response);
+        try (var engine = mockConstruction(com.aita.plagiarism.service.PlagiarismEngineService.class,
+                (mock, context) -> when(mock.scanAssignment(2)).thenReturn(0))) {
+            new BatchScannerServlet().doPost(request, response);
+            verify(engine.constructed().get(0)).scanAssignment(2);
+        }
 
         verify(response).sendRedirect(org.mockito.ArgumentMatchers.contains("scanSuccess=true"));
     }

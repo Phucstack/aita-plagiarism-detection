@@ -142,8 +142,8 @@ public class SubmissionServlet extends HttpServlet {
             Submission sub = submissionDAO.getSubmissionById(subId);
 
             // Kiểm tra quyền sở hữu bài nộp (chỉ chính sinh viên đó hoặc Giảng viên/Admin mới được xóa)
-            if (sub != null && (sub.getStudentId() == currentUser.getUserId() || !"STUDENT".equalsIgnoreCase(currentUser.getRole()))) {
-                submissionDAO.deleteSubmission(subId);
+            if (sub != null && (sub.getStudentId() == currentUser.getUserId() || com.aita.plagiarism.service.AccessPolicy.canManageAssignment(currentUser, sub.getAssignmentId()))) {
+                if (!submissionDAO.deleteSubmission(subId, currentUser)) { response.sendError(409); return; }
                 // Xóa file trên đĩa nếu tồn tại
                 if (sub.getFilePath() != null) {
                     File f = new File(sub.getFilePath());
@@ -151,7 +151,7 @@ public class SubmissionServlet extends HttpServlet {
                 }
                 response.sendRedirect(request.getContextPath() + "/student-portal?subMsg=deleted");
             } else {
-                response.sendRedirect(request.getContextPath() + "/student-portal?subError=unauthorized");
+                response.sendError(403);
             }
         } catch (Exception e) {
             response.sendRedirect(request.getContextPath() + "/student-portal?subError=delete_failed");

@@ -1,5 +1,21 @@
 # 🛡️ AITA CodeDefend — AI Plagiarism & Code Similarity Detection Suite
 
+## Trạng thái tuần 1–3 và cách chạy Java
+
+[Kịch bản demo, ERD và ma trận quyền hiện tại](DEMO_TUAN_1_3.md). Dashboard đã dùng số liệu DB theo phạm vi người xem; mật khẩu cũ được nâng cấp PBKDF2 khi đăng nhập. Mô tả AI/Docker bên dưới là định hướng, không phải bằng chứng nghiệm thu.
+
+Xem [báo cáo kiểm chứng tuần 1–3](BAO_CAO_TIEN_DO_TUAN_1_3.md) để phân biệt phần đã kiểm tra và các giai đoạn chưa nghiệm thu.
+
+- Cấu hình .env theo .env.example: SQL Server, tài khoản database có quyền giới hạn, JWT_SECRET ngẫu nhiên tối thiểu 32 byte, CATALINA_HOME trỏ Tomcat 10.1.
+- Chạy Java thật: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run-java.ps1`.
+- URL: http://localhost:8080/plagiarism/login. Dừng: thêm `-Stop` vào lệnh trên.
+- Prototype tĩnh ở cổng 8089 không thực thi Servlet/JDBC.
+- Google login dùng Google Identity Services, xác minh ID token phía server và liên kết tài khoản đã được cấp sẵn; xem [cấu hình Google login](GOOGLE_LOGIN.md).
+- Chạy test bằng tools/test-java.ps1 với .env.test và database riêng. Test không được chạy trên database ứng dụng.
+- Script database/database_schema.sql không reset dữ liệu hay thay đổi login quản trị.
+
+
+
 [![Java](https://img.shields.io/badge/Java-17%2B-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://www.oracle.com/java/)
 [![Jakarta EE](https://img.shields.io/badge/Jakarta%20EE-6.0-F37024?style=for-the-badge&logo=eclipse&logoColor=white)](https://jakarta.ee/)
 [![Apache Tomcat](https://img.shields.io/badge/Apache%20Tomcat-10.1%2B-F8DC75?style=for-the-badge&logo=apache-tomcat&logoColor=black)](https://tomcat.apache.org/)
@@ -37,7 +53,7 @@
                                     │ HTTP / REST / JSP
                                     ▼
 +-------------------------------------------------------------------------+
-|                   Backend Service Layer (Jakarta EE 6)                  |
+|                   Backend Service Layer (Jakarta Servlet 6)                  |
 |   - Auth & Session Controller (Google OAuth2 + Form Auth)               |
 |   - Submission & Batch File Processor (.java, .txt, .docx, .zip)        |
 |   - Plagiarism & Similarity Calculation Service                         |
@@ -47,7 +63,7 @@
                                     ▼
 +-------------------------------------------------------------------------+
 |                       Data Persistence Layer                            |
-|   - Microsoft SQL Server / MySQL                                        |
+|   - Microsoft SQL Server                                        |
 |   - Schemas: Users, Roles, Assignments, Submissions, SimilarityReports  |
 +-------------------------------------------------------------------------+
 ```
@@ -122,8 +138,8 @@ flowchart TD
 
 - **Java:** JDK 17 LTS trở lên (khuyên dùng JDK 17 hoặc JDK 21)
 - **Apache Maven:** Phiên bản 3.8+
-- **Application Server:** Apache Tomcat 10.1+ (Hỗ trợ Jakarta EE 6)
-- **Cơ sở dữ liệu:** Microsoft SQL Server (2019+) hoặc MySQL (8.0+)
+- **Application Server:** Apache Tomcat 10.1+ (Hỗ trợ Jakarta Servlet 6)
+- **Cơ sở dữ liệu:** Microsoft SQL Server (2019+)
 - **Trình duyệt:** Chrome, Edge, Brave, Firefox (Hỗ trợ WebGL cho 3D)
 
 ---

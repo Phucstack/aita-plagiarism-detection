@@ -1,0 +1,23 @@
+/* Scoped adaptations for the live dashboard and student data views. */
+.data-view main,.data-view main form,.data-view main form>div{min-width:0;max-width:100%}
+.data-view main select{min-width:0;max-width:100%;width:100%;text-overflow:ellipsis}
+.data-view table{min-width:560px}
+.data-view .overflow-x-auto{max-width:100%}
+.data-view main p{overflow-wrap:anywhere}
+@media(max-width:1199px){
+ .data-view header nav{display:none}
+ .data-view header>div{gap:8px}
+ .data-view header .effects-hud-toggle,.data-view header .audio-hud-toggle,
+ .data-view header button[title*="Ctrl+K"]{display:none}
+ .data-view main>div:first-child{flex-direction:column;align-items:stretch}
+ .data-view main>div:first-child>div{min-width:0;max-width:100%}
+ .data-view main>div:first-child form{width:100%;flex-wrap:wrap}
+}
+@media(max-width:1023px){.data-view #master-sidebar,.data-view #sidebar-toggle-btn{display:none}}
+@media(max-width:599px){
+ .data-view header{padding-left:12px;padding-right:12px}
+ .data-view header .effects-hud-toggle,.data-view header .audio-hud-toggle{display:none}
+ .data-view header img{width:28px;height:28px}
+ .data-view header>div{gap:8px;min-width:0}
+ .data-view main>div:first-child>div{flex-wrap:wrap}
+}

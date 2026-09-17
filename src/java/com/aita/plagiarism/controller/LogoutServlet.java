@@ -24,7 +24,8 @@ public class LogoutServlet extends HttpServlet {
         // Xóa Cookie JWT Token
         Cookie authCookie = new Cookie(LoginServlet.AUTH_COOKIE_NAME, "");
         authCookie.setHttpOnly(true);
-        authCookie.setPath("/");
+        authCookie.setPath(request.getContextPath().isEmpty() ? "/" : request.getContextPath());
+        authCookie.setAttribute("SameSite", "Strict");
         authCookie.setMaxAge(0);
         response.addCookie(authCookie);
 

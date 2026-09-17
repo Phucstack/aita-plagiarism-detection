@@ -42,7 +42,15 @@ public class UserProfileActionServlet extends HttpServlet {
                 String fullName = request.getParameter("fullName");
                 String avatarUrl = request.getParameter("avatarUrl");
 
-                if (fullName != null && !fullName.trim().isEmpty()) {
+                if (avatarUrl != null && !avatarUrl.isBlank()) {
+                    try {
+                        java.net.URI uri = java.net.URI.create(avatarUrl.trim());
+                        if (avatarUrl.length() > 255 || !"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null) {
+                            response.sendError(400); return;
+                        }
+                    } catch (IllegalArgumentException e) { response.sendError(400); return; }
+                }
+                if (fullName != null && !fullName.trim().isEmpty() && fullName.trim().length() <= 100) {
                     boolean ok = userDAO.updateProfile(currentUser.getUserId(), fullName.trim(), avatarUrl);
                     if (ok) {
                         currentUser.setFullName(fullName.trim());
@@ -51,7 +59,7 @@ public class UserProfileActionServlet extends HttpServlet {
                         }
                         session.setAttribute("currentUser", currentUser);
                     }
-                    redirectBack(request, response, currentUser, "profile_updated");
+                    redirectBack(request, response, currentUser, ok ? "profile_updated" : "profile_failed");
                 } else {
                     redirectBack(request, response, currentUser, "missing_name");
                 }
@@ -62,7 +70,7 @@ public class UserProfileActionServlet extends HttpServlet {
                 String oldPass = request.getParameter("oldPassword");
                 String newPass = request.getParameter("newPassword");
 
-                if (oldPass != null && newPass != null && newPass.length() >= 6) {
+                if (oldPass != null && newPass != null && newPass.length() >= 8 && newPass.length() <= 1024) {
                     boolean ok = userDAO.changePassword(currentUser.getUserId(), oldPass, newPass);
                     if (ok) {
                         redirectBack(request, response, currentUser, "password_changed");

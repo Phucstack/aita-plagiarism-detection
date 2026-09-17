@@ -1,91 +1,50 @@
 package com.aita.plagiarism.controller;
 
-import com.aita.plagiarism.model.User;
+import com.aita.plagiarism.dao.PlagiarismDAO;
+import com.aita.plagiarism.model.*;
+import com.aita.plagiarism.service.AccessPolicy;
 import jakarta.servlet.RequestDispatcher;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
+import jakarta.servlet.http.*;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
-
-import java.io.IOException;
-
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
-@DisplayName("Kiểm thử Trình so sánh mã nguồn (DiffInspectorServlet)")
-public class DiffInspectorServletTest {
-
-    private DiffInspectorServlet servlet;
-
-    @Mock
-    private HttpServletRequest request;
-
-    @Mock
-    private HttpServletResponse response;
-
-    @Mock
-    private HttpSession session;
-
-    @Mock
-    private RequestDispatcher dispatcher;
-
-    @BeforeEach
-    void setUp() {
-        servlet = new DiffInspectorServlet();
-        lenient().when(request.getRequestDispatcher("/diff-inspector.jsp")).thenReturn(dispatcher);
+class DiffInspectorServletTest {
+    private final HttpServletRequest req = mock(HttpServletRequest.class);
+    private final HttpServletResponse res = mock(HttpServletResponse.class);
+    private void login() {
+        var session = mock(HttpSession.class);
+        when(req.getSession(false)).thenReturn(session);
+        when(session.getAttribute("currentUser")).thenReturn(new User(2,"teacher","Teacher","t@example.invalid","INSTRUCTOR"));
     }
-
-    @Test
-    @DisplayName("GET: Tải báo cáo mặc định và các khối mã AST trùng lặp cho Giảng viên")
-    void testDoGetInstructorView() throws ServletException, IOException {
-        User instructor = new User(1, "teacher_ha", "TS. Hà", "ha.nh@fpt.edu.vn", "INSTRUCTOR");
-        when(request.getSession(false)).thenReturn(session);
-        when(session.getAttribute("currentUser")).thenReturn(instructor);
-        when(request.getParameter("reportId")).thenReturn("1");
-        when(request.getParameter("role")).thenReturn(null);
-
-        servlet.doGet(request, response);
-
-        verify(response).setContentType("text/html;charset=UTF-8");
-        verify(request).setAttribute(eq("report"), any());
-        verify(request).setAttribute(eq("matchingBlocks"), any());
-        verify(request).setAttribute(eq("isStudent"), eq(false));
-        verify(dispatcher).forward(request, response);
+    @Test void ownerCanReadAndOtherInstructorCannot() throws Exception {
+        login(); when(req.getParameter("reportId")).thenReturn("20");
+        var report = new PlagiarismReport(); report.setAssignmentId(7);
+        var assignment = new Assignment(); assignment.setCourseId(1);
+        var dispatcher = mock(RequestDispatcher.class);
+        when(req.getRequestDispatcher("/diff-inspector.jsp")).thenReturn(dispatcher);
+        try (var dao = mockConstruction(PlagiarismDAO.class, (m,c) -> when(m.getReportById(20)).thenReturn(report));
+             var assignments = mockConstruction(com.aita.plagiarism.dao.AssignmentDAO.class, (m,c) -> when(m.getAssignmentById(7)).thenReturn(assignment));
+             var policy = mockStatic(AccessPolicy.class)) {
+            policy.when(() -> AccessPolicy.canManageAssignment(any(User.class),eq(7))).thenReturn(true);
+            new DiffInspectorServlet().doGet(req,res);
+            verify(req).setAttribute("report",report); verify(dispatcher).forward(req,res);
+            policy.when(() -> AccessPolicy.canManageAssignment(any(User.class),eq(7))).thenReturn(false);
+            new DiffInspectorServlet().doGet(req,res);
+            verify(res).sendError(403);
+            verify(dao.constructed().get(1),never()).getMatchingBlocks(anyInt());
+        }
     }
-
-    @Test
-    @DisplayName("GET: Nhận diện góc nhìn Sinh viên qua query param role=student")
-    void testDoGetStudentViewViaParam() throws ServletException, IOException {
-        when(request.getSession(false)).thenReturn(null);
-        when(request.getParameter("reportId")).thenReturn(null);
-        when(request.getParameter("role")).thenReturn("student");
-
-        servlet.doGet(request, response);
-
-        verify(request).setAttribute(eq("isStudent"), eq(true));
-        verify(dispatcher).forward(request, response);
+    @Test void roleParameterCannotAuthenticateAnonymousCaller() throws Exception {
+        when(req.getParameter("role")).thenReturn("student");
+        new DiffInspectorServlet().doGet(req,res);
+        verify(res).sendError(403);
+        verify(req,never()).getRequestDispatcher(anyString());
     }
-
-    @Test
-    @DisplayName("GET: Xử lý an toàn khi reportId không phải số hợp lệ")
-    void testDoGetInvalidReportId() throws ServletException, IOException {
-        when(request.getSession(false)).thenReturn(null);
-        when(request.getParameter("reportId")).thenReturn("not_a_number");
-        when(request.getParameter("role")).thenReturn(null);
-
-        servlet.doGet(request, response);
-
-        verify(request).setAttribute(eq("report"), any());
-        verify(dispatcher).forward(request, response);
+    @Test void invalidIdDoesNotSelectReportOne() throws Exception {
+        login(); when(req.getParameter("reportId")).thenReturn("invalid");
+        try (var dao = mockConstruction(PlagiarismDAO.class)) {
+            new DiffInspectorServlet().doGet(req,res);
+            verify(res).sendError(400); verifyNoInteractions(dao.constructed().get(0));
+        }
     }
 }

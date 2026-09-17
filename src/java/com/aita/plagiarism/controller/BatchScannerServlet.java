@@ -2,6 +2,8 @@ package com.aita.plagiarism.controller;
 
 import com.aita.plagiarism.dao.AssignmentDAO;
 import com.aita.plagiarism.model.Assignment;
+import com.aita.plagiarism.model.User;
+import com.aita.plagiarism.service.AccessPolicy;
 import com.aita.plagiarism.service.PlagiarismEngineService;
 
 import jakarta.servlet.ServletException;
@@ -23,7 +25,9 @@ public class BatchScannerServlet extends HttpServlet {
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
 
-        List<Assignment> assignments = assignmentDAO.getAllAssignments();
+        User actor = (User) request.getSession().getAttribute("currentUser");
+        List<Assignment> assignments = assignmentDAO.getAllAssignments().stream()
+                .filter(a -> AccessPolicy.canManageCourse(actor, a.getCourseId())).toList();
         request.setAttribute("assignments", assignments);
 
         request.getRequestDispatcher("/batch-scanner.jsp").forward(request, response);
@@ -35,18 +39,18 @@ public class BatchScannerServlet extends HttpServlet {
         request.setCharacterEncoding("UTF-8");
         response.setContentType("text/html;charset=UTF-8");
 
-        int assignmentId = 2; // Mặc định bài tập 2 nếu không truyền
-        String assignParam = request.getParameter("assignmentId");
-        if (assignParam != null && !assignParam.trim().isEmpty()) {
-            try {
-                assignmentId = Integer.parseInt(assignParam.trim());
-            } catch (NumberFormatException ignored) {}
-        }
+        int assignmentId;
+        try { assignmentId = Integer.parseInt(request.getParameter("assignmentId")); if (assignmentId <= 0) throw new NumberFormatException(); }
+        catch (NumberFormatException e) { response.sendError(400); return; }
+        User actor = (User) request.getSession().getAttribute("currentUser");
+        Assignment assignment = assignmentDAO.getAssignmentById(assignmentId);
+        if (assignment == null) { response.sendError(404); return; }
+        if (!AccessPolicy.canManageAssignment(actor, assignmentId)) { response.sendError(403); return; }
 
         // Kích hoạt lõi đối soát thật (Deterministic Java Core: Lexer + Jaccard + Levenshtein + MatchingBlocks)
         int reportsCount = engineService.scanAssignment(assignmentId);
 
         // Sau khi hoàn thành điều hướng về Dashboard để hiển thị báo cáo thật
-        response.sendRedirect(request.getContextPath() + "/dashboard?assignmentId=" + assignmentId + "&scanSuccess=true&count=" + reportsCount);
+        response.sendRedirect(request.getContextPath() + "/dashboard?courseId=" + assignment.getCourseId() + "&assignmentId=" + assignmentId + "&scanSuccess=true&count=" + reportsCount);
     }
 }

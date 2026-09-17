@@ -19,7 +19,31 @@
         <failOnMissingWebXml>false</failOnMissingWebXml>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId><artifactId>jackson-bom</artifactId>
+                <version>2.21.6</version><type>pom</type><scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
+        <dependency>
+            <groupId>com.google.api-client</groupId><artifactId>google-api-client</artifactId><version>2.9.1</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId><artifactId>jjwt-api</artifactId><version>0.13.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId><artifactId>jjwt-impl</artifactId><version>0.13.0</version><scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId><artifactId>jjwt-jackson</artifactId><version>0.13.0</version><scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.web</groupId><artifactId>jakarta.servlet.jsp.jstl</artifactId><version>3.0.1</version>
+        </dependency>
         <!-- Jakarta Servlet API 6.0 (Tomcat 10.1+) -->
         <dependency>
             <groupId>jakarta.servlet</groupId>

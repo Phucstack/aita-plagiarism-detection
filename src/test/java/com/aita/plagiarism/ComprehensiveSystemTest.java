@@ -84,9 +84,7 @@ public class ComprehensiveSystemTest {
                 assertTrue(tableCount >= 6, "Phải có ít nhất 6 bảng trong CSDL");
             }
         } catch (Exception e) {
-            System.out.println(" [INFO] SQL Server TCP/IP chưa kết nối trực tiếp -> Kích hoạt Resilient Fallback Pattern bảo vệ runtime");
-            logAssert("DB_RESILIENCE_MODE", true, "Hệ thống tự động kích hoạt Resilient Fallback Pattern bảo vệ runtime");
-            assertTrue(true, "Resilient mode hoạt động an toàn");
+            throw new AssertionError("Real SQL Server connection is required for this integration test", e);
         }
     }
 
@@ -212,16 +210,14 @@ public class ComprehensiveSystemTest {
         System.out.println("\n--- 5. KIỂM THỬ COURSE MANAGEMENT (MỤC 2.2) ---");
         CourseDAO courseDAO = new CourseDAO();
 
-        List<Course> courses = courseDAO.getCoursesByInstructor(1);
-        if (courses == null || courses.isEmpty()) {
-            courses = courseDAO.getAllCourses();
-        }
+        List<Course> courses = courseDAO.getCoursesByInstructor(2);
         logAssert("COURSE_FETCH_INSTRUCTOR", courses != null && !courses.isEmpty(), 
                    "Lấy danh sách khóa học của giảng viên (Tìm thấy: " + (courses != null ? courses.size() : 0) + " môn)");
         assertNotNull(courses);
         assertFalse(courses.isEmpty());
 
-        Course c = courses.get(0);
+        Course c = courses.stream().filter(course -> "PRJ301".equals(course.getCourseCode())).findFirst().orElseThrow();
+        assertTrue(courses.stream().allMatch(course -> course.getInstructorId() == 2));
         logAssert("COURSE_CODE_CHECK", "PRJ301".equals(c.getCourseCode()), "Mã môn học khớp chuẩn 'PRJ301'");
         assertEquals("PRJ301", c.getCourseCode());
 
@@ -245,7 +241,7 @@ public class ComprehensiveSystemTest {
         System.out.println("\n--- 6. KIỂM THỬ DỮ LIỆU ĐỐI CHỨNG ĐẠO VĂN & AST BLOCKS ---");
         PlagiarismDAO dao = new PlagiarismDAO();
 
-        List<PlagiarismReport> reports = dao.getReportsByAssignment(1);
+        List<PlagiarismReport> reports = dao.getReportsByAssignment(2);
         logAssert("REPORTS_FETCH", reports != null && !reports.isEmpty(), 
                    "Truy vấn báo cáo đạo văn của Assignment 1 (Tìm thấy: " + (reports != null ? reports.size() : 0) + " báo cáo)");
         assertNotNull(reports);
@@ -286,26 +282,9 @@ public class ComprehensiveSystemTest {
         assertNotNull(existingStudent);
         assertEquals("STUDENT", existingStudent.getRole());
 
-        // 3. Tự động khởi tạo người dùng mới khi đăng nhập Google lần đầu
-        User newGoogleUser = dao.getOrCreateGoogleUser("sv_k17_demo@fpt.edu.vn", "Nguyễn Sinh Viên Mới", 
-                                                       "https://example.com/avatar.jpg", "STUDENT");
-        logAssert("GOOGLE_AUTH_GET_OR_CREATE", newGoogleUser != null && "STUDENT".equals(newGoogleUser.getRole()),
-                   "Tự động ánh xạ và khởi tạo người dùng Google mới (Role: STUDENT)");
-        assertNotNull(newGoogleUser);
-        assertEquals("STUDENT", newGoogleUser.getRole());
+        // Unverified Google identities may not be provisioned.
+        assertThrows(UnsupportedOperationException.class, () -> dao.getOrCreateGoogleUser(
+                "unverified@example.invalid", "Unverified", null, "ADMIN"));
 
-        // 4. Cấp phát Token JWT cho người dùng Google
-        String googleJwt = JWTUtil.generateToken(newGoogleUser);
-        logAssert("GOOGLE_AUTH_JWT_ISSUE", googleJwt != null && googleJwt.split("\\.").length == 3,
-                   "Cấp phát JWT Token hợp lệ cho phiên đăng nhập Google");
-        assertNotNull(googleJwt);
-
-        // 5. Kiểm chứng tính hợp lệ của Token JWT vừa cấp cho Google User
-        boolean isValid = JWTUtil.validateToken(googleJwt);
-        String roleClaim = JWTUtil.extractClaims(googleJwt).get("role");
-        logAssert("GOOGLE_AUTH_JWT_VERIFY", isValid && "STUDENT".equals(roleClaim),
-                   "Token JWT của người dùng Google vượt qua kiểm tra chữ ký HMAC-SHA256");
-        assertTrue(isValid);
-        assertEquals("STUDENT", roleClaim);
     }
 }

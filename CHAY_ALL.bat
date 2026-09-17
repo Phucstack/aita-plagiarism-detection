@@ -67,7 +67,7 @@ echo                           DANH MUC LUA CHON CHUC NANG
 echo ==============================================================================
 echo   [1] KHOI CHAY WEB DEMO VA SHOWCASE [Khuyen dung - 1 Click mo ngay trinh duyet]
 echo       -^> Mo Landing Page 3D Scrollytelling, Form Dang Nhap, Dashboard, SV Portal
-echo       -^> Chay 100%% tren MOI MAY [Tu dong thich ung Python / Node / PowerShell]
+echo       -^> Preview tinh, khong thay the ung dung Java/JDBC
 echo.
 echo   [2] BUILD DONG GOI DU AN JAVA PRJ301 [Maven Package WAR]
 echo       -^> Tu dong thiet lap UTF-8, bien dich 21 classes, tao file .war cho Tomcat
@@ -75,8 +75,8 @@ echo.
 echo   [3] CHAY KIEM THU TU DONG [JUnit 5 Multi-Scenario Tests]
 echo       -^> Kiem tra toan ven thuat toan bam SHA-256, AST Token, JWT Token
 echo.
-echo   [4] CHAY TOAN DIEN [BUILD JAVA WAR + KHOI CHAY WEB DEMO]
-echo       -^> Dong goi ung dung Java va mo ngay Web Demo tren trinh duyet
+echo   [4] CHAY UNG DUNG JAVA [BUILD WAR + TOMCAT 10.1]
+echo       -^> Dang nhap va JDBC that; can cau hinh .env va SQL Server
 echo.
 echo   [5] HUONG DAN CAU HINH CO SO DU LIEU SQL SERVER VA TOMCAT
 echo       -^> Xem thong tin chuoi ket noi DBContext va cach trien khai Tomcat 10.1+
@@ -246,7 +246,7 @@ if !HAS_MAVEN! equ 0 (
 set MAVEN_OPTS=-Dfile.encoding=UTF-8
 echo [*] Dang thuc thi: mvn test
 echo.
-call mvn test
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\test-java.ps1"
 
 echo.
 pause
@@ -256,37 +256,12 @@ goto MAIN_MENU
 :: ACTION 4: Chay Toan Dien (Build WAR + Bat Web Showcase)
 :: ==============================================================================
 :ACTION_RUN_ALL
-cls
-echo ==============================================================================
-echo            CHAY TOAN DIEN: DONG GOI JAVA WAR VA KHOI CHAY WEB DEMO
-echo ==============================================================================
-echo.
-if !HAS_MAVEN! equ 1 (
-    echo [1/2] Dang bien dich va dong goi file WAR...
-    set MAVEN_OPTS=-Dfile.encoding=UTF-8
-    call mvn clean package -DskipTests
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\run-java.ps1"
+if errorlevel 1 (
+    echo [ERROR] Java startup failed. Check the message above.
 ) else (
-    echo [!] Bo qua buoc dong goi Java [Do may chua cai Maven].
+    echo Open http://localhost:8080/plagiarism/login
 )
-
-echo.
-echo [2/2] Dang khoi chay may chu Web Showcase...
-set "PORT=8089"
-if !HAS_PYTHON! equ 1 (
-    where python >nul 2>&1
-    if !errorlevel! equ 0 (
-        start "AITA Web Server" /min python -m http.server !PORT! --directory "%~dp0web"
-    ) else (
-        start "AITA Web Server" /min py -m http.server !PORT! --directory "%~dp0web"
-    )
-) else (
-    start "AITA Web Server" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\server.ps1" -Port !PORT! -WebRoot "%~dp0web"
-)
-
-ping -n 3 127.0.0.1 >nul 2>&1
-start http://localhost:!PORT!/preview/index.html
-echo.
-echo [OK] Da hoan thanh quy trinh chay toan dien!
 pause
 goto MAIN_MENU
 

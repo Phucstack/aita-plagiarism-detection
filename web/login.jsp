@@ -18,7 +18,7 @@
         }
     </script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/motion-effects.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/aita-copilot.css?v=2.0">
@@ -243,21 +243,12 @@
                     <div class="flex-1 border-t border-white/10"></div>
                 </div>
 
-                <!-- Nút Đăng nhập Google Chuẩn Brand Guidelines -->
-                <div class="w-full">
-                    <button type="button" 
-                            id="google-login-btn" 
-                            onclick="handleGoogleSignIn()" 
-                            class="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-100 active:scale-[0.99] text-slate-800 font-medium text-xs shadow-md hover:shadow-cyan-500/10 transition-all flex items-center justify-center gap-2.5 border border-slate-200 cursor-pointer group">
-                        <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
-                            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.03h3.89c2.28-2.1 3.65-5.2 3.65-9.12z"/>
-                            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.89-3.03c-1.08.72-2.45 1.16-4.04 1.16-3.1 0-5.74-2.1-6.68-4.93H1.26v3.13C3.25 21.3 7.33 24 12 24z"/>
-                            <path fill="#FBBC05" d="M5.32 14.29c-.24-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.58H1.26C.46 8.17 0 9.99 0 12s.46 3.83 1.26 5.42l4.06-3.13z"/>
-                            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.25 2.7 1.26 6.58l4.06 3.13c.94-2.83 3.58-4.96 6.68-4.96z"/>
-                        </svg>
-                        <span class="font-medium text-[12.5px] text-slate-700 group-hover:text-slate-900 tracking-tight">Đăng nhập bằng tài khoản Google</span>
-                    </button>
+                <div id="google-login" data-endpoint="${pageContext.request.contextPath}/login-google" class="w-full">
+                    <div id="google-identity-button" class="flex justify-center"></div>
+                    <button type="button" id="google-login-btn" class="w-full py-2.5 px-4 rounded-xl bg-white text-slate-800 text-xs font-medium">Đăng nhập bằng Google</button>
+                    <p id="google-login-message" role="status" aria-live="polite" class="text-xs text-slate-400 mt-2"></p>
                 </div>
+                <script src="${pageContext.request.contextPath}/assets/js/google-login.js" defer></script>
 
                 <!-- Bảng Chọn Nhanh Tài Khoản Demo (Kiểm Thử Nhanh) -->
                 <div class="mt-3 pt-2.5 border-t border-white/5 space-y-1.5">
@@ -350,77 +341,6 @@
             if (window.CyberAudio) CyberAudio.playTick();
         }
 
-        /**
-         * Xử lý khi người dùng nhấn nút Đăng nhập bằng tài khoản Google
-         * Tự động nhận diện môi trường để phòng tránh lỗi Error 400: origin_mismatch
-         */
-        function handleGoogleSignIn() {
-            if (window.CyberAudio) CyberAudio.playTick();
-
-            // Kiểm tra nếu đang chạy trên origin được cấu hình trên Google Cloud Console (localhost:8080)
-            const isAuthorizedOrigin = (window.location.origin === 'http://localhost:8080' || window.location.origin === 'https://plagiarism.fpt.edu.vn');
-
-            if (isAuthorizedOrigin && window.google && window.google.accounts && window.google.accounts.id) {
-                try {
-                    google.accounts.id.initialize({
-                        client_id: '1000679654868-5gst8u5nqvcm40ghgiav57epemrn3qhj.apps.googleusercontent.com',
-                        callback: handleGoogleCredentialResponse,
-                        auto_prompt: false
-                    });
-                    google.accounts.id.prompt((notification) => {
-                        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                            directGoogleAuth();
-                        }
-                    });
-                    return;
-                } catch (e) {
-                    console.warn('Google GIS prompt failed, falling back to direct auth:', e);
-                }
-            }
-
-            // Fallback an toàn cho port khác (như 8089, LAN...) để không bao giờ văng popup đỏ origin_mismatch
-            directGoogleAuth();
-        }
-
-        function directGoogleAuth() {
-            if (window.showToast) showToast('Đang kết nối tài khoản Google FPTU...', 'info');
-            const role = (typeof currentRole !== 'undefined' && currentRole) ? currentRole : 'lecturer';
-            const targetUrl = '${pageContext.request.contextPath}/login-google?role=' + encodeURIComponent(role);
-            window.location.href = targetUrl;
-        }
-
-        /**
-         * Xử lý kết quả đăng nhập từ Google Identity Services (GIS)
-         */
-        function handleGoogleCredentialResponse(response) {
-            if (!response || !response.credential) {
-                if (window.showToast) showToast('Không nhận được mã xác thực từ Google!', 'danger');
-                if (window.CyberAudio) CyberAudio.playDanger();
-                return;
-            }
-            if (window.showToast) showToast('Google xác thực thành công! Đang đồng bộ phiên làm việc...', 'success');
-            if (window.CyberAudio) CyberAudio.playSuccess();
-
-            // Submit form POST lên GoogleLoginServlet với Google JWT Token
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '${pageContext.request.contextPath}/login-google';
-
-            const credInput = document.createElement('input');
-            credInput.type = 'hidden';
-            credInput.name = 'credential';
-            credInput.value = response.credential;
-            form.appendChild(credInput);
-
-            const roleInput = document.createElement('input');
-            roleInput.type = 'hidden';
-            roleInput.name = 'role';
-            roleInput.value = (typeof currentRole !== 'undefined' && currentRole) ? currentRole : 'lecturer';
-            form.appendChild(roleInput);
-
-            document.body.appendChild(form);
-            form.submit();
-        }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="${pageContext.request.contextPath}/assets/js/cyber-audio.js"></script>

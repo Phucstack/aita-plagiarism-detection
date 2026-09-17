@@ -3,14 +3,43 @@ package com.aita.plagiarism.util;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Base64;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
 
 /**
  * Tiện ích băm và xác thực mật khẩu an toàn
- * Hỗ trợ đồng thời chuẩn hiện đại SHA-256 và tương thích ngược MD5 cho dữ liệu mẫu
+ * PBKDF2 for new passwords; legacy digests are accepted only for migration.
  */
 public class PasswordUtil {
 
     private PasswordUtil() {}
+
+    private static final int ITERATIONS = 600_000;
+
+    public static String hashPassword(String password) {
+        if (password == null || password.length() > 1024) throw new IllegalArgumentException("Invalid password length");
+        byte[] salt = new byte[16];
+        new SecureRandom().nextBytes(salt);
+        return "pbkdf2-sha256$" + ITERATIONS + "$" + Base64.getEncoder().encodeToString(salt)
+                + "$" + Base64.getEncoder().encodeToString(derive(password, salt, ITERATIONS));
+    }
+
+    public static boolean needsUpgrade(String hash) {
+        return hash != null && hash.trim().matches("(?i)([a-f0-9]{32}|[a-f0-9]{64})");
+    }
+
+    private static byte[] derive(String password, byte[] salt, int iterations) {
+        PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt, iterations, 256);
+        try {
+            return SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).getEncoded();
+        } catch (java.security.GeneralSecurityException e) {
+            throw new IllegalStateException("Password hashing unavailable", e);
+        } finally {
+            spec.clearPassword();
+        }
+    }
 
     /**
      * Băm chuỗi bằng thuật toán SHA-256
@@ -33,8 +62,20 @@ public class PasswordUtil {
      * Hỗ trợ tự động nhận diện SHA-256 (64 ký tự hex) hoặc MD5 (32 ký tự hex)
      */
     public static boolean verifyPassword(String rawPassword, String storedHash) {
-        if (rawPassword == null || storedHash == null) {
+        if (rawPassword == null || storedHash == null || rawPassword.length() > 1024) {
             return false;
+        }
+        if (storedHash.startsWith("pbkdf2-sha256$")) {
+            try {
+                String[] parts = storedHash.split("\\$", -1);
+                if (parts.length != 4) return false;
+                int rounds = Integer.parseInt(parts[1]);
+                if (rounds < ITERATIONS || rounds > 2_000_000) return false;
+                byte[] salt = Base64.getDecoder().decode(parts[2]);
+                byte[] expected = Base64.getDecoder().decode(parts[3]);
+                return salt.length == 16 && expected.length == 32
+                        && MessageDigest.isEqual(expected, derive(rawPassword, salt, rounds));
+            } catch (IllegalArgumentException e) { return false; }
         }
         String cleanHash = storedHash.trim().toLowerCase();
         

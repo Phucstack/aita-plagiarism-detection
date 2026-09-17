@@ -1,0 +1,31 @@
+<%@ page pageEncoding="UTF-8" %>
+<section aria-label="Thống kê dữ liệu" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="cyber-card p-5"><p class="text-xs text-slate-400">Khóa học được quản lý</p><strong id="stat-courses" class="text-2xl text-cyan-300">${courseCount}</strong></div>
+    <div class="cyber-card p-5"><p class="text-xs text-slate-400">Bài tập trong khóa đã chọn</p><strong id="stat-assignments" class="text-2xl text-cyan-300">${assignmentCount}</strong></div>
+    <div class="cyber-card p-5"><p class="text-xs text-slate-400">Bài nộp của bài tập đã chọn</p><strong id="stat-submissions" class="text-2xl text-cyan-300">${submissionCount}</strong></div>
+    <div class="cyber-card p-5"><p class="text-xs text-slate-400">Báo cáo đối soát đã lưu</p><strong id="stat-reports" class="text-2xl text-cyan-300">${reportCount}</strong></div>
+</section>
+<section class="cyber-card p-5 mb-6" aria-labelledby="report-heading">
+    <h2 id="report-heading" class="text-lg font-bold mb-2">Kết quả đối soát của bài tập đã chọn</h2>
+    <p class="text-sm text-slate-400 mb-4">Số liệu được đọc khi tải trang. Độ tương đồng là tín hiệu xem xét, không tự kết luận đạo văn.</p>
+    <c:choose><c:when test="${empty reports}"><p id="reports-empty" class="p-5 border border-white/10 rounded-xl text-slate-300">Chưa có báo cáo đối soát cho bài tập này.</p></c:when>
+    <c:otherwise>
+        <p class="text-sm mb-4">Điểm trung bình: <strong id="stat-average">${averageScore}%</strong> · Số cặp đạt ngưỡng ${reportThreshold}%: <strong id="stat-flagged">${flaggedCount}</strong></p>
+        <div class="overflow-x-auto"><table class="w-full text-sm text-left" id="report-table">
+            <thead class="text-slate-400"><tr><th class="p-3">Sinh viên A</th><th class="p-3">Sinh viên B</th><th class="p-3">Tương đồng</th><th class="p-3">Thời điểm tạo</th><th class="p-3">Chi tiết</th></tr></thead>
+            <tbody><c:forEach items="${reports}" var="r"><tr class="border-t border-white/10" data-report-id="${r.reportId}">
+                <td class="p-3"><c:out value="${r.studentAName}"/></td><td class="p-3"><c:out value="${r.studentBName}"/></td>
+                <td class="p-3">${r.similarityScore}%</td><td class="p-3"><c:out value="${r.createdAt}"/></td>
+                <td class="p-3"><a class="text-cyan-300 underline" href="${pageContext.request.contextPath}/diff-inspector?reportId=${r.reportId}">Xem báo cáo #${r.reportId}</a></td>
+            </tr></c:forEach></tbody>
+        </table></div>
+    </c:otherwise></c:choose>
+</section>
+<section id="submission-list" class="cyber-card p-5 mb-6" aria-labelledby="submission-heading">
+    <h2 id="submission-heading" class="text-lg font-bold mb-4">Bài nộp của bài tập đã chọn</h2>
+    <c:if test="${empty submissions}"><p class="text-slate-400">Chưa có bài nộp.</p></c:if>
+    <ul class="space-y-3"><c:forEach items="${submissions}" var="s"><li class="border-t border-white/10 pt-3 break-words">
+        <c:out value="${s.fileName}"/> · ID sinh viên ${s.studentId} · <c:out value="${s.status}"/> · <c:out value="${s.submittedAt}"/>
+    </li></c:forEach></ul>
+</section>
+<p class="text-xs text-slate-400 mb-6">Biểu đồ xu hướng, trạng thái AI trực tuyến, quota và điểm chấm chéo chưa được triển khai trên trang này.</p>

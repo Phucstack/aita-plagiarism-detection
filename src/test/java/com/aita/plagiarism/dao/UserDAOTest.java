@@ -107,27 +107,23 @@ public class UserDAOTest {
     }
 
     @Test
-    @DisplayName("Google OAuth: Tự động trả về người dùng sẵn có nếu email đã tồn tại")
+    @DisplayName("Google OAuth disabled: no email-only authentication")
     void testGetOrCreateGoogleUserExisting() {
-        User existing = userDAO.getOrCreateGoogleUser("ha.nh@fpt.edu.vn", "TS. Nguyễn Hoàng Hà", null, "INSTRUCTOR");
-        assertNotNull(existing);
-        assertEquals("INSTRUCTOR", existing.getRole());
+        assertThrows(UnsupportedOperationException.class,
+                () -> userDAO.getOrCreateGoogleUser("unverified@example.invalid", "Unverified", null, "ADMIN"));
     }
 
     @Test
-    @DisplayName("Google OAuth: Tự động tạo người dùng mới với role Sinh viên")
+    @DisplayName("Google OAuth disabled: no unverified provisioning")
     void testGetOrCreateGoogleUserNewStudent() {
-        String testEmail = "sv_new_test_unit@fpt.edu.vn";
-        User user = userDAO.getOrCreateGoogleUser(testEmail, "Sinh Viên Mới Unit Test", "https://img.jpg", "STUDENT");
-        assertNotNull(user);
-        assertEquals("STUDENT", user.getRole());
-        assertEquals(testEmail, user.getEmail());
+        assertThrows(UnsupportedOperationException.class,
+                () -> userDAO.getOrCreateGoogleUser("unverified@example.invalid", "Unverified", null, "ADMIN"));
     }
 
     @Test
-    @DisplayName("Google OAuth: An toàn khi email đầu vào null hoặc rỗng")
+    @DisplayName("Google OAuth disabled: no client-selected role")
     void testGetOrCreateGoogleUserNullEmail() {
-        assertNull(userDAO.getOrCreateGoogleUser(null, "Test", null, "STUDENT"));
-        assertNull(userDAO.getOrCreateGoogleUser("  ", "Test", null, "STUDENT"));
+        assertThrows(UnsupportedOperationException.class,
+                () -> userDAO.getOrCreateGoogleUser("unverified@example.invalid", "Unverified", null, "ADMIN"));
     }
 }

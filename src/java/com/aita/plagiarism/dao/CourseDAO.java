@@ -3,6 +3,7 @@ package com.aita.plagiarism.dao;
 import com.aita.plagiarism.config.DBContext;
 import com.aita.plagiarism.model.Assignment;
 import com.aita.plagiarism.model.Course;
+import com.aita.plagiarism.model.User;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -39,45 +40,38 @@ public class CourseDAO {
                 }
             }
         } catch (Exception e) {
-            // Fallback
+            throw new DataAccessException(e);
         }
-        int mockId = (int) (System.currentTimeMillis() % 10000);
-        c.setCourseId(mockId);
-        getFallbackCourses().add(c);
-        return mockId;
+        return -1;
     }
 
-    public boolean updateCourse(Course c) {
+    public boolean updateCourse(Course c, User actor) {
         if (c == null || c.getCourseId() <= 0) return false;
-        String sql = "UPDATE Courses SET course_code = ?, course_name = ?, semester = ? WHERE course_id = ?";
+        String sql = "UPDATE Courses SET course_code = ?, course_name = ?, semester = ? WHERE course_id = ? AND (instructor_id = ? OR ? = 'ADMIN')";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, c.getCourseCode().trim().toUpperCase());
             ps.setString(2, c.getCourseName().trim());
             ps.setString(3, c.getSemester().trim());
             ps.setInt(4, c.getCourseId());
+            ps.setInt(5, actor.getUserId());
+            ps.setString(6, actor.getRole());
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            for (Course item : getFallbackCourses()) {
-                if (item.getCourseId() == c.getCourseId()) {
-                    item.setCourseCode(c.getCourseCode());
-                    item.setCourseName(c.getCourseName());
-                    item.setSemester(c.getSemester());
-                    return true;
-                }
-            }
+            throw new DataAccessException(e);
         }
-        return false;
     }
 
-    public boolean deleteCourse(int courseId) {
-        String sql = "DELETE FROM Courses WHERE course_id = ?";
+    public boolean deleteCourse(int courseId, User actor) {
+        String sql = "DELETE FROM Courses WHERE course_id = ? AND (instructor_id = ? OR ? = 'ADMIN')";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, courseId);
+            ps.setInt(2, actor.getUserId());
+            ps.setString(3, actor.getRole());
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            return getFallbackCourses().removeIf(c -> c.getCourseId() == courseId);
+            throw new DataAccessException(e);
         }
     }
 
@@ -92,9 +86,7 @@ public class CourseDAO {
                 }
             }
         } catch (Exception e) {
-            for (Course c : getFallbackCourses()) {
-                if (c.getCourseId() == courseId) return c;
-            }
+            throw new DataAccessException(e);
         }
         return null;
     }
@@ -110,9 +102,9 @@ public class CourseDAO {
                 list.add(mapCourse(rs));
             }
         } catch (Exception e) {
-            return getFallbackCourses();
+            throw new DataAccessException(e);
         }
-        return list.isEmpty() ? getFallbackCourses() : list;
+        return list;
     }
 
     public List<Course> getCoursesByInstructor(int instructorId) {
@@ -128,9 +120,9 @@ public class CourseDAO {
                 }
             }
         } catch (Exception e) {
-            return getFallbackCourses();
+            throw new DataAccessException(e);
         }
-        return list.isEmpty() ? getFallbackCourses() : list;
+        return list;
     }
 
     public List<Assignment> getAssignmentsByCourse(int courseId) {
@@ -154,14 +146,4 @@ public class CourseDAO {
         return c;
     }
 
-    private static List<Course> fallbackCourses;
-
-    private static synchronized List<Course> getFallbackCourses() {
-        if (fallbackCourses == null) {
-            fallbackCourses = new ArrayList<>();
-            fallbackCourses.add(new Course(1, "PRJ301", "Java Web Application Development (RBL)", 2, "Fall 2026"));
-            fallbackCourses.add(new Course(2, "CSD201", "Data Structures and Algorithms", 3, "Fall 2026"));
-        }
-        return fallbackCourses;
-    }
 }

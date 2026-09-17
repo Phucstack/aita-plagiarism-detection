@@ -43,14 +43,11 @@ public class StudentPortalServlet extends HttpServlet {
         
         // Lấy danh sách bài nộp thực tế của sinh viên này
         List<Submission> mySubmissions = submissionDAO.getSubmissionsByStudent(currentUser.getUserId());
-        if (mySubmissions == null || mySubmissions.isEmpty()) {
-            // Nếu sinh viên mới chưa nộp bài, lấy bài nộp mẫu tương ứng
-            mySubmissions = submissionDAO.getSubmissionsByAssignment(2);
-        }
 
         request.setAttribute("assignments", assignments);
         request.setAttribute("mySubmissions", mySubmissions);
         request.setAttribute("submissionCount", mySubmissions.size());
+        request.setAttribute("myResults", new com.aita.plagiarism.dao.PlagiarismDAO().getResultsByStudent(currentUser.getUserId()));
 
         // Forward tới giao diện student-portal.jsp
         request.getRequestDispatcher("/student-portal.jsp").forward(request, response);
@@ -63,6 +60,6 @@ public class StudentPortalServlet extends HttpServlet {
         response.setContentType("text/html;charset=UTF-8");
 
         // Xử lý nộp đơn giải trình / khiếu nại (Appeal) từ sinh viên
-        response.sendRedirect(request.getContextPath() + "/student-portal?appealSuccess=true");
+        response.sendError(501, "Chức năng gửi giải trình chưa được triển khai.");
     }
 }

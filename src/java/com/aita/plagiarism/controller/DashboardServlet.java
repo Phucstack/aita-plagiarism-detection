@@ -37,14 +37,12 @@ public class DashboardServlet extends HttpServlet {
         List<Course> courses;
         if (currentUser != null && "INSTRUCTOR".equalsIgnoreCase(currentUser.getRole())) {
             courses = courseDAO.getCoursesByInstructor(currentUser.getUserId());
-            if (courses.isEmpty()) {
-                courses = courseDAO.getAllCourses();
-            }
+
         } else {
             courses = courseDAO.getAllCourses();
         }
 
-        int selectedCourseId = 1;
+        int selectedCourseId = 0;
         String courseParam = request.getParameter("courseId");
         if (courseParam != null && !courseParam.trim().isEmpty()) {
             try {
@@ -54,9 +52,17 @@ public class DashboardServlet extends HttpServlet {
             selectedCourseId = courses.get(0).getCourseId();
         }
 
+        if (selectedCourseId != 0) {
+            Course selected = courseDAO.getCourseById(selectedCourseId);
+            if (selected == null) { response.sendError(404); return; }
+            if (!"ADMIN".equals(currentUser.getRole()) && selected.getInstructorId() != currentUser.getUserId()) {
+                response.sendError(403); return;
+            }
+        }
+
         // Lấy danh sách bài tập của khóa học được chọn
         List<Assignment> assignments = courseDAO.getAssignmentsByCourse(selectedCourseId);
-        int selectedAssignmentId = 1;
+        int selectedAssignmentId = 0;
         String assignmentParam = request.getParameter("assignmentId");
         if (assignmentParam != null && !assignmentParam.trim().isEmpty()) {
             try {
@@ -67,14 +73,29 @@ public class DashboardServlet extends HttpServlet {
         }
 
         Assignment currentAssignment = courseDAO.getAssignmentById(selectedAssignmentId);
+        if (selectedAssignmentId != 0 && currentAssignment == null) { response.sendError(404); return; }
+        if (currentAssignment != null && currentAssignment.getCourseId() != selectedCourseId) {
+            response.sendError(403); return;
+        }
         List<PlagiarismReport> reports = plagiarismDAO.getReportsByAssignment(selectedAssignmentId);
         List<Submission> submissions = submissionDAO.getSubmissionsByAssignment(selectedAssignmentId);
 
+        double threshold = currentAssignment == null ? 75 : currentAssignment.getSimilarityThreshold();
+        request.setAttribute("courseCount", courses.size());
+        request.setAttribute("assignmentCount", assignments.size());
+        request.setAttribute("submissionCount", submissions.size());
+        request.setAttribute("reportCount", reports.size());
+        request.setAttribute("reportThreshold", threshold);
+        request.setAttribute("flaggedCount", reports.stream().filter(r -> r.getSimilarityScore() >= threshold).count());
+        request.setAttribute("averageScore", String.format(java.util.Locale.ROOT, "%.2f",
+                reports.stream().mapToDouble(PlagiarismReport::getSimilarityScore).average().orElse(0)));
         request.setAttribute("courses", courses);
         request.setAttribute("assignments", assignments);
         request.setAttribute("selectedCourseId", selectedCourseId);
         request.setAttribute("selectedAssignmentId", selectedAssignmentId);
         request.setAttribute("currentAssignment", currentAssignment);
+        request.setAttribute("selectedDeadline", currentAssignment == null || currentAssignment.getDeadline() == null ? ""
+                : currentAssignment.getDeadline().toLocalDateTime().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")));
         request.setAttribute("reports", reports);
         request.setAttribute("submissions", submissions);
 

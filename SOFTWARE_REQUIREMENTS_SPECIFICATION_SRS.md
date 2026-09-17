@@ -1,4 +1,12 @@
 # TÀI LIỆU ĐẶC TẢ YÊU CẦU PHẦN MỀM (SOFTWARE REQUIREMENTS SPECIFICATION - SRS)
+
+> Cập nhật triển khai tuần 1–3 ngày 17/09/2026: xem BAO_CAO_TIEN_DO_TUAN_1_3.md.
+> Các mục bên dưới là đặc tả mục tiêu, không phải biên bản xác nhận đã hoàn thành.
+> Route hiện thực là /dashboard và /student-portal; xác thực dùng JWT cookie kèm session.
+> Google login xác minh ID token phía server, chỉ liên kết tài khoản đã được cấp sẵn và giữ quyền trong database; xem GOOGLE_LOGIN.md. Lỗi database không được thay bằng mock data hoặc kết quả thành công.
+> Các cam kết hiệu năng, chức năng ngoài tuần 1–3 chưa được nghiệm thu toàn diện từ bản sửa này. Quyền assignment/report, số liệu dashboard và nâng cấp mật khẩu được mô tả tại DEMO_TUAN_1_3.md.
+
+
 ## DỰ ÁN: AITA CODEDEFEND — AI PLAGIARISM & CODE SIMILARITY DETECTION SUITE
 **Môn học:** PRJ301 — Web Applications Development (Research-Based Learning)  
 **Nhóm thực hiện:** SE20C — Nhóm 7  

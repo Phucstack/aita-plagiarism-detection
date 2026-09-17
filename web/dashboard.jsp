@@ -1,3 +1,4 @@
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <!DOCTYPE html>
@@ -40,8 +41,9 @@
             }
         })();
     </script>
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/data-views.css">
 </head>
-<body class="cinema-grain bg-[#090a15] text-slate-200 h-screen overflow-hidden flex flex-col font-sans relative">
+<body class="data-view cinema-grain bg-[#090a15] text-slate-200 h-screen overflow-hidden flex flex-col font-sans relative">
     <!-- Interactive Cyber Particle Mesh Canvas (AST Synapse) -->
     <canvas id="cyber-canvas"></canvas>
 
@@ -52,10 +54,10 @@
     </div>
     
     <!-- Top Navigation Bar (Unified Across All Screens) -->
-    <header class="h-16 shrink-0 border-b border-white/10 bg-[#0c0e1d]/90 backdrop-blur-md px-5 flex items-center justify-between z-50">
+    <header class="h-16 shrink-0 border-b border-white/10 bg-[#0c0e1d]/90 backdrop-blur-md px-3 flex items-center justify-between z-50">
         <div class="flex items-center gap-4 lg:gap-8">
             <!-- Sidebar Collapse / Expand Toggle Button -->
-            <button id="sidebar-toggle-btn" onclick="toggleSidebar()" class="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 transition-all flex items-center justify-center shrink-0" title="Ẩn/Hiện Sidebar (Ctrl+B)">
+            <button id="sidebar-toggle-btn" onclick="toggleSidebar()" class="hidden md:flex p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 transition-all flex items-center justify-center shrink-0" title="Ẩn/Hiện Sidebar (Ctrl+B)">
                 <i data-lucide="panel-left-close" class="w-4 h-4"></i>
             </button>
 
@@ -82,7 +84,7 @@
                 <a href="${pageContext.request.contextPath}/batch-scanner" class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all">
                     <i data-lucide="scan-line" class="w-4 h-4"></i> Batch Scanner
                 </a>
-                <a href="${pageContext.request.contextPath}/diff-inspector?reportId=1" class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+                <a href="${pageContext.request.contextPath}/dashboard#report-heading" class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all">
                     <i data-lucide="split-square-vertical" class="w-4 h-4"></i> Diff Inspector
                 </a>
             </nav>
@@ -91,13 +93,13 @@
         <!-- Right Profile & Utilities Section -->
         <div class="flex items-center gap-3 sm:gap-4">
             <!-- Visual Effects Toggle Button (Mặc định: TẮT sau khi đăng nhập) -->
-            <button onclick="CyberEffects.toggle()" class="effects-hud-toggle px-2.5 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all flex items-center gap-1.5 text-xs font-mono shrink-0" title="Bật/Tắt Toàn Bộ Hiệu Ứng (Mặc định: TẮT)">
+            <button onclick="CyberEffects.toggle()" class="effects-hud-toggle hidden sm:flex px-2.5 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all flex items-center gap-1.5 text-xs font-mono shrink-0" title="Bật/Tắt Toàn Bộ Hiệu Ứng (Mặc định: TẮT)">
                 <i data-lucide="zap-off" class="w-3.5 h-3.5 text-amber-400"></i>
                 <span class="hidden sm:inline text-[11px]">Hiệu ứng: <span class="effects-status-val font-bold text-amber-400">TẮT</span></span>
             </button>
 
             <!-- Cyber Audio HUD Toggle Button -->
-            <button onclick="CyberAudio.toggle()" class="audio-hud-toggle p-2 rounded-xl border border-white/10 bg-white/5 hover:bg-cyan-500/10 hover:border-cyan-500/40 text-slate-400 hover:text-cyan-300 transition-all flex items-center justify-center shrink-0" title="Bật/Tắt Âm Thanh Tương Tác HUD">
+            <button onclick="CyberAudio.toggle()" class="audio-hud-toggle hidden sm:flex p-2 rounded-xl border border-white/10 bg-white/5 hover:bg-cyan-500/10 hover:border-cyan-500/40 text-slate-400 hover:text-cyan-300 transition-all flex items-center justify-center shrink-0" title="Bật/Tắt Âm Thanh Tương Tác HUD">
                 <i data-lucide="volume-x" class="w-4 h-4"></i>
             </button>
 
@@ -111,21 +113,15 @@
             <!-- System Status Indicator -->
             <div class="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-mono text-emerald-400">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>AI Online</span>
+                <span>AI chưa bật</span>
             </div>
 
-            <button class="text-slate-400 hover:text-white transition-colors" title="Trợ giúp"><i data-lucide="help-circle" class="w-4 h-4"></i></button>
-            <div class="relative">
-                <button class="text-slate-400 hover:text-white transition-colors" title="Thông báo"><i data-lucide="bell" class="w-4 h-4"></i></button>
-                <span class="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-rose-500 text-[9px] font-bold text-white flex items-center justify-center">1</span>
-            </div>
-            
             <!-- User Profile Block -->
             <div class="flex items-center gap-2.5 pl-3 border-l border-white/10">
-                <img src="${sessionScope.currentUser.avatarUrl != null ? sessionScope.currentUser.avatarUrl : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'}" alt="Avatar" class="w-8 h-8 rounded-full border border-cyan-400/60 object-cover shadow-[0_0_10px_rgba(6,182,212,0.3)] cursor-pointer" onclick="openProfileModal()">
+                <img src="${fn:escapeXml(sessionScope.currentUser.avatarUrl != null ? sessionScope.currentUser.avatarUrl : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80')}" alt="Avatar" class="w-8 h-8 rounded-full border border-cyan-400/60 object-cover shadow-[0_0_10px_rgba(6,182,212,0.3)] cursor-pointer" onclick="openProfileModal()">
                 <div class="text-left leading-tight hidden sm:block text-xs cursor-pointer" onclick="openProfileModal()">
-                    <div class="font-semibold text-white hover:text-cyan-300 transition-colors">${sessionScope.currentUser.fullName != null ? sessionScope.currentUser.fullName : 'TS. Nguyễn Hoàng Hà'}</div>
-                    <div class="text-[10px] text-slate-400 font-mono">${sessionScope.currentUser.email != null ? sessionScope.currentUser.email : 'ha.nh@fpt.edu.vn'}</div>
+                    <div class="font-semibold text-white hover:text-cyan-300 transition-colors"><c:out value="${sessionScope.currentUser.fullName}"/></div>
+                    <div class="text-[10px] text-slate-400 font-mono"><c:out value="${sessionScope.currentUser.email}"/></div>
                 </div>
                 <button type="button" onclick="openProfileModal()" class="ml-1 text-slate-400 hover:text-cyan-300 transition-colors p-1" title="Cài đặt tài khoản &amp; Đổi mật khẩu">
                     <i data-lucide="user-cog" class="w-4 h-4"></i>
@@ -139,7 +135,7 @@
 
     <div class="flex-1 flex min-h-0 overflow-hidden">
         <!-- Master Left Sidebar (Unified Across All Screens) -->
-        <aside id="master-sidebar" class="w-56 border-r border-white/10 bg-[#0c0e1d] flex flex-col py-5 px-3.5 gap-1 shrink-0 select-none h-full overflow-y-auto custom-sidebar-scroll">
+        <aside id="master-sidebar" class="hidden md:flex w-56 border-r border-white/10 bg-[#0c0e1d] flex flex-col py-5 px-3.5 gap-1 shrink-0 select-none h-full overflow-y-auto custom-sidebar-scroll">
             <div class="sidebar-heading text-[10px] font-mono text-slate-500 px-3 mb-2 uppercase tracking-wider font-semibold">Điều Hướng Chính</div>
             
             <a href="${pageContext.request.contextPath}/dashboard" class="sidebar-nav-item flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-cyan-950/60 text-cyan-300 font-semibold text-xs border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all" title="Dashboard">
@@ -158,90 +154,19 @@
                 <span class="sidebar-badge text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-slate-400">Laser</span>
             </a>
 
-            <a href="${pageContext.request.contextPath}/diff-inspector?reportId=1" class="sidebar-nav-item flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 font-medium text-xs transition-all" title="Diff Inspector">
+            <a href="${pageContext.request.contextPath}/dashboard#report-heading" class="sidebar-nav-item flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 font-medium text-xs transition-all" title="Diff Inspector">
                 <div class="flex items-center gap-3">
                     <i data-lucide="split-square-vertical" class="w-4 h-4 shrink-0"></i>
                     <span class="sidebar-label">Diff Inspector</span>
                 </div>
-                <span class="sidebar-badge text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30">88% Risk</span>
+                <span class="sidebar-badge text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30">Báo cáo</span>
             </a>
 
-            <button onclick="openAstModal()" class="sidebar-nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-violet-300 hover:bg-violet-950/20 font-medium text-xs transition-all text-left" title="AST &amp; Gemini AI">
-                <div class="flex items-center gap-3">
-                    <i data-lucide="cpu" class="w-4 h-4 text-violet-400 shrink-0"></i>
-                    <span class="sidebar-label">AST &amp; Gemini AI</span>
-                </div>
-                <span class="sidebar-badge text-[10px] font-mono px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30">v1.5</span>
-            </button>
-
-            <div class="sidebar-heading text-[10px] font-mono text-slate-500 px-3 mt-4 mb-2 uppercase tracking-wider font-semibold">Hệ Thống &amp; Khảo Thí</div>
-
-            <a href="javascript:void(0)" onclick="openRepositoryModal()" class="sidebar-nav-item flex items-center justify-between px-3.5 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 font-medium text-xs transition-all cursor-pointer" title="Kho Bài Nộp">
-                <div class="flex items-center gap-3">
-                    <i data-lucide="folder-git-2" class="w-4 h-4 shrink-0 text-cyan-400"></i>
-                    <span class="sidebar-label">Kho Bài Nộp</span>
-                </div>
-                <span class="sidebar-badge text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950/70 border border-cyan-500/40 text-cyan-300">42</span>
-            </a>
-
-            <a href="javascript:void(0)" onclick="openScanLogsModal()" class="sidebar-nav-item flex items-center justify-between px-3.5 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 font-medium text-xs transition-all cursor-pointer" title="Nhật Ký Quét">
-                <div class="flex items-center gap-3">
-                    <i data-lucide="history" class="w-4 h-4 shrink-0 text-violet-400"></i>
-                    <span class="sidebar-label">Nhật Ký Quét</span>
-                </div>
-                <span class="sidebar-badge text-[9px] font-mono text-violet-400">Live</span>
-            </a>
-
-            <a href="javascript:void(0)" onclick="openThresholdModal()" class="sidebar-nav-item flex items-center justify-between px-3.5 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 font-medium text-xs transition-all cursor-pointer" title="Ngưỡng Đạo Văn">
-                <div class="flex items-center gap-3">
-                    <i data-lucide="sliders" class="w-4 h-4 shrink-0 text-amber-400"></i>
-                    <span class="sidebar-label">Ngưỡng Đạo Văn</span>
-                </div>
-                <span class="sidebar-badge text-[9px] font-mono text-amber-400">Config</span>
-            </a>
-
-            <!-- Sidebar Bottom Info Box -->
-            <div class="mt-auto pt-4 border-t border-white/5 space-y-2.5">
-                <!-- École 42 Peer-Review & Correction Points (Thỏa mãn RBL Mục 2) -->
-                <div class="p-2.5 rounded-xl bg-[#080914] border border-violet-500/30 text-xs font-mono space-y-1.5 shadow-sm">
-                    <div class="flex items-center justify-between text-violet-300 font-bold">
-                        <span class="flex items-center gap-1 text-[11px]"><i data-lucide="award" class="w-3.5 h-3.5"></i> École 42</span>
-                        <span class="text-[9px] px-1.5 py-0.5 rounded bg-violet-950 text-violet-300 border border-violet-500/40">5 Pts</span>
-                    </div>
-                    <div class="text-[9px] text-slate-400 flex items-center justify-between">
-                        <span>Chấm chéo:</span>
-                        <span class="text-cyan-300 font-semibold">G4 &rarr; G5</span>
-                    </div>
-                    <div class="text-[8.5px] text-emerald-400 font-mono flex items-center gap-1 border-t border-white/5 pt-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Docker Sandbox 4.5.2 Pass
-                    </div>
-                </div>
-
-                <div class="sidebar-quota-box p-3 rounded-xl bg-[#080914] border border-white/5" title="Gemini 1.5 Quota: 84%">
-                    <div class="flex items-center justify-between text-[11px] font-mono mb-1.5 w-full">
-                        <span class="sidebar-label text-slate-400">Gemini 1.5 Quota</span>
-                        <span class="text-cyan-400 font-bold">84%</span>
-                    </div>
-                    <div class="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                        <div class="bg-gradient-to-r from-cyan-400 to-violet-500 h-full w-[84%]"></div>
-                    </div>
-                    <div class="sidebar-footer-detail flex items-center justify-between text-[9px] font-mono text-slate-500 mt-1.5">
-                        <span>42/50 RPM</span>
-                        <span>API Active</span>
-                    </div>
-                </div>
-
-                <div class="sidebar-footer-detail flex items-center justify-between px-1 text-[10px] font-mono text-slate-500">
-                    <span class="flex items-center gap-1.5">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                        AITA v2.4 (G4)
-                    </span>
-                    <span>PRJ301</span>
-                </div>
-            </div>
+            <a href="#submission-list" class="sidebar-nav-item px-3 py-2 text-cyan-300 text-xs">Bài nộp của bài tập đã chọn</a>
+            <p class="mt-auto text-xs text-slate-500 p-3">Java Servlet · JDBC · SQL Server</p>
         </aside>
 
-        <main class="flex-1 p-6 h-full min-h-0 overflow-y-auto max-w-[1600px] mx-auto w-full">
+        <main class="flex-1 min-w-0 p-4 md:p-6 h-full min-h-0 overflow-y-auto max-w-[1600px] mx-auto w-full">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>
                     <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
@@ -255,31 +180,31 @@
                 <div class="flex flex-wrap items-center gap-2.5 text-xs font-mono">
                     <form id="filterForm" action="${pageContext.request.contextPath}/dashboard" method="GET" class="flex flex-wrap items-center gap-2">
                         <!-- Course Select -->
-                        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#131424] border border-white/10 text-slate-300">
+                        <div class="flex min-w-0 max-w-full items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#131424] border border-white/10 text-slate-300">
                             <i data-lucide="book-open" class="w-3.5 h-3.5 text-cyan-400"></i>
-                            <select name="courseId" onchange="this.form.submit()" class="bg-transparent border-none text-white focus:outline-none text-xs cursor-pointer">
+                            <select name="courseId" onchange="this.form.elements.namedItem('assignmentId').disabled = true; this.form.submit()" class="bg-transparent border-none text-white focus:outline-none text-xs cursor-pointer">
                                 <c:forEach var="c" items="${courses}">
                                     <option value="${c.courseId}" ${c.courseId == selectedCourseId ? 'selected' : ''} class="bg-[#131424] text-white">
-                                        ${c.courseCode} - ${c.courseName}
+                                        <c:out value="${c.courseCode}"/> - <c:out value="${c.courseName}"/>
                                     </option>
                                 </c:forEach>
                                 <c:if test="${empty courses}">
-                                    <option value="1" class="bg-[#131424] text-white">PRJ301 - Java Web Application</option>
+                                    <option value="0">Chưa có khóa học</option>
                                 </c:if>
                             </select>
                         </div>
 
                         <!-- Assignment Select -->
-                        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#131424] border border-white/10 text-slate-300">
+                        <div class="flex min-w-0 max-w-full items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#131424] border border-white/10 text-slate-300">
                             <i data-lucide="file-text" class="w-3.5 h-3.5 text-violet-400"></i>
                             <select name="assignmentId" onchange="this.form.submit()" class="bg-transparent border-none text-white focus:outline-none text-xs cursor-pointer">
                                 <c:forEach var="a" items="${assignments}">
                                     <option value="${a.assignmentId}" ${a.assignmentId == selectedAssignmentId ? 'selected' : ''} class="bg-[#131424] text-white">
-                                        ${a.title}
+                                        <c:out value="${a.title}"/>
                                     </option>
                                 </c:forEach>
                                 <c:if test="${empty assignments}">
-                                    <option value="1" class="bg-[#131424] text-white">Assignment 2 - E-Commerce Cart</option>
+                                    <option value="0">Chưa có bài tập</option>
                                 </c:if>
                             </select>
                         </div>
@@ -330,441 +255,7 @@
                 </div>
             </div>
 
-            <!-- Infinite Two-Row Tech Marquee (ai-kinetic-3d-web) -->
-            <div class="tech-marquee-container mb-6 rounded-2xl bg-[#0a0c18]/80 border border-white/5 p-3 overflow-hidden space-y-2 marquee-mask-fade shadow-lg backdrop-blur-md">
-                <!-- Track 1: Running Left -->
-                <div class="marquee-track flex gap-4 whitespace-nowrap animate-marquee-left">
-                    <div class="flex items-center gap-4 text-xs font-mono">
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-cyan-500/20 text-cyan-300 flex items-center gap-2">
-                            <i data-lucide="cpu" class="w-3.5 h-3.5 text-cyan-400"></i> JavaParser 3.25 AST Engine
-                        </span>
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-violet-500/20 text-violet-300 flex items-center gap-2">
-                            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-violet-400"></i> Google Gemini 1.5 Pro Semantic Reasoning
-                        </span>
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-emerald-500/20 text-emerald-300 flex items-center gap-2">
-                            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i> Docker Isolation Sandbox (Mục 4.5.2)
-                        </span>
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-amber-500/20 text-amber-300 flex items-center gap-2">
-                            <i data-lucide="award" class="w-3.5 h-3.5 text-amber-400"></i> École 42 Peer Grading Model
-                        </span>
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-sky-500/20 text-sky-300 flex items-center gap-2">
-                            <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-sky-400"></i> FPT University Academic Integrity
-                        </span>
-                    </div>
-                    <!-- Duplicate for seamless infinite loop -->
-                    <div class="flex items-center gap-4 text-xs font-mono" aria-hidden="true">
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-cyan-500/20 text-cyan-300 flex items-center gap-2">
-                            <i data-lucide="cpu" class="w-3.5 h-3.5 text-cyan-400"></i> JavaParser 3.25 AST Engine
-                        </span>
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-violet-500/20 text-violet-300 flex items-center gap-2">
-                            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-violet-400"></i> Google Gemini 1.5 Pro Semantic Reasoning
-                        </span>
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-emerald-500/20 text-emerald-300 flex items-center gap-2">
-                            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i> Docker Isolation Sandbox (Mục 4.5.2)
-                        </span>
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-amber-500/20 text-amber-300 flex items-center gap-2">
-                            <i data-lucide="award" class="w-3.5 h-3.5 text-amber-400"></i> École 42 Peer Grading Model
-                        </span>
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-sky-500/20 text-sky-300 flex items-center gap-2">
-                            <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-sky-400"></i> FPT University Academic Integrity
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Track 2: Running Right (Reverse) -->
-                <div class="marquee-track flex gap-4 whitespace-nowrap animate-marquee-right">
-                    <div class="flex items-center gap-4 text-xs font-mono">
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-emerald-500/20 text-emerald-300 flex items-center gap-2">
-                            <i data-lucide="hash" class="w-3.5 h-3.5 text-emerald-400"></i> SHA-256 Anti-Tamper Digest (Mục 4.4.2)
-                        </span>
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-cyan-500/20 text-cyan-300 flex items-center gap-2">
-                            <i data-lucide="radar" class="w-3.5 h-3.5 text-cyan-400"></i> Sonar Active Plagiarism Radar
-                        </span>
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-indigo-500/20 text-indigo-300 flex items-center gap-2">
-                            <i data-lucide="key" class="w-3.5 h-3.5 text-indigo-400"></i> RFC-7519 JWT Session Security
-                        </span>
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-rose-500/20 text-rose-300 flex items-center gap-2">
-                            <i data-lucide="git-commit" class="w-3.5 h-3.5 text-rose-400"></i> AST Token Renaming Normalizer
-                        </span>
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-amber-500/20 text-amber-300 flex items-center gap-2">
-                            <i data-lucide="scale" class="w-3.5 h-3.5 text-amber-400"></i> In-Place AST Diff Inspection
-                        </span>
-                    </div>
-                    <!-- Duplicate for seamless infinite loop -->
-                    <div class="flex items-center gap-4 text-xs font-mono" aria-hidden="true">
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-emerald-500/20 text-emerald-300 flex items-center gap-2">
-                            <i data-lucide="hash" class="w-3.5 h-3.5 text-emerald-400"></i> SHA-256 Anti-Tamper Digest (Mục 4.4.2)
-                        </span>
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-cyan-500/20 text-cyan-300 flex items-center gap-2">
-                            <i data-lucide="radar" class="w-3.5 h-3.5 text-cyan-400"></i> Sonar Active Plagiarism Radar
-                        </span>
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-indigo-500/20 text-indigo-300 flex items-center gap-2">
-                            <i data-lucide="key" class="w-3.5 h-3.5 text-indigo-400"></i> RFC-7519 JWT Session Security
-                        </span>
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-rose-500/20 text-rose-300 flex items-center gap-2">
-                            <i data-lucide="git-commit" class="w-3.5 h-3.5 text-rose-400"></i> AST Token Renaming Normalizer
-                        </span>
-                        <span class="px-3 py-1.5 rounded-xl bg-white/5 border border-amber-500/20 text-amber-300 flex items-center gap-2">
-                            <i data-lucide="scale" class="w-3.5 h-3.5 text-amber-400"></i> In-Place AST Diff Inspection
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6">
-                <!-- Card 1: Radar -->
-                <div class="lg:col-span-5 cyber-card p-5 flex flex-col justify-between relative overflow-hidden spotlight-card border-beam-container">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="text-sm font-semibold text-white">Analyzing Scan</h3>
-                            <p class="text-xs text-slate-500">Student Submissions</p>
-                        </div>
-                        <span class="text-[11px] px-2.5 py-0.5 rounded-full border border-white/10 bg-white/5 text-slate-400 font-mono">Active Scan</span>
-                    </div>
-
-                    <!-- Circular Radar Scope with Concentric Circles, Compass Graduation & Azimuth Crosshairs -->
-                    <div class="radar-scope-container flex justify-center my-3 relative items-center min-h-[240px]">
-                        <div class="absolute w-[240px] h-[240px] rounded-full border border-dashed border-violet-500/40 pointer-events-none shadow-[0_0_20px_rgba(139,92,246,0.15)] flex items-center justify-center">
-                            <div class="absolute inset-1.5 rounded-full border border-violet-500/20"></div>
-                            <div class="absolute top-1 text-[8px] font-mono text-violet-400/80">0°</div>
-                            <div class="absolute right-1 text-[8px] font-mono text-violet-400/80">90°</div>
-                            <div class="absolute bottom-1 text-[8px] font-mono text-violet-400/80">180°</div>
-                            <div class="absolute left-1 text-[8px] font-mono text-violet-400/80">270°</div>
-                        </div>
-
-                        <div class="radar-circle flex items-center justify-center z-10">
-                            <div class="absolute w-[160px] h-[160px] rounded-full border border-violet-500/20"></div>
-                            <div class="absolute w-[100px] h-[100px] rounded-full border border-violet-500/20"></div>
-                            <div class="absolute w-[40px] h-[40px] rounded-full border border-violet-500/20"></div>
-                            <div class="absolute w-full h-[1px] bg-violet-500/20"></div>
-                            <div class="absolute h-full w-[1px] bg-violet-500/20"></div>
-                            <div class="radar-beam"></div>
-                            <div class="absolute top-10 left-12 w-2.5 h-2.5 rounded-full bg-violet-400 radar-dot shadow-[0_0_10px_#a855f7]"></div>
-                            <div class="absolute top-16 right-10 w-2 h-2 rounded-full bg-cyan-400 radar-dot shadow-[0_0_10px_#06b6d4]"></div>
-                            <div class="absolute bottom-12 left-16 w-2 h-2 rounded-full bg-pink-400 radar-dot shadow-[0_0_10px_#ec4899]"></div>
-                            <div class="absolute bottom-9 right-16 w-3 h-3 rounded-full bg-cyan-400 radar-dot shadow-[0_0_12px_#06b6d4]"></div>
-                        </div>
-                    </div>
-
-                    <!-- Chế độ Clean View khi TẮT hiệu ứng: Hiển thị tóm tắt liêm chính mã nguồn dạng thẻ phẳng thay thế cho radar đồ họa -->
-                    <div class="radar-clean-summary hidden flex-col justify-center my-3 p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-3 min-h-[240px]">
-                        <div class="flex items-center justify-between pb-2 border-b border-white/5 text-xs font-mono">
-                            <span class="text-slate-400">Trạng thái đối soát</span>
-                            <span class="text-cyan-400 font-bold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-cyan-400"></span> ĐANG THEO DÕI</span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3 text-xs font-mono">
-                            <div class="p-2.5 rounded-lg bg-black/20 border border-white/5">
-                                <span class="text-slate-500 text-[10px] block">Cụm đối soát AST</span>
-                                <span class="text-emerald-400 font-bold text-sm">38 / 42 An toàn</span>
-                            </div>
-                            <div class="p-2.5 rounded-lg bg-black/20 border border-white/5">
-                                <span class="text-slate-500 text-[10px] block">Cảnh báo Gemini AI</span>
-                                <span class="text-rose-400 font-bold text-sm">4 Bài nghi vấn</span>
-                            </div>
-                        </div>
-                        <div class="p-2.5 rounded-lg bg-black/20 border border-white/5 space-y-1.5 text-xs font-mono">
-                            <div class="flex justify-between text-[11px]">
-                                <span class="text-slate-400">Tiến độ quét đợt #DP-2026</span>
-                                <span class="text-cyan-400 font-bold">100% HOÀN TẤT</span>
-                            </div>
-                            <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                <div class="w-full h-full bg-cyan-400"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-between pt-3 border-t border-white/5 text-xs font-mono">
-                        <div>
-                            <span class="text-slate-500 block text-[10px]">Matching</span>
-                            <span class="text-pink-400 font-bold">88% MATCHED</span>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-slate-500 block text-[10px]">Analyzing</span>
-                            <span class="text-cyan-400 font-bold">Users: 1,200</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Card 2: Stats -->
-                <div class="lg:col-span-3 flex flex-col justify-between gap-3">
-                    <div class="cyber-card p-3.5 flex items-center justify-between spotlight-card cursor-pointer hover:border-cyan-500/40 transition-colors">
-                        <div>
-                            <span class="text-[11px] text-slate-400 block">Active Scans</span>
-                            <span class="text-xl font-bold font-mono text-white" data-counter-target="15">0</span>
-                        </div>
-                        <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full border border-cyan-500/40 text-cyan-400 bg-cyan-950/20">LIVE</span>
-                    </div>
-
-                    <div class="cyber-card p-3.5 flex items-center justify-between spotlight-card cursor-pointer hover:border-violet-500/40 transition-colors">
-                        <div>
-                            <span class="text-[11px] text-slate-400 block">Similarity Flags</span>
-                            <span class="text-xl font-bold font-mono text-white" data-counter-target="42">0</span>
-                        </div>
-                        <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full border border-violet-500/40 text-violet-400 bg-violet-950/20">FLAG</span>
-                    </div>
-
-                    <div class="cyber-card p-3.5 flex items-center justify-between spotlight-card cursor-pointer hover:border-pink-500/40 transition-colors">
-                        <div>
-                            <span class="text-[11px] text-slate-400 block">Avg. Match %</span>
-                            <span class="text-xl font-bold font-mono text-white" data-counter-target="35" data-counter-suffix="%">0%</span>
-                        </div>
-                        <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full border border-pink-500/40 text-pink-400 bg-pink-950/20">ALERT</span>
-                    </div>
-
-                    <div class="cyber-card p-3.5 flex items-center justify-between spotlight-card cursor-pointer hover:border-cyan-500/40 transition-colors">
-                        <div>
-                            <span class="text-[11px] text-slate-400 block">Users</span>
-                            <span class="text-xl font-bold font-mono text-white" data-counter-target="1200">0</span>
-                        </div>
-                        <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full border border-cyan-500/40 text-cyan-400 bg-cyan-950/20">TOTAL</span>
-                    </div>
-                </div>
-
-                <!-- Card 3: Chart -->
-                <div class="lg:col-span-4 cyber-card p-5 flex flex-col justify-between spotlight-card">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-sm font-semibold text-white">Similarity Trends Over Time</h3>
-                        <span class="text-[11px] px-2 py-0.5 rounded-md border border-white/10 bg-white/5 text-slate-400 font-mono">Animated Chart</span>
-                    </div>
-
-                    <div class="my-3 relative">
-                        <div class="flex items-center justify-between text-[10px] font-mono text-slate-500 mb-1">
-                            <span>120</span>
-                        </div>
-                        <svg class="w-full h-36" viewBox="0 0 400 150" fill="none">
-                            <defs>
-                                <linearGradient id="cyanGradJsp" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.35"/>
-                                    <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
-                                </linearGradient>
-                                <linearGradient id="violetGradJsp" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stop-color="#a855f7" stop-opacity="0.3"/>
-                                    <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
-                                </linearGradient>
-                            </defs>
-                            <line x1="0" y1="30" x2="400" y2="30" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3 3"/>
-                            <line x1="0" y1="70" x2="400" y2="70" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3 3"/>
-                            <line x1="0" y1="110" x2="400" y2="110" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3 3"/>
-
-                            <path d="M0,145 C40,125 70,85 100,90 C140,95 160,70 200,60 C240,50 260,25 300,20 C340,15 360,55 400,45 L400,150 L0,150 Z" fill="url(#violetGradJsp)" />
-                            <path d="M0,145 C40,125 70,85 100,90 C140,95 160,70 200,60 C240,50 260,25 300,20 C340,15 360,55 400,45" stroke="#c084fc" stroke-width="2.5" stroke-linecap="round"/>
-
-                            <path d="M0,140 C40,105 70,55 110,65 C150,75 190,45 230,55 C270,65 310,15 350,15 C370,15 385,25 400,10 L400,150 L0,150 Z" fill="url(#cyanGradJsp)" />
-                            <path d="M0,140 C40,105 70,55 110,65 C150,75 190,45 230,55 C270,65 310,15 350,15 C370,15 385,25 400,10" stroke="#06b6d4" stroke-width="2.5" stroke-linecap="round"/>
-                        </svg>
-                    </div>
-
-                    <div class="flex items-center justify-between text-[10px] font-mono text-slate-500 pt-2 border-t border-white/5">
-                        <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bento Row 2: Table & Snippets -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                <div class="lg:col-span-8 cyber-card p-5 spotlight-card">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-sm font-bold text-white flex items-center gap-2">Live threat Detection</h3>
-                        <div class="relative inline-block text-left">
-                            <button onclick="toggleSubFilterMenu(event)" class="text-xs px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 hover:border-cyan-500/40 flex items-center gap-1 font-mono transition-colors">
-                                <span id="current-sub-filter">All 5 Submissions</span> <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
-                            </button>
-                            <div id="sub-filter-menu" class="hidden absolute right-0 mt-1 w-44 rounded-xl bg-[#0e101d] border border-white/10 shadow-2xl py-1 z-30 font-mono text-xs">
-                                <button type="button" onclick="selectSubFilter('All 5 Submissions', this)" class="w-full text-left px-3 py-1.5 text-cyan-400 bg-cyan-950/30">All 5 Submissions</button>
-                                <button type="button" onclick="selectSubFilter('Flagged Only (1)', this)" class="w-full text-left px-3 py-1.5 text-rose-300 hover:bg-white/5">Flagged Only (1)</button>
-                                <button type="button" onclick="selectSubFilter('Clean Only (4)', this)" class="w-full text-left px-3 py-1.5 text-emerald-300 hover:bg-white/5">Clean Only (4)</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-12 text-[11px] font-mono text-slate-500 pb-2 border-b border-white/5 px-3">
-                        <span class="col-span-4">Sinh Viên / Đối Tượng</span>
-                        <span class="col-span-4">Bài Tập / File Mã Nguồn</span>
-                        <span class="col-span-2">Trùng Khớp AST</span>
-                        <span class="col-span-2 text-right">Chi Tiết</span>
-                    </div>
-
-                    <!-- Table Rows -->
-                    <div id="dashboard-table-rows" class="divide-y divide-white/5 text-xs font-mono mt-1">
-                        <c:choose>
-                            <c:when test="${not empty reports}">
-                                <c:forEach items="${reports}" var="r">
-                                    <c:choose>
-                                        <c:when test="${r.similarityScore >= 75}">
-                                            <!-- Alert Row (High Risk) -->
-                                            <div data-match="${r.similarityScore}" data-type="flagged" class="dashboard-data-row grid grid-cols-12 items-center py-3 px-3 rounded-xl bg-rose-950/20 border border-rose-500/60 alert-pulse-danger my-1">
-                                                <div class="col-span-4 flex items-center gap-2.5 text-rose-300">
-                                                    <div class="w-7 h-7 rounded-lg bg-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
-                                                        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
-                                                    </div>
-                                                    <div>
-                                                        <div class="font-bold text-rose-400 text-xs">${r.studentAName != null ? r.studentAName : 'Sinh viên A'}</div>
-                                                        <div class="text-[10px] text-rose-300/80">vs ${r.studentBName != null ? r.studentBName : 'Sinh viên B'}</div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-span-4 text-rose-200/90 text-xs truncate" title="${r.aiAnalysisSummary}">
-                                                    ${r.aiAnalysisSummary != null ? r.aiAnalysisSummary : 'Trùng lặp cấu trúc AST & biến'}
-                                                </div>
-                                                <div class="col-span-2 text-rose-400 font-extrabold text-sm">${r.similarityScore}%</div>
-                                                <div class="col-span-2 text-right flex items-center justify-end gap-2">
-                                                    <a href="${pageContext.request.contextPath}/diff-inspector?reportId=${r.reportId}" class="px-2.5 py-1 rounded bg-rose-500 text-white font-bold text-[11px] hover:bg-rose-600 transition-colors shadow-[0_0_10px_rgba(239,68,68,0.4)]">
-                                                        Đối Soát &gt;
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </c:when>
-                                        <c:when test="${r.similarityScore >= 40}">
-                                            <!-- Warning Row -->
-                                            <div data-match="${r.similarityScore}" data-type="warning" onclick="window.location.href='${pageContext.request.contextPath}/diff-inspector?reportId=${r.reportId}'" class="dashboard-data-row grid grid-cols-12 items-center py-2.5 px-3 hover:bg-white/[0.05] rounded-lg transition-colors cursor-pointer group" title="Nhấp để mở Diff Inspector đối soát chi tiết">
-                                                <div class="col-span-4 flex items-center gap-2 text-slate-300 group-hover:text-cyan-300 transition-colors">
-                                                    <i data-lucide="user" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400"></i>
-                                                    <div>
-                                                        <div class="font-medium">${r.studentAName != null ? r.studentAName : 'Sinh viên A'}</div>
-                                                        <div class="text-[10px] text-slate-500">vs ${r.studentBName != null ? r.studentBName : 'Sinh viên B'}</div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-span-4 text-slate-400 truncate" title="${r.aiAnalysisSummary}">
-                                                    ${r.aiAnalysisSummary != null ? r.aiAnalysisSummary : 'Tương đồng cấu trúc hàm'}
-                                                </div>
-                                                <div class="col-span-2 text-amber-400 font-bold">${r.similarityScore}%</div>
-                                                <div class="col-span-2 text-right text-slate-500 flex items-center justify-end gap-1">
-                                                    <span class="text-[11px]">Audit ID: #${r.reportId}</span>
-                                                    <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors"></i>
-                                                </div>
-                                            </div>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <!-- Clean Row -->
-                                            <div data-match="${r.similarityScore}" data-type="clean" onclick="window.location.href='${pageContext.request.contextPath}/diff-inspector?reportId=${r.reportId}'" class="dashboard-data-row grid grid-cols-12 items-center py-2.5 px-3 hover:bg-white/[0.05] rounded-lg transition-colors cursor-pointer group" title="Nhấp để mở Diff Inspector đối soát chi tiết">
-                                                <div class="col-span-4 flex items-center gap-2 text-slate-300 group-hover:text-cyan-300 transition-colors">
-                                                    <i data-lucide="user" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400"></i>
-                                                    <div>
-                                                        <div class="font-medium">${r.studentAName != null ? r.studentAName : 'Sinh viên A'}</div>
-                                                        <div class="text-[10px] text-slate-500">vs ${r.studentBName != null ? r.studentBName : 'Sinh viên B'}</div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-span-4 text-slate-400 truncate">
-                                                    ${currentAssignment != null ? currentAssignment.title : 'PRJ301 Assignment'}
-                                                </div>
-                                                <div class="col-span-2 text-emerald-400 font-bold">${r.similarityScore}%</div>
-                                                <div class="col-span-2 text-right text-slate-500 flex items-center justify-end gap-1">
-                                                    <span class="text-[11px]">Audit ID: #${r.reportId}</span>
-                                                    <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors"></i>
-                                                </div>
-                                            </div>
-                                        </c:otherwise>
-                                    </c:choose>
-                                </c:forEach>
-                            </c:when>
-                            <c:otherwise>
-                                <!-- Default Benchmark Rows when database reports not yet generated -->
-                                <div data-match="12" data-type="clean" onclick="window.location.href='${pageContext.request.contextPath}/diff-inspector?reportId=1'" class="dashboard-data-row grid grid-cols-12 items-center py-2.5 px-3 hover:bg-white/[0.05] rounded-lg transition-colors cursor-pointer group" title="Nhấp để mở Diff Inspector đối soát chi tiết">
-                                    <div class="col-span-4 flex items-center gap-2 text-slate-300 group-hover:text-cyan-300 transition-colors">
-                                        <i data-lucide="user" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400"></i>
-                                        <div><div class="font-medium">Đỗ Gia Huy</div><div class="text-[10px] text-slate-500">SE1701</div></div>
-                                    </div>
-                                    <div class="col-span-4 text-slate-400">PRJ301_Assignment_OnlineShop</div>
-                                    <div class="col-span-2 text-emerald-400 font-bold">12%</div>
-                                    <div class="col-span-2 text-right text-slate-500 flex items-center justify-end gap-1">2026-10-25 13:43 <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors"></i></div>
-                                </div>
-
-                                <div data-match="24" data-type="clean" onclick="window.location.href='${pageContext.request.contextPath}/diff-inspector?reportId=1'" class="dashboard-data-row grid grid-cols-12 items-center py-2.5 px-3 hover:bg-white/[0.05] rounded-lg transition-colors cursor-pointer group" title="Nhấp để mở Diff Inspector đối soát chi tiết">
-                                    <div class="col-span-4 flex items-center gap-2 text-slate-300 group-hover:text-cyan-300 transition-colors">
-                                        <i data-lucide="user" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400"></i>
-                                        <div><div class="font-medium">Lê Hoàng Nam</div><div class="text-[10px] text-slate-500">SE1702</div></div>
-                                    </div>
-                                    <div class="col-span-4 text-slate-400">PRJ301_Assignment_OnlineShop</div>
-                                    <div class="col-span-2 text-emerald-400 font-bold">24%</div>
-                                    <div class="col-span-2 text-right text-slate-500 flex items-center justify-end gap-1">2026-10-25 18:42 <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors"></i></div>
-                                </div>
-
-                                <div data-match="88" data-type="flagged" class="dashboard-data-row grid grid-cols-12 items-center py-3 px-3 rounded-xl bg-rose-950/20 border border-rose-500/60 alert-pulse-danger my-1">
-                                    <div class="col-span-4 flex items-center gap-2.5 text-rose-300">
-                                        <div class="w-7 h-7 rounded-lg bg-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
-                                            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
-                                        </div>
-                                        <div>
-                                            <div class="font-bold text-rose-400 text-xs">88.5% TRÙNG KHỚP AST</div>
-                                            <div class="text-[10px] text-rose-300/80">Trần Văn Long (SE1703) vs SE1702</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-span-4 text-rose-200/90 text-xs">OrderManager.java (Đổi tên biến &amp; đảo hàm)</div>
-                                    <div class="col-span-2 text-rose-400 font-extrabold text-sm">88.5%</div>
-                                    <div class="col-span-2 text-right flex items-center justify-end gap-2">
-                                        <a href="${pageContext.request.contextPath}/diff-inspector?reportId=1" class="px-2.5 py-1 rounded bg-rose-500 text-white font-bold text-[11px] hover:bg-rose-600 transition-colors shadow-[0_0_10px_rgba(239,68,68,0.4)]">
-                                            Đối Soát &gt;
-                                        </a>
-                                    </div>
-                                </div>
-
-                                <div data-match="18" data-type="clean" onclick="window.location.href='${pageContext.request.contextPath}/diff-inspector?reportId=1'" class="dashboard-data-row grid grid-cols-12 items-center py-2.5 px-3 hover:bg-white/[0.05] rounded-lg transition-colors cursor-pointer group" title="Nhấp để mở Diff Inspector đối soát chi tiết">
-                                    <div class="col-span-4 flex items-center gap-2 text-slate-300 group-hover:text-cyan-300 transition-colors">
-                                        <i data-lucide="user" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400"></i>
-                                        <div><div class="font-medium">Nguyễn Mạnh Hà</div><div class="text-[10px] text-slate-500">SE1704</div></div>
-                                    </div>
-                                    <div class="col-span-4 text-slate-400">PRJ301_Assignment_OnlineShop</div>
-                                    <div class="col-span-2 text-emerald-400 font-bold">18%</div>
-                                    <div class="col-span-2 text-right text-slate-500 flex items-center justify-end gap-1">2026-10-26 15:10 <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors"></i></div>
-                                </div>
-
-                                <div data-match="45" data-type="warning" onclick="window.location.href='${pageContext.request.contextPath}/diff-inspector?reportId=1'" class="dashboard-data-row grid grid-cols-12 items-center py-2.5 px-3 hover:bg-white/[0.05] rounded-lg transition-colors cursor-pointer group" title="Nhấp để mở Diff Inspector đối soát chi tiết">
-                                    <div class="col-span-4 flex items-center gap-2 text-slate-300 group-hover:text-cyan-300 transition-colors">
-                                        <i data-lucide="user" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400"></i>
-                                        <div><div class="font-medium">Phạm Thùy Linh</div><div class="text-[10px] text-slate-500">SE1705</div></div>
-                                    </div>
-                                    <div class="col-span-4 text-slate-400">PRJ301_Assignment_OnlineShop</div>
-                                    <div class="col-span-2 text-amber-400 font-bold">45%</div>
-                                    <div class="col-span-2 text-right text-slate-500 flex items-center justify-end gap-1">2026-10-26 16:05 <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors"></i></div>
-                                </div>
-                            </c:otherwise>
-                        </c:choose>
-                    </div>
-                    </div>
-                </div>
-
-                <div class="lg:col-span-4 cyber-card p-5 flex flex-col justify-between spotlight-card">
-                    <div>
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-sm font-bold text-white">High-Risk Users</h3>
-                            <button class="text-slate-500 hover:text-white"><i data-lucide="more-horizontal" class="w-4 h-4"></i></button>
-                        </div>
-                        <div class="p-3 rounded-lg bg-[#0e0f1c] border border-rose-500/30 mb-3 font-mono text-[11px]">
-                            <div class="flex items-center justify-between mb-2">
-                                <div class="flex items-center gap-2">
-                                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=60" class="w-5 h-5 rounded-full object-cover" alt="user">
-                                    <span class="text-rose-400 text-xs font-semibold">SE1703 (Trần Văn Long)</span>
-                                </div>
-                                <span class="text-[9px] px-1.5 py-0.5 rounded bg-rose-950 text-rose-400 font-bold border border-rose-500/40">88.5% AST</span>
-                            </div>
-                            <div class="text-slate-400 text-[10px]">OrderManager.java (Đổi tên biến):</div>
-                            <div class="text-rose-300 pl-2 text-[10px]">double calculateTotal() {</div>
-                            <div class="text-rose-400 pl-4 text-[10px] font-bold">return basketValue * finalCost;</div>
-                            <div class="text-rose-300 pl-2 text-[10px]">}</div>
-                        </div>
-                        <div class="p-3 rounded-lg bg-[#0e0f1c] border border-amber-500/30 mb-3 font-mono text-[11px]">
-                            <div class="flex items-center justify-between mb-2">
-                                <div class="flex items-center gap-2">
-                                    <img src="https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=60" class="w-5 h-5 rounded-full object-cover" alt="user">
-                                    <span class="text-amber-400 text-xs font-semibold">SE1702 (Lê Hoàng Nam)</span>
-                                </div>
-                                <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-950 text-amber-400 font-bold border border-amber-500/40">Mã Đối Chứng</span>
-                            </div>
-                            <div class="text-slate-400 text-[10px]">OrderProcessingService.java:</div>
-                            <div class="text-amber-300 pl-2 text-[10px]">double calculateTotal() {</div>
-                            <div class="text-cyan-300 pl-4 text-[10px]">return cartValue * finalCost;</div>
-                            <div class="text-amber-300 pl-2 text-[10px]">}</div>
-                        </div>
-                        <!-- Action Link -->
-                        <a href="${pageContext.request.contextPath}/diff-inspector?reportId=1" class="p-2.5 rounded-lg bg-[#0e0f1c] hover:bg-cyan-950/40 border border-white/10 hover:border-cyan-500/40 flex items-center justify-between font-mono text-xs text-slate-300 hover:text-cyan-300 transition-colors">
-                            <span class="flex items-center gap-2">
-                                <i data-lucide="split-square-vertical" class="w-4 h-4 text-cyan-400"></i>
-                                <span>Mở Đối Soát Cặp Đôi Này</span>
-                            </span>
-                            <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-cyan-400"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
+            <%@ include file="WEB-INF/views/dashboard-data.jspf" %>
         </main>
     </div>
 
@@ -898,11 +389,11 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-slate-300 mb-1">Ngưỡng cảnh báo (%)</label>
-                        <input type="number" name="similarityThreshold" step="0.5" value="75.0" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-violet-400 outline-none">
+                        <input type="number" name="similarityThreshold" step="0.01" min="0" max="100" value="75.0" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-violet-400 outline-none">
                     </div>
                     <div>
                         <label class="block text-slate-300 mb-1">Điểm tối đa</label>
-                        <input type="number" name="maxScore" step="0.5" value="100.0" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-violet-400 outline-none">
+                        <input type="number" name="maxScore" step="0.01" min="0.01" max="999.99" value="100.0" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-violet-400 outline-none">
                     </div>
                 </div>
                 <div>
@@ -936,25 +427,25 @@
                 <input type="hidden" name="courseId" value="${selectedCourseId}">
                 <div>
                     <label class="block text-slate-300 mb-1">Tiêu đề bài tập*</label>
-                    <input type="text" name="title" value="${currentAssignment.title}" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
+                    <input type="text" name="title" value="${fn:escapeXml(currentAssignment.title)}" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
                 </div>
                 <div>
                     <label class="block text-slate-300 mb-1">Mô tả / Yêu cầu đề bài</label>
-                    <textarea name="description" rows="2" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none font-sans">${currentAssignment.description}</textarea>
+                    <textarea name="description" rows="2" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none font-sans">${fn:escapeXml(currentAssignment.description)}</textarea>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-slate-300 mb-1">Ngưỡng cảnh báo (%)</label>
-                        <input type="number" name="similarityThreshold" step="0.5" value="${currentAssignment.similarityThreshold != 0 ? currentAssignment.similarityThreshold : 75.0}" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
+                        <input type="number" name="similarityThreshold" step="0.01" min="0" max="100" value="${currentAssignment != null ? currentAssignment.similarityThreshold : 75.0}" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
                     </div>
                     <div>
                         <label class="block text-slate-300 mb-1">Điểm tối đa</label>
-                        <input type="number" name="maxScore" step="0.5" value="${currentAssignment.maxScore != 0 ? currentAssignment.maxScore : 100.0}" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
+                        <input type="number" name="maxScore" step="0.01" min="0.01" max="999.99" value="${currentAssignment.maxScore != 0 ? currentAssignment.maxScore : 100.0}" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
                     </div>
                 </div>
                 <div>
                     <label class="block text-slate-300 mb-1">Hạn nộp bài (Deadline)</label>
-                    <input type="datetime-local" name="deadline" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
+                    <input type="datetime-local" name="deadline" value="${selectedDeadline}" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
                 </div>
                 <div class="pt-3 border-t border-white/10 flex items-center justify-end gap-2">
                     <button type="button" onclick="closeEditAssignmentModal()" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 text-xs">Hủy</button>
@@ -984,11 +475,11 @@
                 <div class="font-bold text-cyan-400 text-xs uppercase tracking-wider mb-2">Thông Tin Cá Nhân</div>
                 <div>
                     <label class="block text-slate-300 mb-1">Họ và tên</label>
-                    <input type="text" name="fullName" value="${sessionScope.currentUser.fullName}" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
+                    <input type="text" name="fullName" value="${fn:escapeXml(sessionScope.currentUser.fullName)}" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
                 </div>
                 <div>
                     <label class="block text-slate-300 mb-1">URL Ảnh Đại Diện</label>
-                    <input type="text" name="avatarUrl" value="${sessionScope.currentUser.avatarUrl}" placeholder="https://..." class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
+                    <input type="text" name="avatarUrl" value="${fn:escapeXml(sessionScope.currentUser.avatarUrl)}" placeholder="https://..." class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
                 </div>
                 <div class="flex justify-end">
                     <button type="submit" class="px-3.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs">Cập Nhật Hồ Sơ</button>
@@ -1005,7 +496,7 @@
                 </div>
                 <div>
                     <label class="block text-slate-300 mb-1">Mật khẩu mới (tối thiểu 6 ký tự)</label>
-                    <input type="password" name="newPassword" minlength="6" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-rose-400 outline-none">
+                    <input type="password" name="newPassword" minlength="8" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-rose-400 outline-none">
                 </div>
                 <div class="flex justify-end">
                     <button type="submit" class="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs">Đổi Mật Khẩu</button>
@@ -1067,6 +558,7 @@
                 if (params.get('scanSuccess') === 'true') showToast('Quét đối soát hoàn tất! Đã cập nhật ma trận vi phạm.', 'success');
                 if (params.get('profileMsg') === 'profile_updated') showToast('Cập nhật thông tin tài khoản thành công!', 'success');
                 if (params.get('profileMsg') === 'password_changed') showToast('Đổi mật khẩu thành công!', 'success');
+                if (params.get('profileMsg') === 'invalid_password_format') showToast('Mật khẩu mới cần từ 8 đến 1024 ký tự.', 'error');
                 if (params.get('profileMsg') === 'wrong_old_password') showToast('Mật khẩu cũ không chính xác!', 'error');
                 if (params.get('courseError') || params.get('assignmentError')) showToast('Thao tác không thành công, vui lòng thử lại!', 'error');
             }
@@ -1144,9 +636,5 @@
     <script src="${pageContext.request.contextPath}/assets/js/motion.js"></script>
     <script src="${pageContext.request.contextPath}/assets/js/command-palette.js"></script>
     <!-- AITA Realtime AI Copilot (ZeroTTS Voice Engine) -->
-    <script src="${pageContext.request.contextPath}/assets/js/aita-copilot-context.js?v=2.0"></script>
-    <script src="${pageContext.request.contextPath}/assets/js/aita-copilot-voice.js?v=2.0"></script>
-    <script src="${pageContext.request.contextPath}/assets/js/aita-copilot-chat.js?v=2.0"></script>
-    <script src="${pageContext.request.contextPath}/assets/js/aita-copilot.js?v=2.0"></script>
 </body>
 </html>

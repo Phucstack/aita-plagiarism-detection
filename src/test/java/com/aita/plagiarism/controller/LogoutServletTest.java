@@ -53,7 +53,7 @@ public class LogoutServletTest {
         Cookie cookie = cookieCaptor.getValue();
         assertEquals(LoginServlet.AUTH_COOKIE_NAME, cookie.getName());
         assertEquals(0, cookie.getMaxAge(), "Cookie maxAge phải được set về 0 để xóa");
-        assertEquals("/", cookie.getPath());
+        assertEquals("/aita", cookie.getPath());
         assertTrue(cookie.isHttpOnly());
 
         verify(response).sendRedirect("/aita/login?message=logged_out");

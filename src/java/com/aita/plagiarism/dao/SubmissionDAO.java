@@ -42,14 +42,9 @@ public class SubmissionDAO {
                 }
             }
         } catch (Exception e) {
-            // Fallback
+            throw new DataAccessException(e);
         }
-
-        int mockId = (int) (System.currentTimeMillis() % 100000);
-        sub.setSubmissionId(mockId);
-        sub.setSubmittedAt(new Timestamp(System.currentTimeMillis()));
-        getFallbackSubmissions().add(sub);
-        return mockId;
+        return -1;
     }
 
     public List<Submission> getSubmissionsByAssignment(int assignmentId) {
@@ -64,11 +59,9 @@ public class SubmissionDAO {
                 }
             }
         } catch (Exception e) {
-            for (Submission s : getFallbackSubmissions()) {
-                if (s.getAssignmentId() == assignmentId) list.add(s);
-            }
+            throw new DataAccessException(e);
         }
-        return list.isEmpty() ? getFallbackSubmissions() : list;
+        return list;
     }
 
     public List<Submission> getSubmissionsByStudent(int studentId) {
@@ -83,9 +76,7 @@ public class SubmissionDAO {
                 }
             }
         } catch (Exception e) {
-            for (Submission s : getFallbackSubmissions()) {
-                if (s.getStudentId() == studentId) list.add(s);
-            }
+            throw new DataAccessException(e);
         }
         return list;
     }
@@ -101,21 +92,29 @@ public class SubmissionDAO {
                 }
             }
         } catch (Exception e) {
-            for (Submission s : getFallbackSubmissions()) {
-                if (s.getSubmissionId() == submissionId) return s;
-            }
+            throw new DataAccessException(e);
         }
         return null;
     }
 
-    public boolean deleteSubmission(int submissionId) {
-        String sql = "DELETE FROM Submissions WHERE submission_id = ?";
+    public boolean deleteSubmission(int submissionId) { return deleteSubmission(submissionId, null); }
+
+    public boolean deleteSubmission(int submissionId, com.aita.plagiarism.model.User actor) {
+        String sql = "DELETE FROM Submissions WHERE submission_id = ? AND (? = 1 OR student_id = ? OR ? = 'ADMIN' " +
+                "OR EXISTS (SELECT 1 FROM Assignments a JOIN Courses c ON c.course_id = a.course_id " +
+                "WHERE a.assignment_id = Submissions.assignment_id AND c.instructor_id = ?))";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, submissionId);
+            ps.setInt(2, actor == null ? 1 : 0);
+            ps.setInt(3, actor == null ? -1 : actor.getUserId());
+            ps.setString(4, actor == null ? "" : actor.getRole());
+            ps.setInt(5, actor != null && "INSTRUCTOR".equals(actor.getRole()) ? actor.getUserId() : -1);
             if (ps.executeUpdate() > 0) return true;
-        } catch (Exception ignored) {}
-        return getFallbackSubmissions().removeIf(s -> s.getSubmissionId() == submissionId);
+        } catch (Exception e) {
+            throw new DataAccessException(e);
+        }
+        return false;
     }
 
     public boolean updateSubmissionStatus(int submissionId, String status) {
@@ -125,12 +124,8 @@ public class SubmissionDAO {
             ps.setString(1, status);
             ps.setInt(2, submissionId);
             if (ps.executeUpdate() > 0) return true;
-        } catch (Exception ignored) {}
-        for (Submission s : getFallbackSubmissions()) {
-            if (s.getSubmissionId() == submissionId) {
-                s.setStatus(status);
-                return true;
-            }
+        } catch (Exception e) {
+            throw new DataAccessException(e);
         }
         return false;
     }
@@ -149,28 +144,4 @@ public class SubmissionDAO {
         return s;
     }
 
-    private static List<Submission> fallbackSubmissions;
-
-    private static synchronized List<Submission> getFallbackSubmissions() {
-        if (fallbackSubmissions == null) {
-            fallbackSubmissions = new ArrayList<>();
-            fallbackSubmissions.add(new Submission(1, 2, 4, "OrderManager_PhucTV.java",
-                    "/uploads/sub_01/OrderManager.java", "JAVA",
-                    "d7a8fbb307d7809469ca933b02dd32f974ddb16f5f785228a076d9cfac42a458",
-                    new Timestamp(System.currentTimeMillis() - 3600000L), "FLAGGED"));
-            fallbackSubmissions.add(new Submission(2, 2, 5, "OrderManager_KhanhDVP.java",
-                    "/uploads/sub_02/OrderManager.java", "JAVA",
-                    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                    new Timestamp(System.currentTimeMillis() - 7200000L), "FLAGGED"));
-            fallbackSubmissions.add(new Submission(3, 2, 6, "OrderManager_NhiNH.java",
-                    "/uploads/sub_03/OrderManager.java", "JAVA",
-                    "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
-                    new Timestamp(System.currentTimeMillis() - 10800000L), "ANALYZED"));
-            fallbackSubmissions.add(new Submission(4, 2, 7, "OrderManager_TienN.java",
-                    "/uploads/sub_04/OrderManager.java", "JAVA",
-                    "b45cffe084dd3d20d928bee85e7b0f21ac6a4bc845aa7315ceda582593571377",
-                    new Timestamp(System.currentTimeMillis() - 14400000L), "ANALYZED"));
-        }
-        return fallbackSubmissions;
-    }
 }

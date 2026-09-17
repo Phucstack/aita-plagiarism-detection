@@ -12,9 +12,39 @@ import java.util.List;
 
 public class UserDAO {
 
+    /** Called only after Google token verification. Existing roles are never taken from the client. */
+    public User authenticateGoogle(String subject, String verifiedEmail, boolean authoritativeEmail) {
+        if (subject == null || subject.isBlank() || subject.length() > 255 || verifiedEmail == null) return null;
+        try (Connection conn = DBContext.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                User user = null;
+                try (PreparedStatement ps = conn.prepareStatement("SELECT * FROM Users WITH (UPDLOCK,HOLDLOCK) WHERE google_subject = ?")) {
+                    ps.setString(1, subject);
+                    try (ResultSet rs = ps.executeQuery()) { if (rs.next()) user = mapUser(rs); }
+                }
+                if (user != null) { conn.commit(); return user; }
+                if (!authoritativeEmail) { conn.rollback(); return null; }
+                try (PreparedStatement ps = conn.prepareStatement("SELECT * FROM Users WITH (UPDLOCK,HOLDLOCK) WHERE LOWER(email) = LOWER(?)")) {
+                    ps.setString(1, verifiedEmail);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next() || rs.getString("google_subject") != null) { conn.rollback(); return null; }
+                        user = mapUser(rs);
+                    }
+                }
+                try (PreparedStatement ps = conn.prepareStatement("UPDATE Users SET google_subject = ? WHERE user_id = ? AND google_subject IS NULL")) {
+                    ps.setString(1, subject); ps.setInt(2, user.getUserId());
+                    if (ps.executeUpdate() != 1) { conn.rollback(); return null; }
+                }
+                conn.commit();
+                return user;
+            } catch (Exception e) { conn.rollback(); throw e; }
+        } catch (Exception e) { throw new DataAccessException(e); }
+    }
+
     /**
      * Xác thực thông tin đăng nhập của người dùng qua JDBC
-     * Tự động chuyển tiếp fallback an toàn khi cơ sở dữ liệu tạm thời ngắt kết nối
+     * Database failures are propagated to the HTTP boundary.
      */
     public User authenticate(String usernameOrEmail, String rawPassword) {
         if (usernameOrEmail == null || rawPassword == null) {
@@ -33,15 +63,28 @@ public class UserDAO {
                 if (rs.next()) {
                     String storedHash = rs.getString("password_hash");
                     if (PasswordUtil.verifyPassword(rawPassword, storedHash)) {
-                        return mapUser(rs);
+                        User user = mapUser(rs);
+                        if (PasswordUtil.needsUpgrade(storedHash)) {
+                            String replacement = PasswordUtil.hashPassword(rawPassword);
+                            if (!replacePassword(user.getUserId(), storedHash, replacement)) {
+                                // A concurrent login may have upgraded it, or a password change won.
+                                try (PreparedStatement latest = conn.prepareStatement("SELECT password_hash FROM Users WHERE user_id = ?")) {
+                                    latest.setInt(1, user.getUserId());
+                                    try (ResultSet current = latest.executeQuery()) {
+                                        if (!current.next() || !PasswordUtil.verifyPassword(rawPassword, current.getString(1))) return null;
+                                    }
+                                }
+                            }
+                        }
+                        return user;
                     }
                     return null; // Tìm thấy tài khoản trong DB nhưng mật khẩu sai -> từ chối ngay
                 }
             }
-        } catch (Exception ignored) {}
-
-        // Fallback Resilient Pattern cho tài khoản mẫu
-        return authenticateFallback(usernameOrEmail.trim(), rawPassword);
+        } catch (Exception e) {
+            throw new DataAccessException(e);
+        }
+        return null;
     }
 
     public User getUserById(int userId) {
@@ -54,10 +97,8 @@ public class UserDAO {
                     return mapUser(rs);
                 }
             }
-        } catch (Exception ignored) {}
-
-        for (User u : getFallbackUsers()) {
-            if (u.getUserId() == userId) return u;
+        } catch (Exception e) {
+            throw new DataAccessException(e);
         }
         return null;
     }
@@ -73,10 +114,8 @@ public class UserDAO {
                     return mapUser(rs);
                 }
             }
-        } catch (Exception ignored) {}
-
-        for (User u : getFallbackUsers()) {
-            if (u.getUsername().equalsIgnoreCase(username.trim())) return u;
+        } catch (Exception e) {
+            throw new DataAccessException(e);
         }
         return null;
     }
@@ -92,10 +131,8 @@ public class UserDAO {
                     return mapUser(rs);
                 }
             }
-        } catch (Exception ignored) {}
-
-        for (User u : getFallbackUsers()) {
-            if (u.getEmail().equalsIgnoreCase(email.trim())) return u;
+        } catch (Exception e) {
+            throw new DataAccessException(e);
         }
         return null;
     }
@@ -104,49 +141,7 @@ public class UserDAO {
      * Tự động tra cứu hoặc khởi tạo tài khoản Google khi người dùng đăng nhập OAuth2
      */
     public User getOrCreateGoogleUser(String email, String fullName, String avatarUrl, String preferredRole) {
-        if (email == null || email.trim().isEmpty()) return null;
-        String cleanEmail = email.trim().toLowerCase();
-
-        User existing = getUserByEmail(cleanEmail);
-        if (existing != null) {
-            return existing;
-        }
-
-        String role = (preferredRole != null && !preferredRole.isEmpty()) 
-                ? preferredRole.toUpperCase() 
-                : (cleanEmail.contains("teacher") || cleanEmail.contains("ha.nh") ? "INSTRUCTOR" : "STUDENT");
-
-        String username = cleanEmail.split("@")[0].replaceAll("[^a-zA-Z0-9_]", "_");
-        String finalName = (fullName != null && !fullName.trim().isEmpty()) ? fullName.trim() : username;
-        String finalAvatar = (avatarUrl != null && !avatarUrl.trim().isEmpty()) 
-                ? avatarUrl.trim() 
-                : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80";
-
-        String insertSql = "INSERT INTO Users (username, password_hash, full_name, email, role, avatar_url) " +
-                           "VALUES (?, ?, ?, ?, ?, ?)";
-        try (Connection conn = DBContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(insertSql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, username);
-            ps.setString(2, "OAUTH2_GOOGLE_NO_PASSWORD");
-            ps.setString(3, finalName);
-            ps.setString(4, cleanEmail);
-            ps.setString(5, role);
-            ps.setString(6, finalAvatar);
-            ps.executeUpdate();
-
-            try (ResultSet gk = ps.getGeneratedKeys()) {
-                if (gk.next()) {
-                    int newId = gk.getInt(1);
-                    return new User(newId, username, finalName, cleanEmail, role);
-                }
-            }
-        } catch (Exception e) {
-            // Fallback Resilient
-        }
-
-        User fallbackUser = new User(999, username, finalName, cleanEmail, role);
-        fallbackUser.setAvatarUrl(finalAvatar);
-        return fallbackUser;
+        throw new UnsupportedOperationException("Email-only Google provisioning is not supported");
     }
 
     private User mapUser(ResultSet rs) throws Exception {
@@ -161,15 +156,7 @@ public class UserDAO {
         return user;
     }
 
-    private User authenticateFallback(String identifier, String rawPassword) {
-        for (User u : getFallbackUsers()) {
-            if ((u.getUsername().equalsIgnoreCase(identifier) || u.getEmail().equalsIgnoreCase(identifier))
-                    && "123456".equals(rawPassword)) {
-                return u;
-            }
-        }
-        return null;
-    }
+
 
     public boolean updateProfile(int userId, String fullName, String avatarUrl) {
         String sql = "UPDATE Users SET full_name = ?, avatar_url = ? WHERE user_id = ?";
@@ -180,18 +167,12 @@ public class UserDAO {
             ps.setInt(3, userId);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            for (User u : getFallbackUsers()) {
-                if (u.getUserId() == userId) {
-                    u.setFullName(fullName);
-                    if (avatarUrl != null) u.setAvatarUrl(avatarUrl);
-                    return true;
-                }
-            }
+            throw new DataAccessException(e);
         }
-        return false;
     }
 
     public boolean changePassword(int userId, String oldPassword, String newPassword) {
+        if (newPassword == null || newPassword.length() < 8 || newPassword.length() > 1024) return false;
         User u = getUserById(userId);
         if (u == null) return false;
         
@@ -206,18 +187,23 @@ public class UserDAO {
                     if (!PasswordUtil.verifyPassword(oldPassword, currentHash)) {
                         return false;
                     }
+                    return replacePassword(userId, currentHash, PasswordUtil.hashPassword(newPassword));
                 }
             }
-
-            String updateSql = "UPDATE Users SET password_hash = ? WHERE user_id = ?";
-            try (PreparedStatement updatePs = conn.prepareStatement(updateSql)) {
-                updatePs.setString(1, PasswordUtil.hashSHA256(newPassword));
-                updatePs.setInt(2, userId);
-                return updatePs.executeUpdate() > 0;
-            }
+            return false;
         } catch (Exception e) {
-            return "123456".equals(oldPassword);
+            throw new DataAccessException(e);
         }
+    }
+
+    private boolean replacePassword(int userId, String expected, String replacement) {
+        String sql = "UPDATE Users SET password_hash = ? WHERE user_id = ? AND password_hash COLLATE Latin1_General_100_BIN2 = ?";
+        try (Connection conn = DBContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, replacement);
+            ps.setInt(2, userId);
+            ps.setString(3, expected);
+            return ps.executeUpdate() == 1;
+        } catch (Exception e) { throw new DataAccessException(e); }
     }
 
     public List<User> getAllUsers() {
@@ -230,23 +216,9 @@ public class UserDAO {
                 list.add(mapUser(rs));
             }
         } catch (Exception e) {
-            return getFallbackUsers();
+            throw new DataAccessException(e);
         }
-        return list.isEmpty() ? getFallbackUsers() : list;
-    }
-
-    private List<User> getFallbackUsers() {
-        List<User> list = new ArrayList<>();
-        list.add(new User(1, "admin", "Quản Trị Viên AITA", "admin@aita.edu.vn", "ADMIN"));
-        list.add(new User(2, "teacher_ha", "TS. Nguyễn Hoàng Hà", "ha.nh@fpt.edu.vn", "INSTRUCTOR"));
-        list.add(new User(3, "kietnta", "Nguyễn Trần Anh Kiệt (Leader)", "kietnta@fpt.edu.vn", "INSTRUCTOR"));
-        list.add(new User(4, "phuctv", "Trần Văn Phúc", "phuctv@fpt.edu.vn", "STUDENT"));
-        list.add(new User(5, "khanhdvp", "Đinh Vũ Phương Khánh", "khanhdvp@fpt.edu.vn", "STUDENT"));
-        list.add(new User(6, "nhinh", "Nguyễn Hoài Nhi", "nhinh@fpt.edu.vn", "STUDENT"));
-        list.add(new User(7, "tienn", "Nguyễn Tiến", "tienn@fpt.edu.vn", "STUDENT"));
-        list.add(new User(8, "student_102", "Trần Văn Long (SE1701)", "longtvse1701@fpt.edu.vn", "STUDENT"));
-        list.add(new User(9, "student_108", "Lê Quốc Anh (SE1702)", "anhlqse1702@fpt.edu.vn", "STUDENT"));
-        list.add(new User(10, "student_115", "Phạm Minh Tuấn (SE1703)", "tuanpmse1703@fpt.edu.vn", "STUDENT"));
         return list;
     }
+
 }
