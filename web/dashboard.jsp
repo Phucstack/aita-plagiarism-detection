@@ -122,12 +122,15 @@
             
             <!-- User Profile Block -->
             <div class="flex items-center gap-2.5 pl-3 border-l border-white/10">
-                <img src="${sessionScope.currentUser.avatarUrl != null ? sessionScope.currentUser.avatarUrl : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'}" alt="Avatar" class="w-8 h-8 rounded-full border border-cyan-400/60 object-cover shadow-[0_0_10px_rgba(6,182,212,0.3)]">
-                <div class="text-left leading-tight hidden sm:block text-xs">
-                    <div class="font-semibold text-white">${sessionScope.currentUser.fullName != null ? sessionScope.currentUser.fullName : 'TS. Nguyễn Hoàng Hà'}</div>
+                <img src="${sessionScope.currentUser.avatarUrl != null ? sessionScope.currentUser.avatarUrl : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'}" alt="Avatar" class="w-8 h-8 rounded-full border border-cyan-400/60 object-cover shadow-[0_0_10px_rgba(6,182,212,0.3)] cursor-pointer" onclick="openProfileModal()">
+                <div class="text-left leading-tight hidden sm:block text-xs cursor-pointer" onclick="openProfileModal()">
+                    <div class="font-semibold text-white hover:text-cyan-300 transition-colors">${sessionScope.currentUser.fullName != null ? sessionScope.currentUser.fullName : 'TS. Nguyễn Hoàng Hà'}</div>
                     <div class="text-[10px] text-slate-400 font-mono">${sessionScope.currentUser.email != null ? sessionScope.currentUser.email : 'ha.nh@fpt.edu.vn'}</div>
                 </div>
-                <a href="${pageContext.request.contextPath}/logout" class="ml-2 text-slate-400 hover:text-rose-400 transition-colors" title="Đăng xuất">
+                <button type="button" onclick="openProfileModal()" class="ml-1 text-slate-400 hover:text-cyan-300 transition-colors p-1" title="Cài đặt tài khoản &amp; Đổi mật khẩu">
+                    <i data-lucide="user-cog" class="w-4 h-4"></i>
+                </button>
+                <a href="${pageContext.request.contextPath}/logout" class="ml-1 text-slate-400 hover:text-rose-400 transition-colors p-1" title="Đăng xuất">
                     <i data-lucide="log-out" class="w-4 h-4"></i>
                 </a>
             </div>
@@ -248,36 +251,83 @@
                     <p class="text-xs text-slate-400 mt-1">Quản lý đối soát cây cú pháp AST và tính liêm chính bài tập thực hành.</p>
                 </div>
                 
-                <!-- Dynamic Course & Assignment Selectors (Course Management) -->
-                <form action="${pageContext.request.contextPath}/dashboard" method="GET" class="flex flex-wrap items-center gap-2 text-xs font-mono">
-                    <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#131424] border border-white/10 text-slate-300">
-                        <i data-lucide="book-open" class="w-3.5 h-3.5 text-cyan-400"></i>
-                        <select name="courseId" onchange="this.form.submit()" class="bg-transparent border-none text-white focus:outline-none text-xs cursor-pointer">
-                            <c:forEach var="c" items="${courses}">
-                                <option value="${c.courseId}" ${c.courseId == selectedCourseId ? 'selected' : ''} class="bg-[#131424] text-white">
-                                    ${c.courseCode} - ${c.courseName}
-                                </option>
-                            </c:forEach>
-                            <c:if test="${empty courses}">
-                                <option value="1" class="bg-[#131424] text-white">PRJ301 - Java Web Application</option>
-                            </c:if>
-                        </select>
+                <!-- Dynamic Course & Assignment Selectors & Full CRUD Toolbar -->
+                <div class="flex flex-wrap items-center gap-2.5 text-xs font-mono">
+                    <form id="filterForm" action="${pageContext.request.contextPath}/dashboard" method="GET" class="flex flex-wrap items-center gap-2">
+                        <!-- Course Select -->
+                        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#131424] border border-white/10 text-slate-300">
+                            <i data-lucide="book-open" class="w-3.5 h-3.5 text-cyan-400"></i>
+                            <select name="courseId" onchange="this.form.submit()" class="bg-transparent border-none text-white focus:outline-none text-xs cursor-pointer">
+                                <c:forEach var="c" items="${courses}">
+                                    <option value="${c.courseId}" ${c.courseId == selectedCourseId ? 'selected' : ''} class="bg-[#131424] text-white">
+                                        ${c.courseCode} - ${c.courseName}
+                                    </option>
+                                </c:forEach>
+                                <c:if test="${empty courses}">
+                                    <option value="1" class="bg-[#131424] text-white">PRJ301 - Java Web Application</option>
+                                </c:if>
+                            </select>
+                        </div>
+
+                        <!-- Assignment Select -->
+                        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#131424] border border-white/10 text-slate-300">
+                            <i data-lucide="file-text" class="w-3.5 h-3.5 text-violet-400"></i>
+                            <select name="assignmentId" onchange="this.form.submit()" class="bg-transparent border-none text-white focus:outline-none text-xs cursor-pointer">
+                                <c:forEach var="a" items="${assignments}">
+                                    <option value="${a.assignmentId}" ${a.assignmentId == selectedAssignmentId ? 'selected' : ''} class="bg-[#131424] text-white">
+                                        ${a.title}
+                                    </option>
+                                </c:forEach>
+                                <c:if test="${empty assignments}">
+                                    <option value="1" class="bg-[#131424] text-white">Assignment 2 - E-Commerce Cart</option>
+                                </c:if>
+                            </select>
+                        </div>
+                    </form>
+
+                    <!-- Course CRUD Actions -->
+                    <div class="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10">
+                        <button type="button" onclick="openAddCourseModal()" class="px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-all flex items-center gap-1" title="Thêm Khóa Học Mới">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                            <span>+ Môn</span>
+                        </button>
+                        <form id="deleteCourseForm" action="${pageContext.request.contextPath}/course-action" method="POST" class="inline m-0 p-0" onsubmit="return confirm('Bạn có chắc chắn muốn xóa khóa học này không? Mọi bài tập liên quan sẽ bị ảnh hưởng!');">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="courseId" value="${selectedCourseId}">
+                            <button type="submit" class="px-2 py-1 rounded-lg hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-all" title="Xóa môn học hiện tại">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </form>
                     </div>
 
-                    <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#131424] border border-white/10 text-slate-300">
-                        <i data-lucide="file-text" class="w-3.5 h-3.5 text-violet-400"></i>
-                        <select name="assignmentId" onchange="this.form.submit()" class="bg-transparent border-none text-white focus:outline-none text-xs cursor-pointer">
-                            <c:forEach var="a" items="${assignments}">
-                                <option value="${a.assignmentId}" ${a.assignmentId == selectedAssignmentId ? 'selected' : ''} class="bg-[#131424] text-white">
-                                    ${a.title}
-                                </option>
-                            </c:forEach>
-                            <c:if test="${empty assignments}">
-                                <option value="1" class="bg-[#131424] text-white">Assignment 2 - E-Commerce Cart</option>
-                            </c:if>
-                        </select>
+                    <!-- Assignment CRUD Actions -->
+                    <div class="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10">
+                        <button type="button" onclick="openAddAssignmentModal()" class="px-2.5 py-1 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 border border-violet-500/30 transition-all flex items-center gap-1" title="Tạo Bài Tập Mới">
+                            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                            <span>+ Bài</span>
+                        </button>
+                        <button type="button" onclick="openEditAssignmentModal()" class="px-2 py-1 rounded-lg hover:bg-white/10 text-slate-300 hover:text-cyan-300 transition-all" title="Chỉnh sửa bài tập hiện tại">
+                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <form id="deleteAssignmentForm" action="${pageContext.request.contextPath}/assignment-action" method="POST" class="inline m-0 p-0" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bài tập này không?');">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="assignmentId" value="${selectedAssignmentId}">
+                            <input type="hidden" name="courseId" value="${selectedCourseId}">
+                            <button type="submit" class="px-2 py-1 rounded-lg hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-all" title="Xóa bài tập hiện tại">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </form>
                     </div>
-                </form>
+
+                    <!-- Plagiarism Scan Trigger Action -->
+                    <form action="${pageContext.request.contextPath}/batch-scanner" method="POST" class="inline m-0 p-0">
+                        <input type="hidden" name="assignmentId" value="${selectedAssignmentId}">
+                        <button type="submit" class="btn-shimmer px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-600 hover:from-cyan-400 hover:to-violet-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all">
+                            <i data-lucide="scan" class="w-3.5 h-3.5"></i>
+                            <span>Quét Đạo Văn</span>
+                        </button>
+                    </form>
+                </div>
             </div>
 
             <!-- Infinite Two-Row Tech Marquee (ai-kinetic-3d-web) -->
@@ -528,91 +578,146 @@
                     </div>
 
                     <div class="grid grid-cols-12 text-[11px] font-mono text-slate-500 pb-2 border-b border-white/5 px-3">
-                        <span class="col-span-4">Student</span>
-                        <span class="col-span-4">Assignment</span>
-                        <span class="col-span-2">Matching %</span>
-                        <span class="col-span-2 text-right">Timestamp</span>
+                        <span class="col-span-4">Sinh Viên / Đối Tượng</span>
+                        <span class="col-span-4">Bài Tập / File Mã Nguồn</span>
+                        <span class="col-span-2">Trùng Khớp AST</span>
+                        <span class="col-span-2 text-right">Chi Tiết</span>
                     </div>
 
-                    <div class="divide-y divide-white/5 text-xs font-mono mt-1">
-                        <div onclick="window.location.href='${pageContext.request.contextPath}/diff-inspector?reportId=1'" class="grid grid-cols-12 items-center py-2.5 px-3 hover:bg-white/[0.05] rounded-lg transition-colors cursor-pointer group" title="Nhấp để mở Diff Inspector đối soát chi tiết">
-                            <div class="col-span-4 flex items-center gap-2 text-slate-300 group-hover:text-cyan-300 transition-colors">
-                                <i data-lucide="user" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400"></i>
-                                <div><div class="font-medium">Student Namer ID</div><div class="text-[10px] text-slate-500">Student 13701</div></div>
-                            </div>
-                            <div class="col-span-4 text-slate-400">Assignment Title - Testarchant 1</div>
-                            <div class="col-span-2 text-slate-300 font-bold">12%</div>
-                            <div class="col-span-2 text-right text-slate-500 flex items-center justify-end gap-1">2023-10-25 13:43 <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors"></i></div>
-                        </div>
-
-                        <div onclick="window.location.href='${pageContext.request.contextPath}/diff-inspector?reportId=1'" class="grid grid-cols-12 items-center py-2.5 px-3 hover:bg-white/[0.05] rounded-lg transition-colors cursor-pointer group" title="Nhấp để mở Diff Inspector đối soát chi tiết">
-                            <div class="col-span-4 flex items-center gap-2 text-slate-300 group-hover:text-cyan-300 transition-colors">
-                                <i data-lucide="user" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400"></i>
                     <!-- Table Rows -->
                     <div id="dashboard-table-rows" class="divide-y divide-white/5 text-xs font-mono mt-1">
-                        <!-- Row 1 -->
-                        <div data-match="12" data-type="clean" onclick="window.location.href='${pageContext.request.contextPath}/diff-inspector?reportId=1'" class="dashboard-data-row grid grid-cols-12 items-center py-2.5 px-3 hover:bg-white/[0.05] rounded-lg transition-colors cursor-pointer group" title="Nhấp để mở Diff Inspector đối soát chi tiết">
-                            <div class="col-span-4 flex items-center gap-2 text-slate-300 group-hover:text-cyan-300 transition-colors">
-                                <i data-lucide="user" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400"></i>
-                                <div><div class="font-medium">Đỗ Gia Huy</div><div class="text-[10px] text-slate-500">SE1701</div></div>
-                            </div>
-                            <div class="col-span-4 text-slate-400">PRJ301_Assignment_OnlineShop</div>
-                            <div class="col-span-2 text-emerald-400 font-bold">12%</div>
-                            <div class="col-span-2 text-right text-slate-500 flex items-center justify-end gap-1">2026-10-25 13:43 <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors"></i></div>
-                        </div>
-
-                        <!-- Row 2 -->
-                        <div data-match="24" data-type="clean" onclick="window.location.href='${pageContext.request.contextPath}/diff-inspector?reportId=1'" class="dashboard-data-row grid grid-cols-12 items-center py-2.5 px-3 hover:bg-white/[0.05] rounded-lg transition-colors cursor-pointer group" title="Nhấp để mở Diff Inspector đối soát chi tiết">
-                            <div class="col-span-4 flex items-center gap-2 text-slate-300 group-hover:text-cyan-300 transition-colors">
-                                <i data-lucide="user" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400"></i>
-                                <div><div class="font-medium">Lê Hoàng Nam</div><div class="text-[10px] text-slate-500">SE1702</div></div>
-                            </div>
-                            <div class="col-span-4 text-slate-400">PRJ301_Assignment_OnlineShop</div>
-                            <div class="col-span-2 text-emerald-400 font-bold">24%</div>
-                            <div class="col-span-2 text-right text-slate-500 flex items-center justify-end gap-1">2026-10-25 18:42 <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors"></i></div>
-                        </div>
-
-                        <!-- Alert Row -->
-                        <div data-match="88" data-type="flagged" class="dashboard-data-row grid grid-cols-12 items-center py-3 px-3 rounded-xl bg-rose-950/20 border border-rose-500/60 alert-pulse-danger my-1">
-                            <div class="col-span-4 flex items-center gap-2.5 text-rose-300">
-                                <div class="w-7 h-7 rounded-lg bg-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
-                                    <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                        <c:choose>
+                            <c:when test="${not empty reports}">
+                                <c:forEach items="${reports}" var="r">
+                                    <c:choose>
+                                        <c:when test="${r.similarityScore >= 75}">
+                                            <!-- Alert Row (High Risk) -->
+                                            <div data-match="${r.similarityScore}" data-type="flagged" class="dashboard-data-row grid grid-cols-12 items-center py-3 px-3 rounded-xl bg-rose-950/20 border border-rose-500/60 alert-pulse-danger my-1">
+                                                <div class="col-span-4 flex items-center gap-2.5 text-rose-300">
+                                                    <div class="w-7 h-7 rounded-lg bg-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
+                                                        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="font-bold text-rose-400 text-xs">${r.studentAName != null ? r.studentAName : 'Sinh viên A'}</div>
+                                                        <div class="text-[10px] text-rose-300/80">vs ${r.studentBName != null ? r.studentBName : 'Sinh viên B'}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-span-4 text-rose-200/90 text-xs truncate" title="${r.aiAnalysisSummary}">
+                                                    ${r.aiAnalysisSummary != null ? r.aiAnalysisSummary : 'Trùng lặp cấu trúc AST & biến'}
+                                                </div>
+                                                <div class="col-span-2 text-rose-400 font-extrabold text-sm">${r.similarityScore}%</div>
+                                                <div class="col-span-2 text-right flex items-center justify-end gap-2">
+                                                    <a href="${pageContext.request.contextPath}/diff-inspector?reportId=${r.reportId}" class="px-2.5 py-1 rounded bg-rose-500 text-white font-bold text-[11px] hover:bg-rose-600 transition-colors shadow-[0_0_10px_rgba(239,68,68,0.4)]">
+                                                        Đối Soát &gt;
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </c:when>
+                                        <c:when test="${r.similarityScore >= 40}">
+                                            <!-- Warning Row -->
+                                            <div data-match="${r.similarityScore}" data-type="warning" onclick="window.location.href='${pageContext.request.contextPath}/diff-inspector?reportId=${r.reportId}'" class="dashboard-data-row grid grid-cols-12 items-center py-2.5 px-3 hover:bg-white/[0.05] rounded-lg transition-colors cursor-pointer group" title="Nhấp để mở Diff Inspector đối soát chi tiết">
+                                                <div class="col-span-4 flex items-center gap-2 text-slate-300 group-hover:text-cyan-300 transition-colors">
+                                                    <i data-lucide="user" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400"></i>
+                                                    <div>
+                                                        <div class="font-medium">${r.studentAName != null ? r.studentAName : 'Sinh viên A'}</div>
+                                                        <div class="text-[10px] text-slate-500">vs ${r.studentBName != null ? r.studentBName : 'Sinh viên B'}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-span-4 text-slate-400 truncate" title="${r.aiAnalysisSummary}">
+                                                    ${r.aiAnalysisSummary != null ? r.aiAnalysisSummary : 'Tương đồng cấu trúc hàm'}
+                                                </div>
+                                                <div class="col-span-2 text-amber-400 font-bold">${r.similarityScore}%</div>
+                                                <div class="col-span-2 text-right text-slate-500 flex items-center justify-end gap-1">
+                                                    <span class="text-[11px]">Audit ID: #${r.reportId}</span>
+                                                    <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors"></i>
+                                                </div>
+                                            </div>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <!-- Clean Row -->
+                                            <div data-match="${r.similarityScore}" data-type="clean" onclick="window.location.href='${pageContext.request.contextPath}/diff-inspector?reportId=${r.reportId}'" class="dashboard-data-row grid grid-cols-12 items-center py-2.5 px-3 hover:bg-white/[0.05] rounded-lg transition-colors cursor-pointer group" title="Nhấp để mở Diff Inspector đối soát chi tiết">
+                                                <div class="col-span-4 flex items-center gap-2 text-slate-300 group-hover:text-cyan-300 transition-colors">
+                                                    <i data-lucide="user" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400"></i>
+                                                    <div>
+                                                        <div class="font-medium">${r.studentAName != null ? r.studentAName : 'Sinh viên A'}</div>
+                                                        <div class="text-[10px] text-slate-500">vs ${r.studentBName != null ? r.studentBName : 'Sinh viên B'}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-span-4 text-slate-400 truncate">
+                                                    ${currentAssignment != null ? currentAssignment.title : 'PRJ301 Assignment'}
+                                                </div>
+                                                <div class="col-span-2 text-emerald-400 font-bold">${r.similarityScore}%</div>
+                                                <div class="col-span-2 text-right text-slate-500 flex items-center justify-end gap-1">
+                                                    <span class="text-[11px]">Audit ID: #${r.reportId}</span>
+                                                    <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors"></i>
+                                                </div>
+                                            </div>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </c:forEach>
+                            </c:when>
+                            <c:otherwise>
+                                <!-- Default Benchmark Rows when database reports not yet generated -->
+                                <div data-match="12" data-type="clean" onclick="window.location.href='${pageContext.request.contextPath}/diff-inspector?reportId=1'" class="dashboard-data-row grid grid-cols-12 items-center py-2.5 px-3 hover:bg-white/[0.05] rounded-lg transition-colors cursor-pointer group" title="Nhấp để mở Diff Inspector đối soát chi tiết">
+                                    <div class="col-span-4 flex items-center gap-2 text-slate-300 group-hover:text-cyan-300 transition-colors">
+                                        <i data-lucide="user" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400"></i>
+                                        <div><div class="font-medium">Đỗ Gia Huy</div><div class="text-[10px] text-slate-500">SE1701</div></div>
+                                    </div>
+                                    <div class="col-span-4 text-slate-400">PRJ301_Assignment_OnlineShop</div>
+                                    <div class="col-span-2 text-emerald-400 font-bold">12%</div>
+                                    <div class="col-span-2 text-right text-slate-500 flex items-center justify-end gap-1">2026-10-25 13:43 <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors"></i></div>
                                 </div>
-                                <div>
-                                    <div class="font-bold text-rose-400 text-xs">88.5% TRÙNG KHỚP AST</div>
-                                    <div class="text-[10px] text-rose-300/80">Trần Văn Long (SE1703) vs SE1702</div>
+
+                                <div data-match="24" data-type="clean" onclick="window.location.href='${pageContext.request.contextPath}/diff-inspector?reportId=1'" class="dashboard-data-row grid grid-cols-12 items-center py-2.5 px-3 hover:bg-white/[0.05] rounded-lg transition-colors cursor-pointer group" title="Nhấp để mở Diff Inspector đối soát chi tiết">
+                                    <div class="col-span-4 flex items-center gap-2 text-slate-300 group-hover:text-cyan-300 transition-colors">
+                                        <i data-lucide="user" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400"></i>
+                                        <div><div class="font-medium">Lê Hoàng Nam</div><div class="text-[10px] text-slate-500">SE1702</div></div>
+                                    </div>
+                                    <div class="col-span-4 text-slate-400">PRJ301_Assignment_OnlineShop</div>
+                                    <div class="col-span-2 text-emerald-400 font-bold">24%</div>
+                                    <div class="col-span-2 text-right text-slate-500 flex items-center justify-end gap-1">2026-10-25 18:42 <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors"></i></div>
                                 </div>
-                            </div>
-                            <div class="col-span-4 text-rose-200/90 text-xs">OrderManager.java (Đổi tên biến & đảo hàm)</div>
-                            <div class="col-span-2 text-rose-400 font-extrabold text-sm">88.5%</div>
-                            <div class="col-span-2 text-right flex items-center justify-end gap-2">
-                                <a href="${pageContext.request.contextPath}/diff-inspector?reportId=1" class="px-2.5 py-1 rounded bg-rose-500 text-white font-bold text-[11px] hover:bg-rose-600 transition-colors shadow-[0_0_10px_rgba(239,68,68,0.4)]">
-                                    Đối Soát &gt;
-                                </a>
-                            </div>
-                        </div>
 
-                        <!-- Row 4 -->
-                        <div data-match="18" data-type="clean" onclick="window.location.href='${pageContext.request.contextPath}/diff-inspector?reportId=1'" class="dashboard-data-row grid grid-cols-12 items-center py-2.5 px-3 hover:bg-white/[0.05] rounded-lg transition-colors cursor-pointer group" title="Nhấp để mở Diff Inspector đối soát chi tiết">
-                            <div class="col-span-4 flex items-center gap-2 text-slate-300 group-hover:text-cyan-300 transition-colors">
-                                <i data-lucide="user" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400"></i>
-                                <div><div class="font-medium">Nguyễn Mạnh Hà</div><div class="text-[10px] text-slate-500">SE1704</div></div>
-                            </div>
-                            <div class="col-span-4 text-slate-400">PRJ301_Assignment_OnlineShop</div>
-                            <div class="col-span-2 text-emerald-400 font-bold">18%</div>
-                            <div class="col-span-2 text-right text-slate-500 flex items-center justify-end gap-1">2026-10-26 15:10 <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors"></i></div>
-                        </div>
+                                <div data-match="88" data-type="flagged" class="dashboard-data-row grid grid-cols-12 items-center py-3 px-3 rounded-xl bg-rose-950/20 border border-rose-500/60 alert-pulse-danger my-1">
+                                    <div class="col-span-4 flex items-center gap-2.5 text-rose-300">
+                                        <div class="w-7 h-7 rounded-lg bg-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
+                                            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-rose-400 text-xs">88.5% TRÙNG KHỚP AST</div>
+                                            <div class="text-[10px] text-rose-300/80">Trần Văn Long (SE1703) vs SE1702</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-span-4 text-rose-200/90 text-xs">OrderManager.java (Đổi tên biến &amp; đảo hàm)</div>
+                                    <div class="col-span-2 text-rose-400 font-extrabold text-sm">88.5%</div>
+                                    <div class="col-span-2 text-right flex items-center justify-end gap-2">
+                                        <a href="${pageContext.request.contextPath}/diff-inspector?reportId=1" class="px-2.5 py-1 rounded bg-rose-500 text-white font-bold text-[11px] hover:bg-rose-600 transition-colors shadow-[0_0_10px_rgba(239,68,68,0.4)]">
+                                            Đối Soát &gt;
+                                        </a>
+                                    </div>
+                                </div>
 
-                        <!-- Row 5 -->
-                        <div data-match="45" data-type="warning" onclick="window.location.href='${pageContext.request.contextPath}/diff-inspector?reportId=1'" class="dashboard-data-row grid grid-cols-12 items-center py-2.5 px-3 hover:bg-white/[0.05] rounded-lg transition-colors cursor-pointer group" title="Nhấp để mở Diff Inspector đối soát chi tiết">
-                            <div class="col-span-4 flex items-center gap-2 text-slate-300 group-hover:text-cyan-300 transition-colors">
-                                <i data-lucide="user" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400"></i>
-                                <div><div class="font-medium">Phạm Thùy Linh</div><div class="text-[10px] text-slate-500">SE1705</div></div>
-                            </div>
-                            <div class="col-span-4 text-slate-400">PRJ301_Assignment_OnlineShop</div>
-                            <div class="col-span-2 text-amber-400 font-bold">45%</div>
-                            <div class="col-span-2 text-right text-slate-500 flex items-center justify-end gap-1">2026-10-26 16:05 <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors"></i></div>
-                        </div>
+                                <div data-match="18" data-type="clean" onclick="window.location.href='${pageContext.request.contextPath}/diff-inspector?reportId=1'" class="dashboard-data-row grid grid-cols-12 items-center py-2.5 px-3 hover:bg-white/[0.05] rounded-lg transition-colors cursor-pointer group" title="Nhấp để mở Diff Inspector đối soát chi tiết">
+                                    <div class="col-span-4 flex items-center gap-2 text-slate-300 group-hover:text-cyan-300 transition-colors">
+                                        <i data-lucide="user" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400"></i>
+                                        <div><div class="font-medium">Nguyễn Mạnh Hà</div><div class="text-[10px] text-slate-500">SE1704</div></div>
+                                    </div>
+                                    <div class="col-span-4 text-slate-400">PRJ301_Assignment_OnlineShop</div>
+                                    <div class="col-span-2 text-emerald-400 font-bold">18%</div>
+                                    <div class="col-span-2 text-right text-slate-500 flex items-center justify-end gap-1">2026-10-26 15:10 <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors"></i></div>
+                                </div>
+
+                                <div data-match="45" data-type="warning" onclick="window.location.href='${pageContext.request.contextPath}/diff-inspector?reportId=1'" class="dashboard-data-row grid grid-cols-12 items-center py-2.5 px-3 hover:bg-white/[0.05] rounded-lg transition-colors cursor-pointer group" title="Nhấp để mở Diff Inspector đối soát chi tiết">
+                                    <div class="col-span-4 flex items-center gap-2 text-slate-300 group-hover:text-cyan-300 transition-colors">
+                                        <i data-lucide="user" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400"></i>
+                                        <div><div class="font-medium">Phạm Thùy Linh</div><div class="text-[10px] text-slate-500">SE1705</div></div>
+                                    </div>
+                                    <div class="col-span-4 text-slate-400">PRJ301_Assignment_OnlineShop</div>
+                                    <div class="col-span-2 text-amber-400 font-bold">45%</div>
+                                    <div class="col-span-2 text-right text-slate-500 flex items-center justify-end gap-1">2026-10-26 16:05 <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors"></i></div>
+                                </div>
+                            </c:otherwise>
+                        </c:choose>
                     </div>
                     </div>
                 </div>
@@ -731,8 +836,241 @@
         </div>
     </div>
 
+    <!-- Modal 1: Thêm Khóa Học Mới -->
+    <div id="modal-add-course" class="ast-modal-backdrop" onclick="if(event.target === this) closeAddCourseModal()">
+        <div class="ast-modal-card p-6 border border-cyan-500/40 relative max-w-md w-full liquid-glass-card specular-rim-border">
+            <button type="button" onclick="closeAddCourseModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+                    <i data-lucide="book-plus" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-white font-mono">Thêm Khóa Học Mới</h3>
+                    <p class="text-xs text-slate-400">Tạo môn học quản lý đối soát học thuật</p>
+                </div>
+            </div>
+            <form action="${pageContext.request.contextPath}/course-action" method="POST" class="space-y-4 text-xs font-mono">
+                <input type="hidden" name="action" value="create">
+                <div>
+                    <label class="block text-slate-300 mb-1">Mã môn học (Course Code)*</label>
+                    <input type="text" name="courseCode" required placeholder="Ví dụ: PRJ301, CSD201, PRF192" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">Tên môn học (Course Name)*</label>
+                    <input type="text" name="courseName" required placeholder="Ví dụ: Java Web Applications" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">Học kỳ (Semester)</label>
+                    <input type="text" name="semester" value="Fall 2026" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
+                </div>
+                <div class="pt-3 border-t border-white/10 flex items-center justify-end gap-2">
+                    <button type="button" onclick="closeAddCourseModal()" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 text-xs">Hủy</button>
+                    <button type="submit" class="px-4 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)]">Lưu Khóa Học</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 2: Thêm Bài Tập Mới -->
+    <div id="modal-add-assignment" class="ast-modal-backdrop" onclick="if(event.target === this) closeAddAssignmentModal()">
+        <div class="ast-modal-card p-6 border border-violet-500/40 relative max-w-lg w-full liquid-glass-card specular-rim-border">
+            <button type="button" onclick="closeAddAssignmentModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-violet-500/20 border border-violet-500/40 flex items-center justify-center text-violet-400">
+                    <i data-lucide="file-plus" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-white font-mono">Tạo Bài Tập Mới</h3>
+                    <p class="text-xs text-slate-400">Thiết lập bài tập &amp; ngưỡng cảnh báo đạo văn</p>
+                </div>
+            </div>
+            <form action="${pageContext.request.contextPath}/assignment-action" method="POST" class="space-y-3.5 text-xs font-mono">
+                <input type="hidden" name="action" value="create">
+                <input type="hidden" name="courseId" value="${selectedCourseId}">
+                <div>
+                    <label class="block text-slate-300 mb-1">Tiêu đề bài tập*</label>
+                    <input type="text" name="title" required placeholder="Ví dụ: Assignment 3 - MVC Servlet Online Store" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-violet-400 outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">Mô tả / Yêu cầu đề bài</label>
+                    <textarea name="description" rows="2" placeholder="Yêu cầu viết bằng Java Servlet, tuân thủ mô hình MVC2..." class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-violet-400 outline-none font-sans"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 mb-1">Ngưỡng cảnh báo (%)</label>
+                        <input type="number" name="similarityThreshold" step="0.5" value="75.0" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-violet-400 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 mb-1">Điểm tối đa</label>
+                        <input type="number" name="maxScore" step="0.5" value="100.0" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-violet-400 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">Hạn nộp bài (Deadline)</label>
+                    <input type="datetime-local" name="deadline" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-violet-400 outline-none">
+                </div>
+                <div class="pt-3 border-t border-white/10 flex items-center justify-end gap-2">
+                    <button type="button" onclick="closeAddAssignmentModal()" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 text-xs">Hủy</button>
+                    <button type="submit" class="px-4 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs transition-all shadow-[0_0_15px_rgba(139,92,246,0.3)]">Tạo Bài Tập</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 3: Chỉnh Sửa Bài Tập -->
+    <div id="modal-edit-assignment" class="ast-modal-backdrop" onclick="if(event.target === this) closeEditAssignmentModal()">
+        <div class="ast-modal-card p-6 border border-amber-500/40 relative max-w-lg w-full liquid-glass-card specular-rim-border">
+            <button type="button" onclick="closeEditAssignmentModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                    <i data-lucide="edit" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-white font-mono">Chỉnh Sửa Bài Tập</h3>
+                    <p class="text-xs text-slate-400">Cập nhật thông số bài tập #${selectedAssignmentId}</p>
+                </div>
+            </div>
+            <form action="${pageContext.request.contextPath}/assignment-action" method="POST" class="space-y-3.5 text-xs font-mono">
+                <input type="hidden" name="action" value="update">
+                <input type="hidden" name="assignmentId" value="${selectedAssignmentId}">
+                <input type="hidden" name="courseId" value="${selectedCourseId}">
+                <div>
+                    <label class="block text-slate-300 mb-1">Tiêu đề bài tập*</label>
+                    <input type="text" name="title" value="${currentAssignment.title}" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">Mô tả / Yêu cầu đề bài</label>
+                    <textarea name="description" rows="2" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none font-sans">${currentAssignment.description}</textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 mb-1">Ngưỡng cảnh báo (%)</label>
+                        <input type="number" name="similarityThreshold" step="0.5" value="${currentAssignment.similarityThreshold != 0 ? currentAssignment.similarityThreshold : 75.0}" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 mb-1">Điểm tối đa</label>
+                        <input type="number" name="maxScore" step="0.5" value="${currentAssignment.maxScore != 0 ? currentAssignment.maxScore : 100.0}" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">Hạn nộp bài (Deadline)</label>
+                    <input type="datetime-local" name="deadline" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
+                </div>
+                <div class="pt-3 border-t border-white/10 flex items-center justify-end gap-2">
+                    <button type="button" onclick="closeEditAssignmentModal()" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 text-xs">Hủy</button>
+                    <button type="submit" class="px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition-all shadow-[0_0_15px_rgba(245,158,11,0.3)]">Lưu Thay Đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 4: Cập Nhật Profile & Mật Khẩu -->
+    <div id="modal-user-profile" class="ast-modal-backdrop" onclick="if(event.target === this) closeProfileModal()">
+        <div class="ast-modal-card p-6 border border-cyan-500/40 relative max-w-lg w-full liquid-glass-card specular-rim-border">
+            <button type="button" onclick="closeProfileModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+                    <i data-lucide="user-check" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-white font-mono">Hồ Sơ &amp; Bảo Mật</h3>
+                    <p class="text-xs text-slate-400">Cập nhật thông tin giảng viên &amp; bảo mật mật khẩu</p>
+                </div>
+            </div>
+
+            <!-- Tab 1: Profile Form -->
+            <form action="${pageContext.request.contextPath}/profile-action" method="POST" class="space-y-3 text-xs font-mono pb-4 mb-4 border-b border-white/10">
+                <input type="hidden" name="action" value="update_profile">
+                <div class="font-bold text-cyan-400 text-xs uppercase tracking-wider mb-2">Thông Tin Cá Nhân</div>
+                <div>
+                    <label class="block text-slate-300 mb-1">Họ và tên</label>
+                    <input type="text" name="fullName" value="${sessionScope.currentUser.fullName}" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">URL Ảnh Đại Diện</label>
+                    <input type="text" name="avatarUrl" value="${sessionScope.currentUser.avatarUrl}" placeholder="https://..." class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" class="px-3.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs">Cập Nhật Hồ Sơ</button>
+                </div>
+            </form>
+
+            <!-- Tab 2: Password Form -->
+            <form action="${pageContext.request.contextPath}/profile-action" method="POST" class="space-y-3 text-xs font-mono">
+                <input type="hidden" name="action" value="change_password">
+                <div class="font-bold text-rose-400 text-xs uppercase tracking-wider mb-2">Đổi Mật Khẩu</div>
+                <div>
+                    <label class="block text-slate-300 mb-1">Mật khẩu hiện tại</label>
+                    <input type="password" name="oldPassword" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-rose-400 outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">Mật khẩu mới (tối thiểu 6 ký tự)</label>
+                    <input type="password" name="newPassword" minlength="6" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-rose-400 outline-none">
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" class="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs">Đổi Mật Khẩu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         lucide.createIcons();
+
+        function openAddCourseModal() {
+            const m = document.getElementById('modal-add-course');
+            if (m) m.classList.add('active');
+            if (window.CyberAudio) CyberAudio.playTick();
+        }
+        function closeAddCourseModal() {
+            const m = document.getElementById('modal-add-course');
+            if (m) m.classList.remove('active');
+        }
+        function openAddAssignmentModal() {
+            const m = document.getElementById('modal-add-assignment');
+            if (m) m.classList.add('active');
+            if (window.CyberAudio) CyberAudio.playTick();
+        }
+        function closeAddAssignmentModal() {
+            const m = document.getElementById('modal-add-assignment');
+            if (m) m.classList.remove('active');
+        }
+        function openEditAssignmentModal() {
+            const m = document.getElementById('modal-edit-assignment');
+            if (m) m.classList.add('active');
+            if (window.CyberAudio) CyberAudio.playTick();
+        }
+        function closeEditAssignmentModal() {
+            const m = document.getElementById('modal-edit-assignment');
+            if (m) m.classList.remove('active');
+        }
+        function openProfileModal() {
+            const m = document.getElementById('modal-user-profile');
+            if (m) m.classList.add('active');
+            if (window.CyberAudio) CyberAudio.playTick();
+        }
+        function closeProfileModal() {
+            const m = document.getElementById('modal-user-profile');
+            if (m) m.classList.remove('active');
+        }
+
+        // Toast notifications from URL Params
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            if (window.showToast) {
+                if (params.get('courseMsg') === 'created') showToast('Khóa học mới đã được tạo thành công!', 'success');
+                if (params.get('courseMsg') === 'updated') showToast('Đã cập nhật thông tin khóa học!', 'success');
+                if (params.get('courseMsg') === 'deleted') showToast('Đã xóa khóa học thành công!', 'info');
+                if (params.get('assignmentMsg') === 'created') showToast('Bài tập mới đã được tạo thành công!', 'success');
+                if (params.get('assignmentMsg') === 'updated') showToast('Đã cập nhật bài tập thành công!', 'success');
+                if (params.get('assignmentMsg') === 'deleted') showToast('Đã xóa bài tập thành công!', 'info');
+                if (params.get('scanSuccess') === 'true') showToast('Quét đối soát hoàn tất! Đã cập nhật ma trận vi phạm.', 'success');
+                if (params.get('profileMsg') === 'profile_updated') showToast('Cập nhật thông tin tài khoản thành công!', 'success');
+                if (params.get('profileMsg') === 'password_changed') showToast('Đổi mật khẩu thành công!', 'success');
+                if (params.get('profileMsg') === 'wrong_old_password') showToast('Mật khẩu cũ không chính xác!', 'error');
+                if (params.get('courseError') || params.get('assignmentError')) showToast('Thao tác không thành công, vui lòng thử lại!', 'error');
+            }
+        });
 
         function openAstModal() {
             const modal = document.getElementById('ast-modal');

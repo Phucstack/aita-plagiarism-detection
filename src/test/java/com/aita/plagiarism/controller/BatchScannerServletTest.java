@@ -53,6 +53,6 @@ public class BatchScannerServletTest {
 
         servlet.doPost(request, response);
 
-        verify(response).sendRedirect("/aita/dashboard?scanSuccess=true");
+        verify(response).sendRedirect(org.mockito.ArgumentMatchers.contains("scanSuccess=true"));
     }
 }

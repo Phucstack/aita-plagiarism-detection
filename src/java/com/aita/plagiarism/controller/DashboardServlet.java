@@ -2,9 +2,11 @@ package com.aita.plagiarism.controller;
 
 import com.aita.plagiarism.dao.CourseDAO;
 import com.aita.plagiarism.dao.PlagiarismDAO;
+import com.aita.plagiarism.dao.SubmissionDAO;
 import com.aita.plagiarism.model.Assignment;
 import com.aita.plagiarism.model.Course;
 import com.aita.plagiarism.model.PlagiarismReport;
+import com.aita.plagiarism.model.Submission;
 import com.aita.plagiarism.model.User;
 
 import jakarta.servlet.ServletException;
@@ -21,6 +23,7 @@ public class DashboardServlet extends HttpServlet {
 
     private final PlagiarismDAO plagiarismDAO = new PlagiarismDAO();
     private final CourseDAO courseDAO = new CourseDAO();
+    private final SubmissionDAO submissionDAO = new SubmissionDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) 
@@ -65,6 +68,7 @@ public class DashboardServlet extends HttpServlet {
 
         Assignment currentAssignment = courseDAO.getAssignmentById(selectedAssignmentId);
         List<PlagiarismReport> reports = plagiarismDAO.getReportsByAssignment(selectedAssignmentId);
+        List<Submission> submissions = submissionDAO.getSubmissionsByAssignment(selectedAssignmentId);
 
         request.setAttribute("courses", courses);
         request.setAttribute("assignments", assignments);
@@ -72,6 +76,7 @@ public class DashboardServlet extends HttpServlet {
         request.setAttribute("selectedAssignmentId", selectedAssignmentId);
         request.setAttribute("currentAssignment", currentAssignment);
         request.setAttribute("reports", reports);
+        request.setAttribute("submissions", submissions);
 
         // Chuyển tiếp sang View JSP chuẩn mô hình MVC2
         request.getRequestDispatcher("/dashboard.jsp").forward(request, response);

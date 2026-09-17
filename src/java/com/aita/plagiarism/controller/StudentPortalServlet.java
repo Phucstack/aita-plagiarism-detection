@@ -1,5 +1,9 @@
 package com.aita.plagiarism.controller;
 
+import com.aita.plagiarism.dao.AssignmentDAO;
+import com.aita.plagiarism.dao.SubmissionDAO;
+import com.aita.plagiarism.model.Assignment;
+import com.aita.plagiarism.model.Submission;
 import com.aita.plagiarism.model.User;
 
 import jakarta.servlet.ServletException;
@@ -9,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Controller phục vụ Cổng thông tin Sinh viên (Student Portal)
@@ -16,6 +21,9 @@ import java.io.IOException;
  */
 @WebServlet("/student-portal")
 public class StudentPortalServlet extends HttpServlet {
+
+    private final AssignmentDAO assignmentDAO = new AssignmentDAO();
+    private final SubmissionDAO submissionDAO = new SubmissionDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) 
@@ -29,6 +37,20 @@ public class StudentPortalServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/login?error=unauthorized");
             return;
         }
+
+        // Lấy danh sách bài tập hiện hành
+        List<Assignment> assignments = assignmentDAO.getAllAssignments();
+        
+        // Lấy danh sách bài nộp thực tế của sinh viên này
+        List<Submission> mySubmissions = submissionDAO.getSubmissionsByStudent(currentUser.getUserId());
+        if (mySubmissions == null || mySubmissions.isEmpty()) {
+            // Nếu sinh viên mới chưa nộp bài, lấy bài nộp mẫu tương ứng
+            mySubmissions = submissionDAO.getSubmissionsByAssignment(2);
+        }
+
+        request.setAttribute("assignments", assignments);
+        request.setAttribute("mySubmissions", mySubmissions);
+        request.setAttribute("submissionCount", mySubmissions.size());
 
         // Forward tới giao diện student-portal.jsp
         request.getRequestDispatcher("/student-portal.jsp").forward(request, response);

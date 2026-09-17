@@ -8,6 +8,7 @@ public class Submission {
     private int studentId;
     private String fileName;
     private String filePath;
+    private String fileType = "JAVA";
     private String sha256Hash;
     private Timestamp submittedAt;
     private String status;
@@ -23,11 +24,26 @@ public class Submission {
         this.status = status;
     }
 
+    public Submission(int submissionId, int assignmentId, int studentId, String fileName, String filePath, String fileType, String sha256Hash, Timestamp submittedAt, String status) {
+        this.submissionId = submissionId;
+        this.assignmentId = assignmentId;
+        this.studentId = studentId;
+        this.fileName = fileName;
+        this.filePath = filePath;
+        this.fileType = fileType;
+        this.sha256Hash = sha256Hash;
+        this.submittedAt = submittedAt;
+        this.status = status;
+    }
+
     public int getSubmissionId() { return submissionId; }
     public void setSubmissionId(int submissionId) { this.submissionId = submissionId; }
 
     public int getAssignmentId() { return assignmentId; }
     public void setAssignmentId(int assignmentId) { this.assignmentId = assignmentId; }
+
+    public String getFileType() { return fileType; }
+    public void setFileType(String fileType) { this.fileType = fileType; }
 
     public int getStudentId() { return studentId; }
     public void setStudentId(int studentId) { this.studentId = studentId; }

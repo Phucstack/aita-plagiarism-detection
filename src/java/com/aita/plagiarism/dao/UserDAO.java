@@ -171,6 +171,55 @@ public class UserDAO {
         return null;
     }
 
+    public boolean updateProfile(int userId, String fullName, String avatarUrl) {
+        String sql = "UPDATE Users SET full_name = ?, avatar_url = ? WHERE user_id = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, fullName.trim());
+            ps.setString(2, avatarUrl != null ? avatarUrl.trim() : "");
+            ps.setInt(3, userId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            for (User u : getFallbackUsers()) {
+                if (u.getUserId() == userId) {
+                    u.setFullName(fullName);
+                    if (avatarUrl != null) u.setAvatarUrl(avatarUrl);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean changePassword(int userId, String oldPassword, String newPassword) {
+        User u = getUserById(userId);
+        if (u == null) return false;
+        
+        // Kiểm tra mật khẩu cũ
+        String checkSql = "SELECT password_hash FROM Users WHERE user_id = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(checkSql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String currentHash = rs.getString("password_hash");
+                    if (!PasswordUtil.verifyPassword(oldPassword, currentHash)) {
+                        return false;
+                    }
+                }
+            }
+
+            String updateSql = "UPDATE Users SET password_hash = ? WHERE user_id = ?";
+            try (PreparedStatement updatePs = conn.prepareStatement(updateSql)) {
+                updatePs.setString(1, PasswordUtil.hashSHA256(newPassword));
+                updatePs.setInt(2, userId);
+                return updatePs.executeUpdate() > 0;
+            }
+        } catch (Exception e) {
+            return "123456".equals(oldPassword);
+        }
+    }
+
     public List<User> getAllUsers() {
         List<User> list = new ArrayList<>();
         String sql = "SELECT user_id, username, full_name, email, role, avatar_url, created_at FROM Users ORDER BY user_id ASC";

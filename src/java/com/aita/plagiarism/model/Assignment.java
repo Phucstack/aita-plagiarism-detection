@@ -9,6 +9,7 @@ public class Assignment {
     private String description;
     private double maxScore;
     private Timestamp deadline;
+    private double similarityThreshold = 75.0;
     private Timestamp createdAt;
 
     public Assignment() {}
@@ -36,6 +37,9 @@ public class Assignment {
 
     public double getMaxScore() { return maxScore; }
     public void setMaxScore(double maxScore) { this.maxScore = maxScore; }
+
+    public double getSimilarityThreshold() { return similarityThreshold; }
+    public void setSimilarityThreshold(double similarityThreshold) { this.similarityThreshold = similarityThreshold; }
 
     public Timestamp getDeadline() { return deadline; }
     public void setDeadline(Timestamp deadline) { this.deadline = deadline; }
