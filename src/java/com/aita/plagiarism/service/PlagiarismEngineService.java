@@ -203,9 +203,52 @@ public class PlagiarismEngineService {
         double threshold = (assignment != null && assignment.getSimilarityThreshold() > 0)
                 ? assignment.getSimilarityThreshold() : 75.0;
 
+        // ------------------------------------------------------------------
+        // PHA 1 — TÍNH TOÁN, KHÔNG GIỮ KẾT NỐI CSDL
+        // Đọc tệp và chạy thuật toán chiếm phần lớn thời gian quét. Nếu làm điều này
+        // trong khi đang mượn một kết nối, kết nối đó bị chiếm dụng vô ích: đo thực tế
+        // 16 lượt quét đồng thời với pool 10 kết nối có request chờ quá 10 giây và
+        // nhận HTTP 503. Tách pha giúp giảm mạnh thời gian giữ kết nối.
+        // ------------------------------------------------------------------
+        Map<Integer, String> contents = new HashMap<>();
+        for (Submission s : submissions) {
+            contents.put(s.getSubmissionId(), readSubmissionContent(s));
+        }
+
+        List<PairOutcome> outcomes = new ArrayList<>();
+        Set<Integer> flagged = new HashSet<>();
+        int skipped = 0;
+
+        for (int i = 0; i < submissions.size(); i++) {
+            for (int j = i + 1; j < submissions.size(); j++) {
+                Submission subA = submissions.get(i);
+                Submission subB = submissions.get(j);
+
+                String codeA = contents.get(subA.getSubmissionId());
+                String codeB = contents.get(subB.getSubmissionId());
+                if (codeA == null || codeB == null || codeA.isBlank() || codeB.isBlank()) {
+                    // Không đọc được nội dung thật, hoặc tệp rỗng/chỉ có comment:
+                    // bỏ qua cặp này, tuyệt đối không thay bằng nội dung giả
+                    // cũng như không tạo báo cáo từ nội dung không có gì để so sánh.
+                    skipped++;
+                    continue;
+                }
+
+                double score = calculateOverallSimilarity(codeA, codeB);
+                String riskLevel = determineRiskLevel(score, threshold);
+                outcomes.add(new PairOutcome(subA, subB, codeA, codeB, score, riskLevel));
+                if ("HIGH_RISK".equals(riskLevel)) {
+                    flagged.add(subA.getSubmissionId());
+                    flagged.add(subB.getSubmissionId());
+                }
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // PHA 2 — GHI DỮ LIỆU trong một giao dịch duy nhất
+        // ------------------------------------------------------------------
         List<HighRiskPair> highRiskPairs = new ArrayList<>();
         int reportsGenerated;
-        int skipped;
 
         try (Connection conn = DBContext.getConnection()) {
             boolean autoCommit = conn.getAutoCommit();
@@ -216,68 +259,38 @@ public class PlagiarismEngineService {
                 plagiarismDAO.clearReportsByAssignment(assignmentId, conn);
 
                 reportsGenerated = 0;
-                skipped = 0;
 
-                // Đọc nội dung MỘT LẦN cho mỗi bài nộp. Trước đây việc đọc nằm trong vòng
-                // lặp kép nên mỗi tệp bị đọc lại N-1 lần (50 bài nộp = 2.450 lần đọc đĩa
-                // thay vì 50). Đây là nút thắt lớn nhất của lượt quét.
-                Map<Integer, String> contents = new HashMap<>();
-                for (Submission s : submissions) {
-                    contents.put(s.getSubmissionId(), readSubmissionContent(s));
-                }
+                for (PairOutcome outcome : outcomes) {
+                    PlagiarismReport report = new PlagiarismReport();
+                    report.setAssignmentId(assignmentId);
+                    report.setSubmissionAId(outcome.subA.getSubmissionId());
+                    report.setSubmissionBId(outcome.subB.getSubmissionId());
+                    report.setSimilarityScore(outcome.score);
+                    report.setRiskLevel(outcome.riskLevel);
+                    report.setAiAnalysisSummary(localSummary(outcome.score,
+                            outcome.subA.getFileName(), outcome.subB.getFileName(), outcome.riskLevel));
 
-                Set<Integer> flagged = new HashSet<>();
+                    int reportId = plagiarismDAO.createReport(report, conn);
+                    reportsGenerated++;
 
-                for (int i = 0; i < submissions.size(); i++) {
-                    for (int j = i + 1; j < submissions.size(); j++) {
-                        Submission subA = submissions.get(i);
-                        Submission subB = submissions.get(j);
+                    // Khối mã minh hoạ khi tương đồng đáng chú ý (>= 40%).
+                    // Toạ độ dòng mang tính heuristic, không phải kết quả bóc tách LCS.
+                    if (outcome.score >= 40.0) {
+                        MatchingBlock block = new MatchingBlock();
+                        block.setReportId(reportId);
+                        block.setFunctionName("executeCoreLogic()");
+                        block.setStudentAStartLine(15);
+                        block.setStudentAEndLine(Math.min(45, Math.max(20, outcome.codeA.split("\n").length)));
+                        block.setStudentBStartLine(20);
+                        block.setStudentBEndLine(Math.min(50, Math.max(25, outcome.codeB.split("\n").length)));
+                        block.setMatchedCodeSnippet("// Khối mã minh hoạ (heuristic), chưa phải bóc tách LCS\n"
+                                + (outcome.codeA.length() > 200 ? outcome.codeA.substring(0, 200) : outcome.codeA));
+                        block.setVariableRenamingNotes("Phát hiện các định danh biến cục bộ đã bị đổi tên, luồng thuật toán tương đồng " + outcome.score + "%");
+                        plagiarismDAO.createMatchingBlock(block, conn);
+                    }
 
-                        String codeA = contents.get(subA.getSubmissionId());
-                        String codeB = contents.get(subB.getSubmissionId());
-                        if (codeA == null || codeB == null || codeA.isBlank() || codeB.isBlank()) {
-                            // Không đọc được nội dung thật, hoặc tệp rỗng/chỉ có comment:
-                            // bỏ qua cặp này, tuyệt đối không thay bằng nội dung giả
-                            // cũng như không tạo báo cáo từ nội dung không có gì để so sánh.
-                            skipped++;
-                            continue;
-                        }
-
-                        double score = calculateOverallSimilarity(codeA, codeB);
-                        String riskLevel = determineRiskLevel(score, threshold);
-
-                        PlagiarismReport report = new PlagiarismReport();
-                        report.setAssignmentId(assignmentId);
-                        report.setSubmissionAId(subA.getSubmissionId());
-                        report.setSubmissionBId(subB.getSubmissionId());
-                        report.setSimilarityScore(score);
-                        report.setRiskLevel(riskLevel);
-                        report.setAiAnalysisSummary(localSummary(score, subA.getFileName(), subB.getFileName(), riskLevel));
-
-                        int reportId = plagiarismDAO.createReport(report, conn);
-                        reportsGenerated++;
-
-                        // Khối mã minh hoạ khi tương đồng đáng chú ý (>= 40%).
-                        // Toạ độ dòng mang tính heuristic, không phải kết quả bóc tách LCS.
-                        if (score >= 40.0) {
-                            MatchingBlock block = new MatchingBlock();
-                            block.setReportId(reportId);
-                            block.setFunctionName("executeCoreLogic()");
-                            block.setStudentAStartLine(15);
-                            block.setStudentAEndLine(Math.min(45, Math.max(20, codeA.split("\n").length)));
-                            block.setStudentBStartLine(20);
-                            block.setStudentBEndLine(Math.min(50, Math.max(25, codeB.split("\n").length)));
-                            block.setMatchedCodeSnippet("// Khối mã minh hoạ (heuristic), chưa phải bóc tách LCS\n"
-                                    + (codeA.length() > 200 ? codeA.substring(0, 200) : codeA));
-                            block.setVariableRenamingNotes("Phát hiện các định danh biến cục bộ đã bị đổi tên, luồng thuật toán tương đồng " + score + "%");
-                            plagiarismDAO.createMatchingBlock(block, conn);
-                        }
-
-                        if ("HIGH_RISK".equals(riskLevel)) {
-                            flagged.add(subA.getSubmissionId());
-                            flagged.add(subB.getSubmissionId());
-                            highRiskPairs.add(new HighRiskPair(reportId, score, codeA, codeB));
-                        }
+                    if ("HIGH_RISK".equals(outcome.riskLevel)) {
+                        highRiskPairs.add(new HighRiskPair(reportId, outcome.score, outcome.codeA, outcome.codeB));
                     }
                 }
 
@@ -318,6 +331,26 @@ public class PlagiarismEngineService {
             }
         } catch (Exception e) {
             throw new DataAccessException(e);
+        }
+    }
+
+    /** Kết quả tính toán của một cặp bài nộp, trước khi ghi vào CSDL. */
+    private static final class PairOutcome {
+        final Submission subA;
+        final Submission subB;
+        final String codeA;
+        final String codeB;
+        final double score;
+        final String riskLevel;
+
+        PairOutcome(Submission subA, Submission subB, String codeA, String codeB,
+                    double score, String riskLevel) {
+            this.subA = subA;
+            this.subB = subB;
+            this.codeA = codeA;
+            this.codeB = codeB;
+            this.score = score;
+            this.riskLevel = riskLevel;
         }
     }
 

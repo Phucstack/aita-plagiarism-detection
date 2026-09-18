@@ -58,7 +58,11 @@ public final class DBContext {
         hikari.setPoolName("aita-pool");
         hikari.setMaximumPoolSize(intConfig("DB_POOL_MAX", 10));
         hikari.setMinimumIdle(intConfig("DB_POOL_MIN_IDLE", 2));
-        hikari.setConnectionTimeout(longConfig("DB_POOL_CONN_TIMEOUT_MS", 10_000L));
+        // Các lượt quét trên cùng một bài tập bị nối tiếp hoá bởi khoá UPDLOCK, nên khi
+        // nhiều request đến cùng lúc chúng sẽ xếp hàng chờ kết nối. Ngưỡng 10 giây từng
+        // làm request nhận HTTP 503 khi có 16 lượt quét đồng thời; nâng lên 30 giây để
+        // hàng đợi được xử lý hết thay vì bị từ chối.
+        hikari.setConnectionTimeout(longConfig("DB_POOL_CONN_TIMEOUT_MS", 30_000L));
         hikari.setIdleTimeout(longConfig("DB_POOL_IDLE_TIMEOUT_MS", 600_000L));
         hikari.setMaxLifetime(longConfig("DB_POOL_MAX_LIFETIME_MS", 1_800_000L));
         return hikari;

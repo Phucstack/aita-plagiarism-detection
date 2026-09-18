@@ -41,8 +41,8 @@
 | Smoke Testing | Đã thực thi | **PASS** — Tomcat khởi động được với `web.xml` mới |
 | UI Testing (tĩnh) | Đã thực thi | **PASS** — markup, liên kết, form, alt, name |
 | Acceptance Testing | Đã thực thi một phần | Các tiêu chí AC-AUTH/AC-CRS/AC-SUB/AC-REP đã được script kiểm chứng |
-| Performance Testing | Đã thực thi | **PASS** sau tối ưu (1,49 s / 4,05 s) |
-| Load / Stress | **Chưa thực thi** | Chưa có công cụ tạo tải |
+| Performance Testing | Đã thực thi | **PASS** (1,09 s / 2,67 s) |
+| Load / Stress | Đã thực thi | **PASS** (16 lượt quét đồng thời, dữ liệu không nhân đôi) |
 | Compatibility / Accessibility (runtime) | **Chưa thực thi** | Cần trình duyệt thật |
 | Usability | Đánh giá gián tiếp | Có nhận xét |
 
@@ -276,11 +276,13 @@ Chạy `tools/verify_followup_http.py`. Các luồng nghiệp vụ hoàn chỉnh
 Đo trên Tomcat thật + SQL Server thật bằng `target/perf/perf_scan.py` (đo thời gian
 toàn bộ request `POST /batch-scanner`, đã trừ bỏ phần tạo dữ liệu).
 
-| Kịch bản | Tiêu chí | Trước tối ưu | Sau tối ưu | Kết quả |
-|---|---|---|---|---|
-| 20 bài nộp (190 cặp) | — | 2,76 s | — | — |
-| 30 bài nộp (435 cặp) | AC-SIM-03: < 3 s | **4,02 s** ❌ | **1,49 s** | **PASS** |
-| 50 bài nộp (1.225 cặp) | NFR-PERF-02: ≤ 5 s | **10,90 s** ❌ | **4,05 s** | **PASS** |
+| Kịch bản | Tiêu chí | Ban đầu | Sau vòng 1 | Sau vòng 2 | Kết quả |
+|---|---|---|---|---|---|
+| 20 bài nộp (190 cặp) | — | 2,76 s | — | — | — |
+| 30 bài nộp (435 cặp) | AC-SIM-03: < 3 s | **4,02 s** ❌ | 1,49 s | **1,09 s** | **PASS** |
+| 50 bài nộp (1.225 cặp) | NFR-PERF-02: ≤ 5 s | **10,90 s** ❌ | 4,05 s | **2,67 s** | **PASS** |
+
+Tổng cộng **nhanh hơn khoảng 4 lần** so với trước khi tối ưu (10,90 s → 2,67 s ở 50 bài nộp).
 
 **Ba nguyên nhân gây chậm, theo thứ tự mức độ ảnh hưởng:**
 
@@ -295,14 +297,40 @@ Kèm theo: connection pool **HikariCP** (NFR-PERF-03, trước đây `⏳`), s�
 `BatchScannerServlet.doGet`, và Levenshtein chuyển sang tính trên **dãy token** như SRS
 mô tả thay vì từng ký tự.
 
+**Vòng 2 — tách pha tính toán và ghi dữ liệu.** Sau vòng 1, thử 16 lượt quét đồng thời thì
+**3 request nhận HTTP 503**: sau khi tách pha, các luồng đổ xô vào pool cùng lúc và phải
+xếp hàng. Nguyên nhân cốt lõi là **giữ kết nối CSDL trong suốt phần tính toán**. Sửa bằng
+cách tách `scanAssignment` thành hai pha:
+- **Pha 1 (không kết nối):** đọc tệp, chạy Jaccard/Levenshtein, thu kết quả vào bộ nhớ.
+- **Pha 2 (một giao dịch):** khoá `UPDLOCK`, xoá cũ, ghi tất cả báo cáo, cập nhật trạng thái.
+
+Đồng thời nâng `connectionTimeout` của pool từ 10 s lên 30 s, vì các lượt quét trên cùng
+bài tập bị nối tiếp hoá bởi khoá và **việc xếp hàng là bình thường**, không nên bị từ chối.
+
 **Lưu ý:** kết quả phụ thuộc kích thước tệp. Các con số trên đo với fixture ~600 ký tự.
 Tệp lớn hơn sẽ chậm hơn tỷ lệ với độ dài.
 
-## 15. LOAD / 16. STRESS — Chưa thực thi
+## 15. LOAD / 16. STRESS — Đã thực thi · **PASS (16 đồng thời)**
 
-Chưa có công cụ tạo tải. Có thể thực hiện sau bằng cách gửi nhiều request quét đồng thời
-để kiểm tra khoá `UPDLOCK` và giới hạn pool (10 kết nối). Rủi ro: nếu số request đồng thời
-vượt quá pool, các request sẽ phải chờ tối đa 10 giây rồi lỗi.
+Dùng `target/perf/perf_concurrent.py`: tạo một bài tập, nạp N bài nộp, rồi cho K luồng
+cùng gửi `POST /batch-scanner` (mỗi luồng một phiên đăng nhập riêng).
+
+| Kịch bản | Kết quả |
+|---|---|
+| K = 4, N = 20 | **PASS** — 4/4 trả 302; báo cáo trong DB = 190 = đúng C(20,2) |
+| K = 16, N = 30 | **PASS** — 16/16 trả 302; báo cáo trong DB = 435 = đúng C(30,2); thời gian toàn cục ~21 s |
+
+**Điều này xác minh AC-SIM-05 ở mức hệ thống**: các lượt quét đồng thời không nhân đôi
+dữ liệu (nếu không có khoá, 16 lượt sẽ để lại tới 16 × 435 = 6.960 báo cáo).
+
+**Hành vi dưới tải (đo được trước khi tăng timeout):** với 16 luồng và pool 10 kết nối,
+3 request nhận **HTTP 503** sau ~13 s. Dữ liệu không bao giờ bị hỏng (vẫn đúng 435), nhưng
+có request thất bại. Sau khi tách pha và nâng timeout lên 30 s, 16/16 thành công.
+
+**Giới hạn đã biết:** các lượt quét trên cùng một bài tập bị nối tiếp hoá hoàn toàn bởi
+khoá `UPDLOCK`. Đây là chủ ý (đảm bảo toàn vẹn) nhưng đồng nghĩa với việc K lượt quét
+sẽ mất khoảng K × (thời gian một lượt). Nếu cần xử lý nhiều lượt quét đồng thời trong
+tương lai, nên đưa việc quét vào hàng đợi thay vì để request chờ.
 
 **Kịch bản cần chạy:**
 - Hiệu năng: quét 30 bài nộp (AC-SIM-03 mục tiêu < 3 giây).
@@ -396,8 +424,8 @@ vượt quá pool, các request sẽ phải chờ tối đa 10 giây rồi lỗi
 
 # VÙNG CHƯA ĐƯỢC KIỂM THỬ
 
-1. **Tải / chịu lực** — đã đo hiệu năng đơn lẻ, chưa thử nhiều request đồng thời.
-2. **Trình duyệt thật** — responsive 1440/768/375, tương phản màu, điều hướng bàn phím, hiệu ứng 3D.
+1. **Trình duyệt thật** — responsive 1440/768/375, tương phản màu, điều hướng bàn phím, hiệu ứng 3D.
+2. **Tải vượt ngưỡng thiết kế** — mới thử tới 16 lượt quét đồng thời; chưa xác định điểm gãy.
 3. **Google login thật** — cần `GOOGLE_CLIENT_ID` hợp lệ và tài khoản Google.
 4. **Gemini thật** — cần `GEMINI_API_KEY`; hiện mới kiểm thử trích xuất tóm tắt trên phản hồi giả lập.
 5. **Xuất CSV mở bằng Excel** để xác nhận formula injection thực sự bị chặn (đã kiểm ở mức đơn vị).
@@ -409,5 +437,5 @@ vượt quá pool, các request sẽ phải chờ tối đa 10 giây rồi lỗi
 - **Đã thực thi và đạt:** Unit + Integration (177/177), Database, System (27/27), End-to-End/Functional (48/48), API, Validation & Error Handling, Edge/Boundary, Security (gồm CSRF), Regression, UI (tĩnh), Smoke khởi động ứng dụng.
 - **Lỗi:** 7 — **tất cả đã xử lý**; riêng lỗi #4 còn một giới hạn đã biết (thiếu quan hệ enrolment).
 - **Lỗi phát sinh trong quá trình kiểm thử và đã sửa:** 3 (test làm hỏng cấu hình toàn cục ×2, `Origin` sai định dạng trong script ×1).
-- **Chưa thực thi:** Load / Stress, Compatibility / Accessibility runtime, Google login thật, Gemini thật, kiểm chứng bằng trình duyệt.
-- **Rủi ro còn lại:** chưa thử tải đồng thời — nếu nhiều lượt quét chạy cùng lúc, pool 10 kết nối có thể trở thành nút thắt.
+- **Chưa thực thi:** Compatibility / Accessibility runtime, Google login thật, Gemini thật, kiểm chứng bằng trình duyệt, điểm gãy của tải.
+- **Rủi ro còn lại:** các lượt quét trên cùng bài tập bị nối tiếp hoá bởi khoá `UPDLOCK` — đây là chủ ý để đảm bảo toàn vẹn, nhưng K lượt quét sẽ mất khoảng K × thời gian một lượt. Nếu cần quét đồng thời nhiều bài tập khác nhau thì không bị ảnh hưởng (khoá theo hàng).
