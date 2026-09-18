@@ -5,7 +5,15 @@ Chạy:  python target/perf/perf_scan.py --submissions 20
 """
 import argparse, http.cookiejar, json, os, pathlib, re, subprocess, time, urllib.parse, urllib.request
 
-ROOT = pathlib.Path(__file__).resolve().parents[2]
+def _find_root():
+    """Tim thu muc goc du an bang cach di len cho den khi thay .env.test."""
+    p = pathlib.Path(__file__).resolve().parent
+    for cand in [p] + list(p.parents):
+        if (cand / '.env.test').exists():
+            return cand
+    raise SystemExit('Khong tim thay .env.test - hay chay script tu ben trong du an.')
+
+ROOT = _find_root()
 FIXTURES = ['OrderManager_PhucTV.java', 'OrderManager_KhanhDVP.java',
             'OrderManager_NhiNH.java', 'OrderManager_TienN.java']
 

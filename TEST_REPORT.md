@@ -335,20 +335,30 @@ cùng gửi `POST /batch-scanner` (mỗi luồng một phiên đăng nhập riê
 
 | Kịch bản | Kết quả |
 |---|---|
-| K = 4, N = 20 | **PASS** — 4/4 trả 302; báo cáo trong DB = 190 = đúng C(20,2) |
-| K = 16, N = 30 | **PASS** — 16/16 trả 302; báo cáo trong DB = 435 = đúng C(30,2); thời gian toàn cục ~21 s |
+| K = 4, N = 20 | **PASS** — 4/4 trả 302; báo cáo = 190 = đúng C(20,2) |
+| K = 16, N = 30 | **PASS** — 16/16 trả 302; báo cáo = 435; toàn cục ~21 s |
+| K = 32, N = 20 | **PASS** — 32/32 trả 302; báo cáo = 190; toàn cục ~11,6 s |
+| K = 64, N = 20 | **PASS** — 64/64 trả 302; báo cáo = 190; toàn cục ~24 s |
 
 **Điều này xác minh AC-SIM-05 ở mức hệ thống**: các lượt quét đồng thời không nhân đôi
-dữ liệu (nếu không có khoá, 16 lượt sẽ để lại tới 16 × 435 = 6.960 báo cáo).
+dữ liệu (nếu không có khoá, 64 lượt sẽ để lại tới 64 × 190 = 12.160 báo cáo).
 
-**Hành vi dưới tải (đo được trước khi tăng timeout):** với 16 luồng và pool 10 kết nối,
+**Hành vi dưới tải (đo được trước khi tách pha):** với 16 luồng và pool 10 kết nối,
 3 request nhận **HTTP 503** sau ~13 s. Dữ liệu không bao giờ bị hỏng (vẫn đúng 435), nhưng
-có request thất bại. Sau khi tách pha và nâng timeout lên 30 s, 16/16 thành công.
+có request thất bại. Sau khi tách pha tính toán/ghi và nâng timeout lên 30 s, 16/16 thành
+công — và vẫn thành công ở 32 và 64 luồng.
 
 **Giới hạn đã biết:** các lượt quét trên cùng một bài tập bị nối tiếp hoá hoàn toàn bởi
-khoá `UPDLOCK`. Đây là chủ ý (đảm bảo toàn vẹn) nhưng đồng nghĩa với việc K lượt quét
-sẽ mất khoảng K × (thời gian một lượt). Nếu cần xử lý nhiều lượt quét đồng thời trong
-tương lai, nên đưa việc quét vào hàng đợi thay vì để request chờ.
+khoá `UPDLOCK`. Đây là chủ ý (đảm bảo toàn vẹn) nên K lượt quét mất khoảng K × thời gian
+một lượt; ở 64 luồng, request chậm nhất mất ~22 s. Quét nhiều bài tập **khác nhau** không
+bị ảnh hưởng (khoá theo hàng).
+
+**Chưa xác định:** điểm gãy thực sự — mới thử tới 64 luồng và chưa thấy hỏng. Giới hạn
+tiếp theo nằm ở pool CSDL (10 kết nối) và số luồng của Tomcat (mặc định 200).
+
+**Lỗi nhỏ đã sửa trong chính công cụ đo:** `tools/perf_scan.py` và `tools/perf_concurrent.py`
+tính thư mục gốc bằng `parents[2]` — đúng khi nằm ở `target/perf/` nhưng sai khi chuyển vào
+`tools/`. Đã đổi sang tự đi lên tìm thư mục chứa `.env.test`.
 
 **Kịch bản cần chạy:**
 - Hiệu năng: quét 30 bài nộp (AC-SIM-03 mục tiêu < 3 giây).
@@ -439,10 +449,14 @@ cũng có chỉ báo focus.
    hiệu ứng (`localStorage.aita_effects_enabled = 'true'`). Đây là chủ ý — `header.jsp`
    thêm class `effects-disabled` — nhưng cần biết khi demo: **phải bật hiệu ứng thì 3D
    mới xuất hiện**.
-3. ** Canvas WebGL chỉ 340×240** (đúng kích thước mặc định của Three.js) trong khi vùng
-   hiển thị chính là canvas 2D 1440×900. Có thể đây là bộ kết xuất phụ rồi vẽ lại lên
-   canvas 2D (chủ ý), cũng có thể 3D đang hiển thị ở kích thước nhỏ. **Cần xác nhận bằng
-   mắt** — đo tự động không phân biệt được hai trường hợp này.
+3. ~~Canvas WebGL chỉ 340×240 có thể là lỗi~~ → **đã xác nhận là thiết kế, không phải lỗi.**
+   Container cha `.batch-shield-3d-container` được gán cố ý `w-[340px] h-[240px]`, còn
+   `#batch-shield-3d-viewport` là `w-full h-full` bên trong nó. Engine đọc đúng kích thước
+   này (340×240), không hề rơi vào giá trị dự phòng. *Ghi chú: trước đây tôi đo được
+   340×240 và nghi ngờ renderer chưa được resize — kiểm tra mã nguồn đã bác bỏ điều đó.*
+
+**Kết luận về 3D:** hoạt động đúng thiết kế. Chỉ cần lưu ý **phải bật hiệu ứng** thì mới
+thấy (mặc định đang tắt).
 
 **Lưu ý kỹ thuật (đã ghi trong script):** phải thử `getContext('webgl2')` **trước**
 `getContext('webgl')`; nếu canvas đã có context webgl2 thì lời gọi webgl sẽ trả về null
