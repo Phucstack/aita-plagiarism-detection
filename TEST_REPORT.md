@@ -405,9 +405,48 @@ Bốn chỗ từng không đạt (đều là chữ nhỏ 10–14 px trên nền 
 - Nút "Lọc" (14 px) — 3,68:1 → đổi `bg-cyan-600` thành `bg-cyan-700`
 - "Mã giải thuật:" (11 px) — 3,97:1 → tương tự
 
-**Vẫn còn rủi ro:** đo này chỉ phủ hai trang chính ở viewport 1440. Các trang khác
-(`index.jsp`, `batch-scanner.jsp`, `diff-inspector.jsp`) và các trạng thái hiển thị khác
-chưa được đo; font 10–11 px trên nền tối nói chung vẫn kém dễ đọc dù đã đạt ngưỡng.
+**Vòng 3 — mở rộng ra tất cả trang và sửa luồng đo.** Hai vấn đề của chính vòng 2:
+- Script bỏ qua `student-portal` do chờ sai route sau đăng nhập → đã sửa.
+- Đo focus bằng `element.focus()` là **sai**: Chromium chỉ áp dụng `:focus-visible` khi
+  người dùng thao tác bằng bàn phím, nên focus bằng lệnh không kích hoạt nó. Đã đổi sang
+  **nhấn Tab thật** và đọc style của phần tử đang focus. (Nhờ đó phát hiện quy tắc
+  `:focus-visible` toàn cục vừa thêm thực sự có tác dụng.)
+
+Kết quả sau cùng trên **5 trang** (`index`, `dashboard`, `batch-scanner`, `student-portal`,
+`diff-inspector`):
+
+| Tiêu chí | Kết quả |
+|---|---|
+| Tương phản WCAG AA | **0 chỗ không đạt** trên mọi trang |
+| Chỉ báo focus (Tab thật) | **0 lỗi** trên mọi trang |
+
+Đã sửa thêm: 12 chỗ `text-slate-500` trong `batch-scanner.jsp`, 1 chỗ trong `index.jsp`
+(footer), và huy hiệu thông báo "1" (`bg-rose-500` → `bg-rose-700`). Thêm quy tắc
+`:focus-visible` toàn cục trong `style.css` để các nút do JS sinh (widget AITA Copilot)
+cũng có chỉ báo focus.
+
+## 20. HIỆU ỨNG 3D — Đã kiểm chứng bằng trình duyệt · **có điểm cần xác nhận**
+
+| Trang | Canvas | Kết quả |
+|---|---|---|
+| `index.jsp` | 1 canvas **2D**, 1440×900 | Đúng như tài liệu đã sửa: hoạt ảnh theo khung hình, **không** dùng WebGL |
+| `batch-scanner.jsp` | `cyber-canvas` **2D** 1440×900 + 1 canvas **webgl2** 340×240 | Three.js **r128** được tải và tạo context WebGL thành công, không lỗi JS |
+
+**Ba phát hiện:**
+1. **Trang chủ không hề tải Three.js** — đúng như đã sửa ở SRS/README. Đo được
+   `three_revision: null` và canvas 2D.
+2. **3D bị ẩn theo mặc định.** Cả hai canvas có kích thước CSS `0×0` cho đến khi bật
+   hiệu ứng (`localStorage.aita_effects_enabled = 'true'`). Đây là chủ ý — `header.jsp`
+   thêm class `effects-disabled` — nhưng cần biết khi demo: **phải bật hiệu ứng thì 3D
+   mới xuất hiện**.
+3. ** Canvas WebGL chỉ 340×240** (đúng kích thước mặc định của Three.js) trong khi vùng
+   hiển thị chính là canvas 2D 1440×900. Có thể đây là bộ kết xuất phụ rồi vẽ lại lên
+   canvas 2D (chủ ý), cũng có thể 3D đang hiển thị ở kích thước nhỏ. **Cần xác nhận bằng
+   mắt** — đo tự động không phân biệt được hai trường hợp này.
+
+**Lưu ý kỹ thuật (đã ghi trong script):** phải thử `getContext('webgl2')` **trước**
+`getContext('webgl')`; nếu canvas đã có context webgl2 thì lời gọi webgl sẽ trả về null
+và kết quả đo sai.
 
 ---
 

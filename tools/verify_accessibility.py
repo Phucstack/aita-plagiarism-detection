@@ -81,31 +81,44 @@ CONTRAST_JS = r"""
 }
 """
 
-FOCUS_JS = r"""
-() => {
-  const problems = [];
-  const sel = 'a[href], button, input:not([type=hidden]), select, textarea, [tabindex]';
-  document.querySelectorAll(sel).forEach((el) => {
-    if (!el.offsetParent) return;                       // bỏ phần tử ẩn
-    if (el.getAttribute('tabindex') === '-1') return;
-    el.focus();
-    const st = getComputedStyle(el);
-    const outline = (st.outlineStyle || 'none') !== 'none' && parseFloat(st.outlineWidth) > 0;
-    const ring = (st.boxShadow || '') !== 'none';
-    const changed = st.borderColor !== '' || outline || ring;
-    if (!outline && !ring) {
-      problems.push({
-        tag: el.tagName.toLowerCase(),
-        id: el.id || '',
-        cls: (el.className || '').toString().slice(0, 60),
-        note: 'khong co chi bao focus nhin thay'
-      });
-    }
-    void changed;
-  });
-  return problems;
-}
 """
+Luu y: KHONG dung el.focus() bang lenh de kiem tra chi bao focus. Chromium chi ap dung
+:focus-visible khi nguoi dung tuong tac bang ban phim, nen focus bang lenh se cho ket qua
+sai. Script nay vi vay nhan phim Tab that va doc style cua phan tu dang duoc focus.
+"""
+
+
+def check_focus_by_tab(page, steps=60):
+    """Nhan Tab nhieu lan; moi lan kiem tra phan tu duoc focus co chi bao nhin thay khong."""
+    problems = []
+    seen = set()
+    page.evaluate("document.body.focus()")
+    for _ in range(steps):
+        page.keyboard.press('Tab')
+        info = page.evaluate(r"""
+        () => {
+          const el = document.activeElement;
+          if (!el || el === document.body) return null;
+          const st = getComputedStyle(el);
+          const outline = (st.outlineStyle || 'none') !== 'none' && parseFloat(st.outlineWidth || '0') > 0;
+          const ring = (st.boxShadow || 'none') !== 'none';
+          return {
+            tag: el.tagName.toLowerCase(),
+            id: el.id || '',
+            cls: (el.className || '').toString().slice(0, 60),
+            ok: outline || ring
+          };
+        }
+        """)
+        if not info:
+            continue
+        key = (info['tag'], info['id'], info['cls'])
+        if key in seen:
+            continue
+        seen.add(key)
+        if not info['ok']:
+            problems.append(info)
+    return problems
 
 
 def login(page, user, password, route):
@@ -116,20 +129,72 @@ def login(page, user, password, route):
     page.wait_for_url('**/' + route)
 
 
+THREE_D_JS = r"""
+() => {
+  const kindOf = (c) => {
+    // Phai thu webgl2 TRUOC: neu canvas da co context webgl2 thi getContext('webgl') tra null.
+    try {
+      if (c.getContext('webgl2')) return 'webgl2';
+      if (c.getContext('webgl')) return 'webgl';
+      if (c.getContext('2d')) return '2d';
+    } catch (e) { return 'err'; }
+    return 'none';
+  };
+  const canvases = Array.from(document.querySelectorAll('canvas')).map(c => ({
+    id: c.id || '',
+    kind: kindOf(c),
+    buffer: c.width + 'x' + c.height,
+    css: c.clientWidth + 'x' + c.clientHeight
+  }));
+  return {
+    canvas_count: canvases.length,
+    canvases: canvases,
+    webgl_count: canvases.filter(c => c.kind === 'webgl' || c.kind === 'webgl2').length,
+    three_revision: (typeof window.THREE !== 'undefined') ? window.THREE.REVISION : null
+  };
+}
+"""
+
+PAGES = [
+    # (tên, tài khoản, route sau đăng nhập, đường dẫn cần đo)
+    ('index', None, None, '/index.jsp'),
+    ('dashboard', 'teacher_ha', 'dashboard', '/dashboard'),
+    ('batch-scanner', 'teacher_ha', 'dashboard', '/batch-scanner'),
+    ('student-portal', 'phuctv', 'student-portal', '/student-portal'),
+    ('diff-inspector', 'teacher_ha', 'dashboard', '/diff-inspector?reportId=1'),
+]
+
 report = {}
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True, channel='msedge')
-    for user, route in [('teacher_ha', 'dashboard'), ('phuctv', 'student-portal')]:
+    for name, user, after_login, path in PAGES:
         ctx = browser.new_context(viewport={'width': 1440, 'height': 900})
         page = ctx.new_page()
-        login(page, user, '123456', route)
+        errors = []
+        page.on('pageerror', lambda e: errors.append(str(e)))
+        try:
+            if after_login:
+                login(page, user, '123456', after_login)
+            page.goto(args.base_url + path, wait_until='networkidle')
+        except Exception as exc:
+            report[name] = {'skipped': True, 'reason': str(exc)[:120]}
+            print(f"[{name}] bo qua: {str(exc)[:80]}")
+            ctx.close()
+            continue
+
         contrast = page.evaluate(CONTRAST_JS)
-        focus = page.evaluate(FOCUS_JS)
-        report[route] = {'contrast_count': len(contrast),
-                         'contrast': contrast[:args.max_report],
-                         'focus_count': len(focus),
-                         'focus': focus[:args.max_report]}
-        page.screenshot(path=str(OUT / (route + '.png')), full_page=True)
+        focus = check_focus_by_tab(page)
+        three = page.evaluate(THREE_D_JS) if name in ('index', 'batch-scanner', 'login') else None
+        report[name] = {
+            'url': page.url,
+            'contrast_count': len(contrast),
+            'contrast': contrast[:args.max_report],
+            'focus_count': len(focus),
+            'focus': focus[:args.max_report],
+            'three_d': three,
+            'page_errors': errors.copy(),
+        }
+        page.screenshot(path=str(OUT / (name + '.png')), full_page=True)
         ctx.close()
     browser.close()
 
@@ -137,9 +202,16 @@ with sync_playwright() as p:
 
 for route, data in report.items():
     print(f"\n=== {route} ===")
+    if data.get('skipped'):
+        print('  bo qua:', data['reason'])
+        continue
     print(f"  phan tu khong dat tuong phan: {data['contrast_count']}")
     for c in data['contrast'][:10]:
         print(f"    {c['ratio']}:1 (can {c['need']}) {c['size']}px  '{c['text']}'  .{c['cls'][:35]}")
     print(f"  phan tu khong co chi bao focus: {data['focus_count']}")
-    for f in data['focus'][:10]:
+    for f in data['focus'][:6]:
         print(f"    <{f['tag']} id='{f['id']}'> .{f['cls'][:35]}")
+    if data.get('three_d'):
+        print('  3D:', data['three_d'])
+    if data.get('page_errors'):
+        print('  loi JS:', data['page_errors'][:3])

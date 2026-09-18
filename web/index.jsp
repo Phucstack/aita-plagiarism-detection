@@ -364,7 +364,7 @@
     <!-- ==========================================================================
          6. FOOTER (PRJ301 Team Attribution)
          ========================================================================== -->
-    <footer class="relative z-20 border-t border-white/10 bg-[#06070d] py-10 px-4 text-center text-xs text-slate-500 font-mono">
+    <footer class="relative z-20 border-t border-white/10 bg-[#06070d] py-10 px-4 text-center text-xs text-slate-400 font-mono">
         <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
             <div class="flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-cyan-400"></span>

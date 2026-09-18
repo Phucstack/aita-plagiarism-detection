@@ -150,8 +150,10 @@ AITA CodeDefend System
 │   └── FE-06.3: Xuất Báo cáo Thẩm định Học thuật (Audit Report Export)  🟡
 │       └── SUB-06.3.1: Xuất CSV (có redaction cho sinh viên); PDF ⏳ W4–9  🟡
 └── MOD-07: Modern Presentation & 3D Interactive Layer (Trình diễn 3D & Giao diện Hiện đại)  ✅
-    ├── FE-07.1: Landing Page 3D Scrollytelling (Three.js WebGL & GSAP)  ✅
-    │   └── SUB-07.1.1: Render Cyber Shield 3D (`cyber-shield.glb`) theo tiến trình cuộn trang  ✅
+    ├── FE-07.1: Landing Page Scrollytelling (canvas 2D theo khung hình)  ✅
+    │   └── SUB-07.1.1: Vẽ `frame_*.webp` lên canvas theo tiến trình cuộn (không dùng WebGL)  ✅
+    ├── FE-07.3: Mô hình 3D Cyber Shield (Three.js r128 + GLTF) trên `login.jsp` & `batch-scanner.jsp`  ✅
+    │   └── SUB-07.3.1: Dựng `cyber-shield.glb` qua `cyber-shield-3d.js`  ✅
     └── FE-07.2: Giao diện Quản trị Phong cách Liquid Glass  ✅
         └── SUB-07.2.1: Hệ thống CSS Liquid Glass (`liquid-glass-2026.css`), responsive  ✅
 ```
@@ -511,14 +513,15 @@ AITA CodeDefend System
 
 ## MOD-07: Trình diễn 3D & Giao diện Hiện đại (Presentation & 3D Layer)
 
-### Feature FE-07.1: Landing Page 3D Scrollytelling (Three.js WebGL & GSAP)
-* **Purpose:** Thể hiện đẳng cấp công nghệ, trực quan hóa sứ mệnh bảo vệ liêm chính học thuật qua mô hình 3D Cyber Shield.
+### Feature FE-07.1: Landing Page Scrollytelling (canvas 2D theo khung hình)
+* **Purpose:** Thể hiện đẳng cấp công nghệ, trực quan hóa sứ mệnh bảo vệ liêm chính học thuật khi người dùng cuộn trang chủ.
 * **User/Actor:** Tất cả người dùng truy cập trang chủ (`/` hoặc `/index.jsp`).
 * **Main Flow:**
   1. Người dùng mở trang web.
-  2. Three.js khởi tạo WebGL Canvas, nạp mô hình 3D `cyber-shield.glb` từ `web/assets/models/`. Mã điều khiển nằm tại `web/assets/js/cyber-shield-3d.js` và `web/assets/js/scrollytelling-engine.js` (không có `three_controller.js`).
-  3. Thiết lập hệ thống ánh sáng (AmbientLight, DirectionalLight màu xanh Neon/Cyberpunk).
-  4. Khi người dùng cuộn chuột, GSAP ScrollTrigger bắt sự kiện cuộn và điều khiển camera 3D xoay mượt mà quanh chiếc khiên.
+  2. `scrollytelling-engine.js` lấy **context 2D** của `<canvas id="scrolly-canvas">` — **không dùng WebGL**.
+  3. Engine nạp lần lượt các ảnh khung hình `web/assets/frames/frame_{index}.webp` (240 khung) và vẽ theo tiến trình cuộn.
+  4. HUD đi kèm nằm tại `scrollytelling-hud.js`, hiệu ứng âm thanh tại `cyber-audio.js`.
+* **Làm rõ (đã kiểm chứng bằng trình duyệt ngày 18/09/2026):** trang chủ **không** tải Three.js. Mô hình 3D chỉ xuất hiện ở `login.jsp` và `batch-scanner.jsp` — hai trang này tải Three.js r128 từ CDN kèm `GLTFLoader` và dựng `cyber-shield.glb` qua `cyber-shield-3d.js`. Không có `three_controller.js`.
 * **Acceptance Criteria:**
   - **[AC-3D-01]** Mô hình 3D render ổn định ở mức tối thiểu 55-60 FPS trên trình duyệt Chrome/Edge có hỗ trợ WebGL.
 
@@ -576,7 +579,7 @@ Bảng phân rã công việc chi tiết thành 16 gói công việc (Work Packa
 | **WP-02** | Mô hình dữ liệu | Bộ 6 Java Beans: `User`, `Course`, `Assignment`, `Submission`, `PlagiarismReport`, `MatchingBlock`. | **Nguyễn Tiến** *(Database Engineer)* | WP-01 | `✅` |
 | **WP-03** | Tầng truy xuất dữ liệu | `UserDAO`, `CourseDAO`, `AssignmentDAO`, `SubmissionDAO`, **`PlagiarismDAO`** (tên `ReportDAO` không tồn tại). 100% `PreparedStatement`. | **Đinh Vũ Phương Khánh** *(Backend Dev)* | WP-02 | `✅` |
 | **WP-04** | Xác thực & phân quyền RBAC | `LoginServlet`, `LogoutServlet`, **`AuthFilter`** (một filter duy nhất, thay cho `AuthenticationFilter`/`AuthorizationFilter`), `PasswordUtil`, `JWTUtil`, `GoogleIdentityVerifier`. | **Đinh Vũ Phương Khánh** *(Backend Dev)* | WP-03 | `✅` |
-| **WP-05** | Landing page 3D Scrollytelling | **`web/index.jsp`** (không có `index.html` ở web root); `web/assets/js/cyber-shield-3d.js` + `scrollytelling-engine.js` (không có `three_controller.js`); `web/assets/models/cyber-shield.glb`. | **Trần Văn Phúc** *(Frontend 3D Dev)* | Không | `✅` |
+| **WP-05** | Landing page Scrollytelling + mô hình 3D | **`web/index.jsp`** (không có `index.html` ở web root); `scrollytelling-engine.js` (canvas 2D, 240 khung `frame_*.webp`). Mô hình 3D (`cyber-shield.glb`, Three.js r128) nằm ở `login.jsp` và `batch-scanner.jsp` qua `cyber-shield-3d.js`. Không có `three_controller.js`. | **Trần Văn Phúc** *(Frontend 3D Dev)* | Không | `✅` |
 | **WP-06** | Giao diện Liquid Glass | `web/assets/css/liquid-glass-2026.css` (không có `liquid_glass.css`); `dashboard.jsp`, `student-portal.jsp`, `WEB-INF/views/dashboard-data.jspf`. | **Trần Văn Phúc** *(Frontend 3D Dev)* | WP-04 | `✅` |
 | **WP-07** | Quản lý Khóa học & Bài tập | **`CourseActionServlet`**, **`AssignmentActionServlet`**, `service/AccessPolicy` (tên `CourseServlet`/`AssignmentServlet` không tồn tại). | **Đinh Vũ Phương Khánh** *(Backend Dev)* | WP-03, WP-06 | `✅` |
 | **WP-08** | Tiếp nhận bài nộp & SHA-256 | `SubmissionServlet`, `SubmissionDAO`, `util/SHA256ChecksumUtil`, `config/StorageConfig`. | **Nguyễn Trần Anh Kiệt** *(Lead Architect)* | WP-03, WP-07 | `✅` |
@@ -614,7 +617,8 @@ Ma trận này liên kết Yêu cầu nghiệp vụ $\rightarrow$ Module $\right
 | **REQ-REP-01** | `MOD-06` | `FE-06.1` | WP-15 | `DashboardServlet`, `dashboard.jsp`, `WEB-INF/views/dashboard-data.jspf` | AC-REP-01, AC-REP-04, AC-REP-05 | `🟡` |
 | **REQ-REP-02** | `MOD-06` | `FE-06.2` | WP-15 | `DiffInspectorServlet`, `diff-inspector.jsp`, `WEB-INF/views/student-result.jsp` | AC-REP-02 | `🟡` |
 | **REQ-REP-03** | `MOD-06` | `FE-06.3` | WP-16 | `ExportReportServlet` | AC-REP-03, AC-REP-06 | `🟡` |
-| **REQ-UI-01** | `MOD-07` | `FE-07.1` | WP-05 | `index.jsp`, `cyber-shield.glb`, `cyber-shield-3d.js`, `scrollytelling-engine.js` | AC-3D-01 | `✅` |
+| **REQ-UI-01** | `MOD-07` | `FE-07.1` | WP-05 | `index.jsp`, `scrollytelling-engine.js`, `scrollytelling-hud.js`, `assets/frames/frame_*.webp` | AC-3D-01 | `✅` |
+| **REQ-UI-03** | `MOD-07` | `FE-07.3` | WP-05 | `login.jsp`, `batch-scanner.jsp`, `cyber-shield-3d.js`, `assets/models/cyber-shield.glb` | AC-3D-02 | `✅` |
 | **REQ-UI-02** | `MOD-07` | `FE-07.2` | WP-06 | `liquid-glass-2026.css`, `style.css` | AC-UI-01 | `✅` |
 
 ---

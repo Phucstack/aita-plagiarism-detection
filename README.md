@@ -86,9 +86,10 @@ Xem [báo cáo kiểm chứng tuần 1–3](BAO_CAO_TIEN_DO_TUAN_1_3.md) để p
    - Chưa triển khai đánh giá Perplexity/Burstiness.
    - Đã triển khai: `GeminiPlagiarismService` gọi `gemini-2.0-flash` cho các cặp nguy cơ cao trong hạn mức; khi thiếu khóa hoặc lỗi, hệ thống lưu nhận định cục bộ và **gắn nhãn rõ ràng là không phải kết quả AI**.
 
-4. **Trải nghiệm Thị giác 3D Đột phá (3D Cinematic Scrollytelling):**
-   - Mô hình 3D chiếc khiên công nghệ Cyber Shield tương tác thời gian thực.
-   - Camera 3D di chuyển mượt mà theo tiến trình cuộn trang bằng GSAP ScrollTrigger.
+4. **Trải nghiệm Thị giác (Scrollytelling + mô hình 3D):**
+   - **Trang chủ** (`index.jsp`): hiệu ứng cuộn bằng **canvas 2D** vẽ 240 khung hình `frame_*.webp` (`scrollytelling-engine.js`). Không dùng WebGL ở trang này.
+   - **Mô hình 3D** chiếc khiên Cyber Shield (`cyber-shield.glb`, Three.js r128) xuất hiện trên **`login.jsp`** và **`batch-scanner.jsp`** qua `cyber-shield-3d.js`.
+   - *Đã kiểm chứng bằng trình duyệt (18/09/2026)*: trang chủ không tải Three.js.
    - Giao diện Liquid Glass phong cách tương lai 2026.
 
 5. **Khởi chạy 1-Click Tương thích Đa máy (Multi-Machine Portable):**

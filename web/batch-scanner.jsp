@@ -170,7 +170,7 @@
             <button onclick="showSystemHelp()" class="text-slate-400 hover:text-white transition-colors" title="Trợ giúp"><i data-lucide="help-circle" class="w-4 h-4"></i></button>
             <div class="relative">
                 <button onclick="showSystemNotifications()" class="text-slate-400 hover:text-white transition-colors" title="Thông báo"><i data-lucide="bell" class="w-4 h-4"></i></button>
-                <span class="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-rose-500 text-[9px] font-bold text-white flex items-center justify-center">1</span>
+                <span class="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-rose-700 text-[9px] font-bold text-white flex items-center justify-center">1</span>
             </div>
             
             <!-- User Profile Block -->
@@ -191,7 +191,7 @@
     <div class="flex-1 flex min-h-0 overflow-hidden">
         <!-- Master Left Sidebar (Unified Across All Screens) -->
         <aside id="master-sidebar" class="w-56 border-r border-white/10 bg-[#0c0e1d] flex flex-col py-5 px-3.5 gap-1 shrink-0 select-none h-full overflow-y-auto custom-sidebar-scroll">
-            <div class="sidebar-heading text-[10px] font-mono text-slate-500 px-3 mb-2 uppercase tracking-wider font-semibold">Điều Hướng Chính</div>
+            <div class="sidebar-heading text-[10px] font-mono text-slate-400 px-3 mb-2 uppercase tracking-wider font-semibold">Điều Hướng Chính</div>
             
             <a href="${pageContext.request.contextPath}/dashboard" class="sidebar-nav-item flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 font-medium text-xs transition-all" title="Dashboard">
                 <div class="flex items-center gap-3">
@@ -225,7 +225,7 @@
                 <span class="sidebar-badge text-[10px] font-mono px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30">v1.5</span>
             </button>
 
-            <div class="sidebar-heading text-[10px] font-mono text-slate-500 px-3 mt-4 mb-2 uppercase tracking-wider font-semibold">Hệ Thống &amp; Khảo Thí</div>
+            <div class="sidebar-heading text-[10px] font-mono text-slate-400 px-3 mt-4 mb-2 uppercase tracking-wider font-semibold">Hệ Thống &amp; Khảo Thí</div>
 
             <a href="javascript:void(0)" onclick="openRepositoryModal()" class="sidebar-nav-item flex items-center justify-between px-3.5 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 font-medium text-xs transition-all cursor-pointer" title="Kho Bài Nộp">
                 <div class="flex items-center gap-3">
@@ -261,13 +261,13 @@
                     <div class="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
                         <div class="bg-gradient-to-r from-cyan-400 to-violet-500 h-full w-[84%]"></div>
                     </div>
-                    <div class="sidebar-footer-detail flex items-center justify-between text-[9px] font-mono text-slate-500 mt-1.5">
+                    <div class="sidebar-footer-detail flex items-center justify-between text-[9px] font-mono text-slate-400 mt-1.5">
                         <span>42/50 RPM</span>
                         <span>API Active</span>
                     </div>
                 </div>
 
-                <div class="sidebar-footer-detail flex items-center justify-between px-1 text-[10px] font-mono text-slate-500">
+                <div class="sidebar-footer-detail flex items-center justify-between px-1 text-[10px] font-mono text-slate-400">
                     <span class="flex items-center gap-1.5">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                         AITA v2.4 (G4)
@@ -330,7 +330,7 @@
                     </div>
                     <div class="flex items-center justify-between text-[9px] font-mono text-slate-400 leading-none w-full px-0.5">
                         <span class="text-cyan-300 font-bold pillar-accent-text">4.88 GHz</span>
-                        <span class="text-slate-500 font-mono">[0x7F]</span>
+                        <span class="text-slate-400 font-mono">[0x7F]</span>
                     </div>
                     <div class="w-full flex items-center justify-end pt-0.5">
                         <div class="pillar-bracket-corner w-2.5 h-2.5 border-b-2 border-l-2 border-cyan-400"></div>
@@ -359,7 +359,7 @@
                         <div class="pillar-coupling-line-rev h-[1.5px] w-14 bg-gradient-to-l from-transparent via-violet-400 to-white shadow-[0_0_8px_#8b5cf6]"></div>
                     </div>
                     <div class="flex items-center justify-between text-[9px] font-mono text-slate-400 leading-none w-full px-0.5">
-                        <span class="text-slate-500 font-mono">[0x9B]</span>
+                        <span class="text-slate-400 font-mono">[0x9B]</span>
                         <span class="text-violet-300 font-bold pillar-accent-text">768-VEC</span>
                     </div>
                     <div class="w-full flex items-center justify-start pt-0.5">
@@ -459,7 +459,7 @@
                         <i data-lucide="pie-chart" class="w-6 h-6 text-slate-400"></i>
                     </div>
                     <span class="text-xs font-bold text-slate-400 block">Gemini Semantic</span>
-                    <span class="text-[10px] text-slate-500 block">Analysis</span>
+                    <span class="text-[10px] text-slate-400 block">Analysis</span>
                 </div>
 
                 <!-- Connecting Line 3 -->
@@ -471,7 +471,7 @@
                         <i data-lucide="file-text" class="w-6 h-6 text-slate-400"></i>
                     </div>
                     <span class="text-xs font-bold text-slate-400 block">Plagiarism Matrix</span>
-                    <span class="text-[10px] text-slate-500 block">Generation</span>
+                    <span class="text-[10px] text-slate-400 block">Generation</span>
                 </div>
             </div>
 
@@ -507,7 +507,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <div class="text-xs font-bold text-white">Lớp SE1701 - PRJ301</div>
-                        <div class="text-[10px] text-slate-500">42 bài nộp (OrderManager.java)</div>
+                        <div class="text-[10px] text-slate-400">42 bài nộp (OrderManager.java)</div>
                     </div>
                     <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">An Toàn</span>
                 </div>
@@ -535,7 +535,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <div class="text-xs font-bold text-white">Lớp SE1702 - PRJ301</div>
-                        <div class="text-[10px] text-slate-500">38 bài nộp (UserDAO.java)</div>
+                        <div class="text-[10px] text-slate-400">38 bài nộp (UserDAO.java)</div>
                     </div>
                     <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">An Toàn</span>
                 </div>
@@ -589,7 +589,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <div class="text-xs font-bold text-white">Lớp SE1704 - PRJ301</div>
-                        <div class="text-[10px] text-slate-500">40 bài nộp (ProductDAO.java)</div>
+                        <div class="text-[10px] text-slate-400">40 bài nộp (ProductDAO.java)</div>
                     </div>
                     <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">An Toàn</span>
                 </div>
@@ -676,7 +676,7 @@
             </div>
 
             <div class="pt-3 border-t border-white/10 flex items-center justify-between">
-                <span class="text-[11px] font-mono text-slate-500">Mã giải thuật: <code class="text-slate-400">services/GeminiPlagiarismService.java</code></span>
+                <span class="text-[11px] font-mono text-slate-400">Mã giải thuật: <code class="text-slate-400">services/GeminiPlagiarismService.java</code></span>
                 <button onclick="closeAstModal()" class="px-4 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-mono font-semibold transition-all shadow-[0_0_15px_rgba(139,92,246,0.3)]">
                     Đã hiểu thuật toán
                 </button>

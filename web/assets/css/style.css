@@ -436,4 +436,19 @@ body {
   display: none !important;
 }
 
-
+/* ==========================================================================
+   CHI BAO FOCUS TOAN CUC (ban phim)
+   Dam bao moi phan tu tuong tac deu nhin thay duoc khi dung Tab, ke ca cac
+   nut do JS sinh ra (vi du widget AITA Copilot) khong co lop focus rieng.
+   :focus-visible chi ap dung cho ban phim, khong lam thay doi giao dien chuot.
+   ========================================================================== */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #22d3ee;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
