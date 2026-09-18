@@ -77,6 +77,10 @@ try:
         report_sql="INSERT PlagiarismReports(assignment_id,submission_a_id,submission_b_id,similarity_score,risk_level,ai_analysis_summary) OUTPUT INSERTED.report_id VALUES ("+str(aid)+","+str(subs[0])+","+str(subs[1])+",42.50,'MEDIUM','private-peer-summary')"
     else:
         report_sql="INSERT PlagiarismReports(submission_a_id,submission_b_id,similarity_score,risk_level,ai_analysis_summary) OUTPUT INSERTED.report_id VALUES ("+str(subs[0])+","+str(subs[1])+",42.50,'MEDIUM','private-peer-summary')"
+    # SQL Server requires OUTPUT INTO when the target has enabled triggers.
+    report_sql = ("DECLARE @created TABLE (report_id int); "
+                  + report_sql.replace('OUTPUT INSERTED.report_id', 'OUTPUT INSERTED.report_id INTO @created')
+                  + '; SELECT report_id FROM @created;')
     report_id=int(sql(report_sql))
     check('owner instructor can read report',teacher.request('/diff-inspector?reportId='+str(report_id))[0]==200)
     check('other instructor cannot read report',other.request('/diff-inspector?reportId='+str(report_id))[0]==403)

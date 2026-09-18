@@ -1,5 +1,13 @@
 -- AITA SQL Server schema. Creates missing tables; never resets existing data or logins.
 -- Run with a database administrator only for initial database creation.
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET ARITHABORT ON;
+SET NUMERIC_ROUNDABORT OFF;
+GO
 USE master;
 GO
 IF DB_ID(N'AITA_PlagiarismDB') IS NULL CREATE DATABASE [AITA_PlagiarismDB];
@@ -182,7 +190,8 @@ GO
 -- assignment_id is derivable from either submission and must not be stored redundantly.
 IF COL_LENGTH('dbo.PlagiarismReports', 'assignment_id') IS NOT NULL
 BEGIN
-    IF EXISTS (
+    -- Compile legacy-column references only while the column still exists.
+    EXEC sys.sp_executesql N'IF EXISTS (
         SELECT 1
         FROM dbo.PlagiarismReports pr
         LEFT JOIN dbo.Submissions sa ON sa.submission_id = pr.submission_a_id
@@ -194,7 +203,7 @@ BEGIN
            OR sa.assignment_id <> sb.assignment_id
            OR pr.submission_a_id = pr.submission_b_id
     )
-        THROW 50001, 'Cannot normalize PlagiarismReports: legacy rows contain inconsistent assignment/submission relationships.', 1;
+        THROW 50001, ''Cannot normalize PlagiarismReports: legacy rows contain inconsistent assignment/submission relationships.'', 1;';
 
     DECLARE @dropAssignmentFk NVARCHAR(MAX) = N'';
     SELECT @dropAssignmentFk = @dropAssignmentFk

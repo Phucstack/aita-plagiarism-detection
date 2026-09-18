@@ -1,9 +1,9 @@
-param([string]$Tests = '')
+param([string]$Tests = '', [string]$EnvironmentFile = '.env.test')
 $ErrorActionPreference = 'Stop'
 $env:DB_URL = $null
 Set-Location -LiteralPath (Split-Path $PSScriptRoot -Parent)
-if (-not (Test-Path -LiteralPath '.env.test')) { throw 'Create .env.test with an isolated test database. Never run these integration tests against application data.' }
-foreach ($line in Get-Content -Encoding UTF8 -LiteralPath '.env.test') {
+if (-not (Test-Path -LiteralPath $EnvironmentFile)) { throw 'Create an environment file with an isolated test database. Never run these integration tests against application data.' }
+foreach ($line in Get-Content -Encoding UTF8 -LiteralPath $EnvironmentFile) {
     if ($line -match '^\s*(DB_[A-Z_]+|JWT_SECRET)\s*=(.*)$') {
         [Environment]::SetEnvironmentVariable($Matches[1], $Matches[2].Trim().Trim('"').Trim("'"), 'Process')
     }

@@ -1,6 +1,6 @@
 # SƠ ĐỒ QUAN HỆ THỰC THỂ (ERD) - HỆ THỐNG AITA
 ## NHÓM 7 (SE20C): AI PLAGIARISM & CODE SIMILARITY DETECTION
-### ĐÁP ỨNG TIÊU CHUẨN ĐÁNH GIÁ PRJ301 / PRJ30x (10 ĐIỂM DATABASE DESIGN)
+### TÀI LIỆU THIẾT KẾ DATABASE CHO PHẠM VI TUẦN 1–3 PRJ301 / PRJ30x
 
 ---
 
@@ -87,12 +87,14 @@ erDiagram
 
 ## 2. Thuyết Minh Chuẩn Hóa 3NF & Ràng Buộc Dữ Liệu
 
+Phân tích khóa ứng viên, phụ thuộc hàm và giới hạn từng bảng nằm tại [NORMALIZATION_ANALYSIS.md](NORMALIZATION_ANALYSIS.md). Kết luận chuẩn hóa chỉ áp dụng theo tập phụ thuộc và giả định nêu trong tài liệu đó, không dựa vào số bảng hoặc tự quy đổi thành điểm rubric.
+
 1. **Chuẩn 1NF (First Normal Form):**
    - Mọi thuộc tính đều là giá trị nguyên tử (atomic), không chứa mảng lồng nhau.
    - Các dòng code trùng lặp chi tiết được tách biệt vào bảng `MatchingBlocks` thay vì lưu text gộp trong `PlagiarismReports`.
 
 2. **Chuẩn 2NF (Second Normal Form):**
-   - Toàn bộ các bảng đều sử dụng Khóa chính đơn (`user_id`, `course_id`, `assignment_id`, `submission_id`, `report_id`, `block_id`), loại bỏ hoàn toàn sự phụ thuộc bộ phận vào một phần của khóa.
+   - Các khóa ứng viên đã xác nhận đều đơn: PK của sáu bảng, thêm username/email của Users và course_code của Courses. Trong tập phụ thuộc đã phân tích không có phụ thuộc bộ phận. Khóa chính đơn riêng nó không đủ để kết luận 2NF nếu tồn tại khóa ứng viên ghép khác.
 
 3. **Chuẩn 3NF (Third Normal Form):**
    - Loại bỏ phụ thuộc bắc cầu (Transitive Dependency). Ví dụ: `Submissions` chỉ lưu `student_id` và `assignment_id`, không lưu thừa tên môn học hay họ tên sinh viên.

@@ -4,11 +4,12 @@ import os, subprocess, urllib.request, urllib.parse, urllib.error, http.cookieja
 
 args = argparse.ArgumentParser()
 args.add_argument('--base-url', default='http://localhost:8080/plagiarism')
+args.add_argument('--environment-file', default='.env.test')
 args = args.parse_args()
 if urllib.parse.urlparse(args.base_url).hostname not in ('localhost', '127.0.0.1'):
     raise SystemExit('Only a local verification server is supported.')
 root = Path(__file__).resolve().parent.parent
-config = dict(line.split('=',1) for line in (root/'.env.test').read_text(encoding='utf-8').splitlines()
+config = dict(line.split('=',1) for line in (root/args.environment_file).read_text(encoding='utf-8').splitlines()
               if '=' in line and not line.lstrip().startswith('#'))
 db = config['DB_NAME']
 if not re.fullmatch(r'[A-Za-z0-9_]*(?:Test|Verification)[A-Za-z0-9_]*', db, re.I):

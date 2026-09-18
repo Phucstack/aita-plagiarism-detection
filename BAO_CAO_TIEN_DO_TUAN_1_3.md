@@ -1,6 +1,6 @@
 # Báo cáo kiểm chứng tuần 1–3 AITA CodeDefend
 
-Ngày cập nhật: 18/09/2026. Các lượt kiểm thử chạy ngày 17–18/09/2026. Phạm vi: Identity, JDBC/SQL Server, Course Management và giao diện nền tảng theo mục II của RBL PRJ301 Project.docx. Đối chiếu PRJ30x_Project_Evaluation_Rubric.docx; không tự quy đổi kết quả kiểm tra thành điểm của giảng viên.
+Ngày cập nhật: 19/09/2026. Java/JDBC và HTTP/SQL được chạy lại ngày 19/09 trên source `b7303ee`; kết quả UI/review trước đó là lịch sử, chưa chạy lại trong đợt này. Phạm vi: Identity, JDBC/SQL Server, Course Management và giao diện nền tảng theo mục II của RBL PRJ301 Project.docx. Đối chiếu PRJ30x_Project_Evaluation_Rubric.docx; không tự quy đổi kết quả kiểm tra thành điểm của giảng viên.
 
 ## Các sửa lỗi đã thực hiện
 
@@ -18,17 +18,27 @@ Ngày cập nhật: 18/09/2026. Các lượt kiểm thử chạy ngày 17–18/0
 
 ## Bằng chứng kiểm chứng
 
+### Bổ sung kiểm chứng migration ngày 19/09
+
+- Tạo bản sao `AITA_Migration_Verification_20260919_Fixed` từ DB test bằng backup COPY_ONLY và restore; DB test gốc vẫn dùng schema legacy.
+- Tái hiện lỗi chạy schema lần hai tham chiếu cột `assignment_id` đã bị xóa. Đã sửa bằng biên dịch động phần kiểm tra legacy, đồng thời đặt SET option trước seed.
+- Migration chạy hai lần thành công; giữ nguyên số dòng và SHA-256 nội dung sáu bảng (không tính cột dư bị xóa).
+- Xác nhận hai trigger và CHECK hoạt động. Ba thao tác sai bị từ chối và không thay đổi dữ liệu: tự so sánh, so sánh khác assignment, chuyển submission khiến report khác assignment.
+- 177/177 test Java/JDBC và 27 + 48 kiểm tra HTTP/SQL đạt trên schema mới. Đã sửa fixture HTTP dùng OUTPUT INTO để tương thích trigger. Xem TEST_REPORT.md và `tools/verify_schema_migration.py` để chạy lại.
+- Đợt chốt sau đó đã backup và migration DB test gốc `AITA_Week3_Verification`, chạy lại hai lần và xác minh fingerprint sáu bảng giữ nguyên. Database ứng dụng không thay đổi.
+- Phân tích khóa ứng viên/phụ thuộc hàm từng bảng tại `database/NORMALIZATION_ANALYSIS.md`: phù hợp 3NF theo tập phụ thuộc và giả định được công khai; không kết luận từ test count hoặc số bảng.
+
 | Phạm vi | Bằng chứng | Giới hạn |
 |---|---|---|
 | Java và WAR | Maven biên dịch và đóng gói thành công với JDK 17 | Build không thay thế runtime |
-| JUnit và JDBC | 125 tests, không failure/error/skip; có truy vấn và CRUD SQL Server thật trên database kiểm thử | Có cả test unit/mock và test JDBC; không gọi toàn bộ là end-to-end |
+| JUnit và JDBC | 177 tests, không failure/error/skip; có truy vấn và CRUD SQL Server thật trên database kiểm thử | Có cả test unit/mock và test JDBC; không gọi toàn bộ là end-to-end |
 | JWT regression | Tên chứa dấu phẩy, userId và role giả vẫn giữ nguyên định danh; token sai/hết hạn/thiếu expiry bị từ chối | Không thay thế audit bảo mật toàn hệ thống |
 | Course concurrency | Hai thao tác đồng thời tạo cùng mã: đúng một bản ghi được commit | Chỉ kiểm tra tình huống trùng mã khóa học |
 | Tomcat/HTTP/SQL | Kịch bản tools/verify_week3_http.py kiểm tra đăng nhập, vai trò, JWT, CRUD và đọc SQL độc lập sau commit | 27 kiểm tra PASS; kết quả lưu target/week3-http-verification.json |
-| Review độc lập | Đã rà JWT, DB failure, quyền khóa học, concurrency và script; các finding trong phạm vi được xử lý | Review tĩnh không phải chứng nhận runtime |
-| UI | Edge headless với giảng viên/sinh viên tại 1440, 768, 375 px; chọn bài tập và mở báo cáo thật; không page error hay tràn ngang toàn trang | Chỉ nghiệm thu các luồng đã chạy; bảng có thể cuộn ngang bên trong ở màn hình nhỏ |
+| Review độc lập (lịch sử) | Đã rà JWT, DB failure, quyền khóa học, concurrency và script; các finding trong phạm vi được xử lý | Review tĩnh không phải chứng nhận runtime |
+| UI (lịch sử 17–18/09) | Edge headless với giảng viên/sinh viên tại 1440, 768, 375 px; chọn bài tập và mở báo cáo thật; không page error hay tràn ngang toàn trang | Chỉ nghiệm thu các luồng đã chạy; bảng có thể cuộn ngang bên trong ở màn hình nhỏ |
 
-SQL verification chạy trên AITA_Week3_Verification, tách khỏi dữ liệu ứng dụng. Dữ liệu HTTP test được tạo với định danh riêng và dọn sau kiểm tra. Báo cáo Surefire nằm trong target/surefire-reports. Ảnh trình duyệt nằm trong target/week3-browser. Chạy lại schema trên database kiểm thử giữ nguyên số dòng ở cả sáu bảng.
+SQL verification chạy trên AITA_Week3_Verification, tách khỏi dữ liệu ứng dụng. Dữ liệu HTTP test được tạo với định danh riêng và dọn sau kiểm tra. Báo cáo Surefire nằm trong target/surefire-reports; ảnh trình duyệt lịch sử nằm trong target/week3-browser. Đợt kiểm tra đầu phát hiện DB legacy; đợt chốt đã backup và migration DB test gốc. Catalog xác nhận cột dư đã bỏ, hai trigger bật và CHECK được tin cậy. Sau migration, 177/177 test Java/JDBC và 27 + 48 kiểm tra HTTP/SQL đạt trên chính DB test gốc.
 
 ## Cách chạy
 
@@ -46,7 +56,7 @@ SQL verification chạy trên AITA_Week3_Verification, tách khỏi dữ liệu 
 - Google login không tự đăng ký người dùng; email phải được cấp tài khoản trước. Đăng nhập Google thật đến hết callback cần người dùng thực hiện bằng tài khoản của họ.
 - Quyền assignment/report và xóa bài nộp đã được sửa theo ma trận trong DEMO_TUAN_1_3.md. Chưa tuyên bố toàn bộ hệ thống đạt yêu cầu production.
 - Mật khẩu cũ MD5/SHA-256 được chuyển sang PBKDF2 khi đăng nhập đúng; đổi mật khẩu dùng salt ngẫu nhiên và cập nhật có điều kiện. Chưa có cơ chế thu hồi mọi phiên sau đổi mật khẩu.
-- Sáu bảng và sơ đồ ERD đã có; điều đó không tự chứng minh toàn bộ chuẩn hóa 3NF. Quan hệ và quy tắc nghiệp vụ cần được bảo vệ bằng lập luận cụ thể.
+- Sáu bảng và ERD không tự chứng minh 3NF; lập luận từng bảng và các giả định đã được ghi tại database/NORMALIZATION_ANALYSIS.md.
 - Không yêu cầu tách Users thành các bảng Admin/Instructor/Student chỉ để đạt mốc tuần 1–3.
 
 ## Bản sửa bổ sung sau tuần 1–3
@@ -59,11 +69,13 @@ Mật khẩu dùng PBKDF2-HMAC-SHA256 (600.000 vòng, salt 16 byte). HTTP test x
 
 Xem DEMO_TUAN_1_3.md để biết kịch bản trình bày, ma trận quyền, ERD, quyết định kỹ thuật và giới hạn của scan engine. Kết quả kiểm tra bổ sung nằm trong target/followup-http-verification.json và target/followup-browser/results.json.
 
-Kết quả chốt: **125 test Java/JDBC đạt**, **27 kiểm tra HTTP/SQL nền tảng + 48 kiểm tra bổ sung đạt** (gồm ma trận, lọc trạng thái, export CSV, redaction sinh viên). Sáu trường hợp viewport/vai trò đạt ở 1440, 768 và 375 px. Đã kiểm tra ảnh của dashboard, portal, báo cáo giảng viên và kết quả sinh viên. Các finding review độc lập về escaping avatar, ngưỡng 0, giữ deadline khi sửa và assignment bị xóa đồng thời đã được xử lý; review nguồn không thay thế kiểm chứng runtime.
+Kết quả chốt: **177 test Java/JDBC đạt ngày 19/09**, **27 kiểm tra HTTP/SQL nền tảng + 48 kiểm tra bổ sung đạt** (gồm ma trận, lọc trạng thái, export CSV, redaction sinh viên). Sáu trường hợp viewport/vai trò đạt ở 1440, 768 và 375 px. Đã kiểm tra ảnh của dashboard, portal, báo cáo giảng viên và kết quả sinh viên. Các finding review độc lập về escaping avatar, ngưỡng 0, giữ deadline khi sửa và assignment bị xóa đồng thời đã được xử lý; review nguồn không thay thế kiểm chứng runtime.
 
 ---
 
-## Đợt đồng bộ tài liệu – mã nguồn (18/09/2026)
+## Lịch sử đồng bộ tài liệu – mã nguồn (18/09/2026)
+
+Phần này ghi lại trạng thái tại thời điểm cũ; kết quả kiểm chứng ngày 19/09 ở trên thay thế các kết luận kiểm thử bên dưới.
 
 Sau khi rà soát toàn bộ repo, SRS đã được đưa về khớp với mã nguồn thay vì tiếp tục mô tả một phiên bản chưa tồn tại.
 
@@ -79,4 +91,4 @@ Sau khi rà soát toàn bộ repo, SRS đã được đưa về khớp với mã
 - Bài nộp được lưu ngoài web root qua `StorageConfig` (`AITA_UPLOAD_DIR`); `assignmentId` trở thành bắt buộc.
 - Xuất CSV chống formula injection; escape XSS ở `login.jsp`, `index.jsp`, `header.jsp`; thêm `web.xml` (HttpOnly cho cookie phiên, trang lỗi không lộ stack trace).
 
-**Kiểm chứng:** biên dịch sạch cả mã chính lẫn mã kiểm thử; 44 ca kiểm thử không cần CSDL đều đạt (gồm 11 ca mới cho `StorageConfig`, `SHA256ChecksumUtil` và trích xuất tóm tắt Gemini). Các ca cần SQL Server chưa chạy được trong môi trường này — cần chạy lại `tools/test-java.ps1` để chốt con số cuối cùng.
+**Kiểm chứng:** biên dịch sạch cả mã chính lẫn mã kiểm thử; 44 ca kiểm thử không cần CSDL đều đạt (gồm 11 ca mới cho `StorageConfig`, `SHA256ChecksumUtil` và trích xuất tóm tắt Gemini). Tại lượt chạy đó chưa chạy được các ca SQL Server. Đã chạy lại ngày 19/09: 177/177, gồm JDBC thật; xem TEST_REPORT.md.

@@ -1,3 +1,55 @@
+# Báo cáo kiểm chứng hiện tại — AITA CodeDefend
+
+Ngày chạy: **19/09/2026**. Source nền: `b7303ee`, kèm bản sửa migration trong working tree. Windows, JDK 17, Maven, SQL Server và Tomcat trên cổng 8080. Phạm vi: kiểm thử hiện có và xác minh trạng thái schema cho tuần 1–3.
+
+| Hạng mục | Bằng chứng mới | Kết luận |
+|---|---|---|
+| Java/JDBC | `tools/test-java.ps1`: 177 tests, 0 failure/error/skip | VERIFIED trong phạm vi từng test; gồm unit/mock và SQL thật |
+| WAR và runtime | `tools/run-java.ps1 -EnvironmentFile .env.test`: BUILD SUCCESS; Tomcat khởi động và phục vụ HTTP | VERIFIED |
+| HTTP nền tảng | 27/27; đăng nhập, JWT, CRUD, phân quyền, CSRF và SQL đọc độc lập | VERIFIED |
+| HTTP bổ sung | 48/48; quyền assignment/report, nâng cấp mật khẩu, đổi đồng thời, CSV, redaction | VERIFIED |
+| Migration DB test gốc | `AITA_Week3_Verification` được backup COPY_ONLY, migration trong transaction và chạy lại lần hai; fingerprint sáu bảng giữ nguyên | VERIFIED: cột dư đã bỏ, hai trigger bật, CHECK bật/trusted |
+| Migration trên bản sao | `AITA_Migration_Verification_20260919_Fixed`: chạy hai lần thành công; số dòng và SHA-256 nội dung sáu bảng không đổi, loại trừ cột dư bị xóa | VERIFIED trên bản sao SQL Server thật |
+| Ràng buộc schema mới | Cột dư đã mất, hai trigger bật, CHECK bật và trusted; ba thao tác sai bị từ chối, đọc độc lập xác nhận không thay đổi dữ liệu | VERIFIED: tự so sánh, khác assignment, chuyển submission của report |
+| Phân tích 3NF | `database/NORMALIZATION_ANALYSIS.md` liệt kê khóa ứng viên và phụ thuộc từng bảng, vi phạm legacy và giả định metadata/snapshot | Phù hợp 3NF theo tập phụ thuộc đã nêu; không suy ra từ số bảng/ERD |
+| UI, accessibility, hiệu năng và tải | Không chạy lại trong đợt này | Kết quả 18/09 bên dưới chỉ là lịch sử |
+| Google callback/Gemini thật | Không thực hiện đăng nhập tài khoản thật hoặc lời gọi Gemini thật | UNVERIFIED |
+
+Đợt đầu chạy trên schema legacy. Sau đó 177 test Java/JDBC và 27 + 48 kiểm tra HTTP/SQL được chạy lại trên bản sao đã migration và đều đạt. DB test gốc sau đó cũng đã được migration; bằng chứng backup, fingerprint và catalog tại `target/test-db-migration-results.json`. Database ứng dụng không được thay đổi trong đợt này.
+
+Lỗi tái hiện và đã sửa: chạy schema lần hai lỗi `Invalid column name 'assignment_id'` do SQL Server biên dịch tham chiếu cột legacy dù nhánh IF không chạy. Phần kiểm tra legacy được biên dịch động khi cột còn tồn tại. Các SET option cần cho filtered index được đặt trước seed để không phụ thuộc tùy chọn `sqlcmd -I`.
+
+Kiểm chứng migration lặp và trường hợp âm:
+
+```powershell
+python tools/verify_schema_migration.py --server localhost,57295 --database AITA_Migration_Verification_20260919_Fixed
+```
+
+Script chỉ chấp nhận tên bản sao `AITA_Migration_Verification_*`, dùng Windows authentication. Phải tạo bản sao trước; không trỏ tới dữ liệu ứng dụng. Bằng chứng nằm trong `target/migration-AITA_Migration_Verification_20260919_Fixed/results.json`. Hai bản sao và backup COPY_ONLY được giữ cục bộ để truy vết; thông tin backup nằm trong `target/migration-clone.json`.
+
+Script HTTP ban đầu dừng ở bước tạo report vì SQL Server lỗi 334: bảng có trigger không hỗ trợ OUTPUT không có INTO. Đã sửa fixture dùng `OUTPUT ... INTO @created` và SELECT ID; toàn bộ 75 kiểm tra sau đó đạt. Không tắt trigger hoặc giảm assertion. Để chạy Java/HTTP trên bản sao, tạo file môi trường riêng trỏ đúng DB, truyền `-EnvironmentFile` cho script PowerShell và `--environment-file` cho script Python; `.env.test` gốc không bị ghi đè.
+
+Bằng chứng cục bộ: `target/surefire-reports`, `target/week3-http-verification.json`, `target/followup-http-verification.json`, `target/schema-verification.txt`, `target/java-runtime/stderr.log`. Đây là artifact sinh khi chạy, không phải cam kết rằng chúng tồn tại trên máy khác.
+
+Cách chạy lại với `.env.test` trỏ tới database kiểm thử riêng:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/test-java.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/run-java.ps1 -EnvironmentFile .env.test
+python tools/verify_followup_http.py
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/run-java.ps1 -Stop
+```
+
+Script follow-up chạy cả 27 kiểm tra nền tảng và 48 kiểm tra bổ sung. Dừng runtime do script quản lý trước khi build lại. Không đặt mật khẩu trên command line.
+
+Hai vấn đề tài liệu mật khẩu và lập luận chuẩn hóa đã được xử lý trong phạm vi tuần 1–3. Migration đã triển khai lên DB test gốc có backup; triển khai lên database ứng dụng là phạm vi riêng. Không dùng kết quả này để tuyên bố toàn bộ dự án hoàn thành hoặc production-ready.
+
+Kết quả chốt trên DB test gốc sau migration: 177/177 Java/JDBC, 27/27 HTTP nền tảng và 48/48 HTTP bổ sung đạt; WAR build thành công. Runtime kiểm thử đã được dừng sau khi xác minh.
+
+## Phụ lục lịch sử — báo cáo ngày 18/09/2026
+
+**Toàn bộ nội dung phía dưới là bản ghi cũ, được giữ để truy vết. Các số 44/80/94/125/177, trạng thái Maven/DB và kết luận PASS trong phụ lục thuộc những lượt chạy khác nhau, không dùng làm kết quả hiện tại. Bảng ngày 19/09 phía trên thay thế các kết luận tổng hợp cũ.**
+
 # BÁO CÁO KIỂM THỬ TOÀN DIỆN — AITA CODEDEFEND
 
 **Ngày:** 18/09/2026 · **Môi trường:** Windows, JDK 17 (Microsoft 17.0.18), SQL Server (localhost:57295), Tomcat 10.1.60 trên port 8081. Maven không khả dụng nên build/test chạy bằng `javac` + JUnit Platform Launcher.
