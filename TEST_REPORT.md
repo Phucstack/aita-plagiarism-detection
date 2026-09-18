@@ -391,9 +391,23 @@ chọn bài tập trong dropdown, đọc bảng, bấm liên kết báo cáo —
 
 Script giờ sẽ **thất bại** nếu các vấn đề này tái diễn (`assert` bao gồm `a11y`).
 
-**Chưa kiểm tra:** độ tương phản màu (nền tối `#080911` với chữ xám `slate-400` có thể không
-đạt WCAG AA), điều hướng bằng bàn phím, focus visible, và font 10–11px trên màn hình nhỏ —
-những mục này vẫn là rủi ro về khả năng đọc.
+**Vòng 2 — đo tương phản và focus bằng `tools/verify_accessibility.py`.**
+
+| Tiêu chí | Trước | Sau |
+|---|---|---|
+| Chỉ báo focus bàn phím | — | **0 lỗi** (mọi phần tử tương tác đều có outline hoặc ring) |
+| Tương phản WCAG AA trên dashboard | **4 chỗ không đạt** ❌ | **0** ✅ |
+| Tương phản WCAG AA trên student-portal | 0 | 0 |
+
+Bốn chỗ từng không đạt (đều là chữ nhỏ 10–14 px trên nền tối):
+- "Điều Hướng Chính" (10 px) — 4,03:1 → nâng `text-slate-500` thành `text-slate-400`
+- "Java Servlet · JDBC · SQL Server" (12 px) — 4,03:1 → tương tự
+- Nút "Lọc" (14 px) — 3,68:1 → đổi `bg-cyan-600` thành `bg-cyan-700`
+- "Mã giải thuật:" (11 px) — 3,97:1 → tương tự
+
+**Vẫn còn rủi ro:** đo này chỉ phủ hai trang chính ở viewport 1440. Các trang khác
+(`index.jsp`, `batch-scanner.jsp`, `diff-inspector.jsp`) và các trạng thái hiển thị khác
+chưa được đo; font 10–11 px trên nền tối nói chung vẫn kém dễ đọc dù đã đạt ngưỡng.
 
 ---
 
@@ -459,8 +473,8 @@ những mục này vẫn là rủi ro về khả năng đọc.
 
 # VÙNG CHƯA ĐƯỢC KIỂM THỬ
 
-1. **Độ tương phản màu và điều hướng bàn phím** — đã kiểm tra cấu trúc truy cập (nhãn, alt),
-   chưa đo tương phản WCAG hay focus visible; giao diện tối + chữ xám nhạt vẫn là rủi ro.
+1. **Tương phản trên các trang còn lại** — mới đo `dashboard` và `student-portal`;
+   `index.jsp`, `batch-scanner.jsp`, `diff-inspector.jsp` chưa đo.
 2. **Điểm gãy của tải** — mới thử tới 16 lượt quét đồng thời; chưa xác định giới hạn thực sự.
 3. **Hiệu ứng 3D** (Three.js/cyber-shield) — chưa kiểm chứng bằng trình duyệt; chỉ kiểm tra markup.
 3. **Google login thật** — cần `GOOGLE_CLIENT_ID` hợp lệ và tài khoản Google.

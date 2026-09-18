@@ -136,7 +136,7 @@
     <div class="flex-1 flex min-h-0 overflow-hidden">
         <!-- Master Left Sidebar (Unified Across All Screens) -->
         <aside id="master-sidebar" class="hidden md:flex w-56 border-r border-white/10 bg-[#0c0e1d] flex flex-col py-5 px-3.5 gap-1 shrink-0 select-none h-full overflow-y-auto custom-sidebar-scroll">
-            <div class="sidebar-heading text-[10px] font-mono text-slate-500 px-3 mb-2 uppercase tracking-wider font-semibold">Điều Hướng Chính</div>
+            <div class="sidebar-heading text-[10px] font-mono text-slate-400 px-3 mb-2 uppercase tracking-wider font-semibold">Điều Hướng Chính</div>
             
             <a href="${pageContext.request.contextPath}/dashboard" class="sidebar-nav-item flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-cyan-950/60 text-cyan-300 font-semibold text-xs border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all" title="Dashboard">
                 <div class="flex items-center gap-3">
@@ -163,7 +163,7 @@
             </a>
 
             <a href="#submission-list" class="sidebar-nav-item px-3 py-2 text-cyan-300 text-xs">Bài nộp của bài tập đã chọn</a>
-            <p class="mt-auto text-xs text-slate-500 p-3">Java Servlet · JDBC · SQL Server</p>
+            <p class="mt-auto text-xs text-slate-400 p-3">Java Servlet · JDBC · SQL Server</p>
         </aside>
 
         <main class="flex-1 min-w-0 p-4 md:p-6 h-full min-h-0 overflow-y-auto max-w-[1600px] mx-auto w-full">
@@ -319,7 +319,7 @@
             </div>
 
             <div class="pt-3 border-t border-white/10 flex items-center justify-between">
-                <span class="text-[11px] font-mono text-slate-500">Mã giải thuật: <code class="text-slate-400">services/GeminiPlagiarismService.java</code></span>
+                <span class="text-[11px] font-mono text-slate-400">Mã giải thuật: <code class="text-slate-400">services/GeminiPlagiarismService.java</code></span>
                 <button onclick="closeAstModal()" class="px-4 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-mono font-semibold transition-all shadow-[0_0_15px_rgba(139,92,246,0.3)]">
                     Đã hiểu thuật toán
                 </button>
