@@ -9,17 +9,29 @@
 > | Unit + Integration (JUnit, có CSDL thật) | **177 đạt / 0 lỗi** |
 > | HTTP + SQL độc lập (`verify_week3_http.py`) | **27/27** |
 > | HTTP + SQL bổ sung (`verify_followup_http.py`) | **48/48** |
+> | Giao diện bằng trình duyệt thật (`verify_followup_browser.py`) | **6/6** (3 viewport × 2 route) |
 > | Smoke khởi động ứng dụng | **PASS** (Tomcat khởi động, `/login` trả 200) |
+> | Hiệu năng | **PASS** (1,09 s / 2,67 s so với mục tiêu 3 s / 5 s) |
+> | Tải đồng thời | **PASS** (16 lượt quét đồng thời, không nhân đôi dữ liệu) |
 >
 > Cách chạy lại:
 > ```bash
-> # Tomcat trên 8081, trỏ tới CSDL kiểm thử
+> # 1) Tomcat trên 8081, trỏ tới CSDL kiểm thử
 > java -Dcatalina.base=C:\temp\tomcat-verify -Dcatalina.home=C:\temp\tomcat-verify \
->      -DDB_SERVER=localhost -DDB_PORT=57295 -DDB_NAME=AITA_Week3_Verification ... \
->      -DAITA_UPLOAD_DIR=C:\temp\aita-fixtures \
+>      -DDB_SERVER=localhost -DDB_PORT=57295 -DDB_NAME=AITA_Week3_Verification \
+>      -DDB_USER=... -DDB_PASSWORD=... -DDB_TRUST_SERVER_CERTIFICATE=true \
+>      -DJWT_SECRET=... -DAITA_UPLOAD_DIR=C:\temp\aita-fixtures \
 >      -cp "bin\bootstrap.jar;bin\tomcat-juli.jar" org.apache.catalina.startup.Bootstrap start
-> python tools/verify_week3_http.py --base-url http://localhost:8081/plagiarism
-> python tools/verify_followup_http.py --base-url http://localhost:8081/plagiarism
+>
+> # 2) Các bộ kiểm chứng (tránh proxy: no_proxy=localhost,127.0.0.1)
+> python tools/verify_week3_http.py     --base-url http://localhost:8081/plagiarism
+> python tools/verify_followup_http.py  --base-url http://localhost:8081/plagiarism
+> python tools/perf_scan.py             --base-url http://localhost:8081/plagiarism --submissions 50
+> python tools/perf_concurrent.py       --base-url http://localhost:8081/plagiarism --submissions 30 --concurrency 16
+>
+> # 3) Giao diện thật: cần Playwright -> dùng Python 3.10 của máy
+> C:\Users\phucv\AppData\Local\Programs\Python\Python310\python.exe \
+>      tools/verify_followup_browser.py --base-url http://localhost:8081/plagiarism
 > ```
 
 ---
@@ -29,6 +41,9 @@
 | Nhóm | Trạng thái | Kết quả |
 |---|---|---|
 | Unit Testing | Đã thực thi | **PASS** (177/177) |
+| UI Testing (trình duyệt thật) | Đã thực thi | **PASS** (6 tổ hợp viewport, Edge headless) |
+| Compatibility | Đã thực thi | **PASS** (1440 / 768 / 375, không tràn ngang) |
+| Accessibility | Đã thực thi | **PASS** sau khi sửa 26 trường thiếu nhãn |
 | Integration Testing | Đã thực thi | **PASS** (DAO/service với SQL Server thật) |
 | Database Testing | Đã thực thi | **PASS** — commit, rollback, khoá ngoại, trigger |
 | System Testing | Đã thực thi | **PASS** (27 ca HTTP + SQL) |
@@ -44,7 +59,7 @@
 | Performance Testing | Đã thực thi | **PASS** (1,09 s / 2,67 s) |
 | Load / Stress | Đã thực thi | **PASS** (16 lượt quét đồng thời, dữ liệu không nhân đôi) |
 | Compatibility / Accessibility (runtime) | **Chưa thực thi** | Cần trình duyệt thật |
-| Usability | Đánh giá gián tiếp | Có nhận xét |
+| Usability | Đánh giá gián tiếp | Có nhận xét (xem mục 17) |
 
 **Lỗi tìm được: 7** — **tất cả đã được xử lý**, trong đó lỗi #4 còn một giới hạn đã biết (thiếu quan hệ enrolment).
 Bộ kiểm thử tự động: **94 ca chạy — 94 đạt — 0 lỗi**.
@@ -155,7 +170,10 @@ Các lỗi đã sửa ở đợt trước được khóa bằng test để khôn
 
 ---
 
-## 6. UI TESTING (tĩnh) — Đã thực thi · **PASS** (đã sửa 2 lỗi)
+## 6. UI TESTING — Đã thực thi · **PASS**
+
+Gồm hai lớp: kiểm tra tĩnh markup (không cần trình duyệt) và kiểm tra bằng
+**Edge headless thật** (xem mục 18).
 
 Không có trình duyệt, nên kiểm tra trực tiếp markup của 11 tệp JSP/JSPF.
 
@@ -354,11 +372,28 @@ tương lai, nên đưa việc quét vào hàng đợi thay vì để request ch
 
 ---
 
-## 18. COMPATIBILITY / 19. ACCESSIBILITY — Chưa thực thi (runtime)
+## 18. COMPATIBILITY / 19. ACCESSIBILITY — Đã thực thi · **PASS (sau sửa)**
 
-**Đã kiểm tra tĩnh:** mọi `<img>` có `alt`; mọi `<input>` có `name`; form có nút gửi; UTF-8 được khai báo.
-**Chưa kiểm tra:** độ tương phản màu (nền tối `#080911`, chữ xám `slate-400` có thể không đạt WCAG AA); điều hướng bằng bàn phím; `aria-label` cho các nút chỉ có icon; focus visible.
-**Rủi ro:** giao diện tối + chữ xám nhạt + font 10–11px — khả năng đọc kém trên màn hình nhỏ.
+Chạy `tools/verify_followup_browser.py` bằng **Edge headless (Playwright)**: đăng nhập thật,
+chọn bài tập trong dropdown, đọc bảng, bấm liên kết báo cáo — ở **3 viewport 1440 / 768 / 375**.
+
+| Kịch bản | Kết quả |
+|---|---|
+| 6 tổ hợp (2 route × 3 viewport) | **PASS** — không tràn ngang, không lỗi JS |
+| Khả năng truy cập (trong trình duyệt) | **PASS** — 0 vấn đề sau khi sửa |
+
+**Lỗi truy cập tìm được và đã sửa (26 trường):**
+- **20 trường nhập liệu không có nhãn** — chỉ có `placeholder`, không đủ cho trình đọc màn hình
+  (`courseCode`, `courseName`, `semester`, `title`, `similarityThreshold`, `maxScore`,
+  `deadline`, `fullName`, `avatarUrl`, `oldPassword`, `newPassword`, `file`). Đã thêm `aria-label`.
+- **6 trường do `system-modals.js` sinh ra** cũng thiếu nhãn (ô tìm kiếm, 3 thanh trượt
+  ngưỡng, 2 checkbox). Đã thêm `aria-label` trong chuỗi HTML của JS.
+
+Script giờ sẽ **thất bại** nếu các vấn đề này tái diễn (`assert` bao gồm `a11y`).
+
+**Chưa kiểm tra:** độ tương phản màu (nền tối `#080911` với chữ xám `slate-400` có thể không
+đạt WCAG AA), điều hướng bằng bàn phím, focus visible, và font 10–11px trên màn hình nhỏ —
+những mục này vẫn là rủi ro về khả năng đọc.
 
 ---
 
@@ -424,8 +459,10 @@ tương lai, nên đưa việc quét vào hàng đợi thay vì để request ch
 
 # VÙNG CHƯA ĐƯỢC KIỂM THỬ
 
-1. **Trình duyệt thật** — responsive 1440/768/375, tương phản màu, điều hướng bàn phím, hiệu ứng 3D.
-2. **Tải vượt ngưỡng thiết kế** — mới thử tới 16 lượt quét đồng thời; chưa xác định điểm gãy.
+1. **Độ tương phản màu và điều hướng bàn phím** — đã kiểm tra cấu trúc truy cập (nhãn, alt),
+   chưa đo tương phản WCAG hay focus visible; giao diện tối + chữ xám nhạt vẫn là rủi ro.
+2. **Điểm gãy của tải** — mới thử tới 16 lượt quét đồng thời; chưa xác định giới hạn thực sự.
+3. **Hiệu ứng 3D** (Three.js/cyber-shield) — chưa kiểm chứng bằng trình duyệt; chỉ kiểm tra markup.
 3. **Google login thật** — cần `GOOGLE_CLIENT_ID` hợp lệ và tài khoản Google.
 4. **Gemini thật** — cần `GEMINI_API_KEY`; hiện mới kiểm thử trích xuất tóm tắt trên phản hồi giả lập.
 5. **Xuất CSV mở bằng Excel** để xác nhận formula injection thực sự bị chặn (đã kiểm ở mức đơn vị).

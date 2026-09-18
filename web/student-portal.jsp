@@ -137,7 +137,7 @@
                 </div>
                 <div class="md:col-span-5">
                     <label class="block text-slate-300 mb-1.5 font-semibold">Chọn tệp mã nguồn*</label>
-                    <input type="file" name="file" accept=".java,.txt,.docx,.zip" required class="w-full px-3 py-1.5 rounded-xl bg-[#141628] border border-white/10 text-slate-300 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-500/20 file:text-cyan-300 hover:file:bg-cyan-500/30 cursor-pointer focus:border-cyan-400 outline-none">
+                    <input aria-label="Tệp bài nộp" type="file" name="file" accept=".java,.txt,.docx,.zip" required class="w-full px-3 py-1.5 rounded-xl bg-[#141628] border border-white/10 text-slate-300 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-500/20 file:text-cyan-300 hover:file:bg-cyan-500/30 cursor-pointer focus:border-cyan-400 outline-none">
                 </div>
                 <div class="md:col-span-3">
                     <button type="submit" class="w-full btn-shimmer py-2 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-600 hover:from-cyan-400 hover:to-violet-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all">
@@ -262,11 +262,11 @@
                 <div class="font-bold text-cyan-400 text-xs uppercase tracking-wider mb-2">Thông Tin Cá Nhân</div>
                 <div>
                     <label class="block text-slate-300 mb-1">Họ và tên</label>
-                    <input type="text" name="fullName" value="${fn:escapeXml(sessionScope.currentUser.fullName)}" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
+                    <input aria-label="Họ và tên" type="text" name="fullName" value="${fn:escapeXml(sessionScope.currentUser.fullName)}" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
                 </div>
                 <div>
                     <label class="block text-slate-300 mb-1">URL Ảnh Đại Diện</label>
-                    <input type="text" name="avatarUrl" value="${fn:escapeXml(sessionScope.currentUser.avatarUrl)}" placeholder="https://..." class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
+                    <input aria-label="URL ảnh đại diện" type="text" name="avatarUrl" value="${fn:escapeXml(sessionScope.currentUser.avatarUrl)}" placeholder="https://..." class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
                 </div>
                 <div class="flex justify-end">
                     <button type="submit" class="px-3.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs">Cập Nhật Hồ Sơ</button>
@@ -279,11 +279,11 @@
                 <div class="font-bold text-rose-400 text-xs uppercase tracking-wider mb-2">Đổi Mật Khẩu</div>
                 <div>
                     <label class="block text-slate-300 mb-1">Mật khẩu hiện tại</label>
-                    <input type="password" name="oldPassword" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-rose-400 outline-none">
+                    <input aria-label="Mật khẩu hiện tại" type="password" name="oldPassword" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-rose-400 outline-none">
                 </div>
                 <div>
                     <label class="block text-slate-300 mb-1">Mật khẩu mới (tối thiểu 6 ký tự)</label>
-                    <input type="password" name="newPassword" minlength="8" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-rose-400 outline-none">
+                    <input aria-label="Mật khẩu mới" type="password" name="newPassword" minlength="8" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-rose-400 outline-none">
                 </div>
                 <div class="flex justify-end">
                     <button type="submit" class="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs">Đổi Mật Khẩu</button>

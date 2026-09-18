@@ -39,7 +39,7 @@
                 <div class="flex items-center justify-between gap-3 mb-4 shrink-0">
                     <div class="relative flex-1 max-w-sm">
                         <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-                        <input type="text" id="repo-search-input" oninput="filterRepoTable(this.value)" placeholder="Tìm kiếm theo MSSV, Tên hoặc Mã Băm SHA-256..." class="w-full pl-9 pr-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-xs text-white font-mono focus:border-cyan-400 focus:outline-none">
+                        <input aria-label="Tìm kiếm bài nộp theo MSSV, tên hoặc mã băm" type="text" id="repo-search-input" oninput="filterRepoTable(this.value)" placeholder="Tìm kiếm theo MSSV, Tên hoặc Mã Băm SHA-256..." class="w-full pl-9 pr-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-xs text-white font-mono focus:border-cyan-400 focus:outline-none">
                     </div>
                     <div class="flex items-center gap-2 text-xs font-mono">
                         <span class="text-slate-400">Lọc theo:</span>
@@ -157,7 +157,7 @@
                             </span>
                             <span id="ast-weight-display" class="text-cyan-400 font-extrabold text-sm">40%</span>
                         </div>
-                        <input type="range" id="ast-weight-slider" min="10" max="90" value="40" step="5" oninput="updateWeights(this.value)" class="w-full accent-cyan-400 cursor-pointer">
+                        <input aria-label="Trọng số phân tích cấu trúc mã" type="range" id="ast-weight-slider" min="10" max="90" value="40" step="5" oninput="updateWeights(this.value)" class="w-full accent-cyan-400 cursor-pointer">
                         <div class="flex items-center justify-between text-[10px] text-slate-500">
                             <span>JavaParser Token AST: <b id="ast-sub-val" class="text-cyan-300">40%</b></span>
                             <span>Google Gemini 1.5 Semantic: <b id="ai-sub-val" class="text-violet-400">60%</b></span>
@@ -172,7 +172,7 @@
                             </span>
                             <span id="red-flag-display" class="text-rose-400 font-extrabold text-sm">85%</span>
                         </div>
-                        <input type="range" id="red-flag-slider" min="60" max="95" value="85" step="1" oninput="document.getElementById('red-flag-display').innerText = this.value + '%'" class="w-full accent-rose-500 cursor-pointer">
+                        <input aria-label="Ngưỡng cảnh báo đỏ" type="range" id="red-flag-slider" min="60" max="95" value="85" step="1" oninput="document.getElementById('red-flag-display').innerText = this.value + '%'" class="w-full accent-rose-500 cursor-pointer">
                         <p class="text-[10px] text-slate-500">Tự động đình chỉ bài thi và kích hoạt cơ chế giải trình khiếu nại (Nhóm 7).</p>
                     </div>
 
@@ -184,18 +184,18 @@
                             </span>
                             <span id="yellow-flag-display" class="text-amber-400 font-extrabold text-sm">60%</span>
                         </div>
-                        <input type="range" id="yellow-flag-slider" min="40" max="75" value="60" step="1" oninput="document.getElementById('yellow-flag-display').innerText = this.value + '%'" class="w-full accent-amber-500 cursor-pointer">
+                        <input aria-label="Ngưỡng cảnh báo vàng" type="range" id="yellow-flag-slider" min="40" max="75" value="60" step="1" oninput="document.getElementById('yellow-flag-display').innerText = this.value + '%'" class="w-full accent-amber-500 cursor-pointer">
                         <p class="text-[10px] text-slate-500">Yêu cầu giảng viên chấm thi rà soát thủ công trước khi công bố điểm.</p>
                     </div>
 
                     <!-- System Invariants Checkboxes -->
                     <div class="space-y-2 pt-1 border-t border-white/5 text-[11px]">
                         <label class="flex items-center gap-2 cursor-pointer text-slate-300">
-                            <input type="checkbox" checked id="chk-sandbox" class="rounded border-white/10 text-cyan-500 bg-[#080911]">
+                            <input aria-label="Bật sandbox cô lập" type="checkbox" checked id="chk-sandbox" class="rounded border-white/10 text-cyan-500 bg-[#080911]">
                             <span>Bật môi trường cách ly Docker Sandbox 4.5.2 khi quét</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer text-slate-300">
-                            <input type="checkbox" checked id="chk-sha256" class="rounded border-white/10 text-cyan-500 bg-[#080911]">
+                            <input aria-label="Bật xác thực mã băm SHA-256" type="checkbox" checked id="chk-sha256" class="rounded border-white/10 text-cyan-500 bg-[#080911]">
                             <span>Yêu cầu khóa băm SHA-256 toàn vẹn mã nguồn 4.4.2</span>
                         </label>
                     </div>

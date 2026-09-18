@@ -344,15 +344,15 @@
                 <input type="hidden" name="action" value="create">
                 <div>
                     <label class="block text-slate-300 mb-1">Mã môn học (Course Code)*</label>
-                    <input type="text" name="courseCode" required placeholder="Ví dụ: PRJ301, CSD201, PRF192" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
+                    <input aria-label="Mã khóa học" type="text" name="courseCode" required placeholder="Ví dụ: PRJ301, CSD201, PRF192" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
                 </div>
                 <div>
                     <label class="block text-slate-300 mb-1">Tên môn học (Course Name)*</label>
-                    <input type="text" name="courseName" required placeholder="Ví dụ: Java Web Applications" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
+                    <input aria-label="Tên khóa học" type="text" name="courseName" required placeholder="Ví dụ: Java Web Applications" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
                 </div>
                 <div>
                     <label class="block text-slate-300 mb-1">Học kỳ (Semester)</label>
-                    <input type="text" name="semester" value="Fall 2026" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
+                    <input aria-label="Học kỳ" type="text" name="semester" value="Fall 2026" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
                 </div>
                 <div class="pt-3 border-t border-white/10 flex items-center justify-end gap-2">
                     <button type="button" onclick="closeAddCourseModal()" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 text-xs">Hủy</button>
@@ -380,7 +380,7 @@
                 <input type="hidden" name="courseId" value="${selectedCourseId}">
                 <div>
                     <label class="block text-slate-300 mb-1">Tiêu đề bài tập*</label>
-                    <input type="text" name="title" required placeholder="Ví dụ: Assignment 3 - MVC Servlet Online Store" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-violet-400 outline-none">
+                    <input aria-label="Tiêu đề bài tập" type="text" name="title" required placeholder="Ví dụ: Assignment 3 - MVC Servlet Online Store" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-violet-400 outline-none">
                 </div>
                 <div>
                     <label class="block text-slate-300 mb-1">Mô tả / Yêu cầu đề bài</label>
@@ -389,16 +389,16 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-slate-300 mb-1">Ngưỡng cảnh báo (%)</label>
-                        <input type="number" name="similarityThreshold" step="0.01" min="0" max="100" value="75.0" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-violet-400 outline-none">
+                        <input aria-label="Ngưỡng tương đồng (%)" type="number" name="similarityThreshold" step="0.01" min="0" max="100" value="75.0" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-violet-400 outline-none">
                     </div>
                     <div>
                         <label class="block text-slate-300 mb-1">Điểm tối đa</label>
-                        <input type="number" name="maxScore" step="0.01" min="0.01" max="999.99" value="100.0" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-violet-400 outline-none">
+                        <input aria-label="Điểm tối đa" type="number" name="maxScore" step="0.01" min="0.01" max="999.99" value="100.0" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-violet-400 outline-none">
                     </div>
                 </div>
                 <div>
                     <label class="block text-slate-300 mb-1">Hạn nộp bài (Deadline)</label>
-                    <input type="datetime-local" name="deadline" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-violet-400 outline-none">
+                    <input aria-label="Hạn nộp bài" type="datetime-local" name="deadline" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-violet-400 outline-none">
                 </div>
                 <div class="pt-3 border-t border-white/10 flex items-center justify-end gap-2">
                     <button type="button" onclick="closeAddAssignmentModal()" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 text-xs">Hủy</button>
@@ -427,7 +427,7 @@
                 <input type="hidden" name="courseId" value="${selectedCourseId}">
                 <div>
                     <label class="block text-slate-300 mb-1">Tiêu đề bài tập*</label>
-                    <input type="text" name="title" value="${fn:escapeXml(currentAssignment.title)}" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
+                    <input aria-label="Tiêu đề bài tập" type="text" name="title" value="${fn:escapeXml(currentAssignment.title)}" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
                 </div>
                 <div>
                     <label class="block text-slate-300 mb-1">Mô tả / Yêu cầu đề bài</label>
@@ -436,16 +436,16 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-slate-300 mb-1">Ngưỡng cảnh báo (%)</label>
-                        <input type="number" name="similarityThreshold" step="0.01" min="0" max="100" value="${currentAssignment != null ? currentAssignment.similarityThreshold : 75.0}" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
+                        <input aria-label="Ngưỡng tương đồng (%)" type="number" name="similarityThreshold" step="0.01" min="0" max="100" value="${currentAssignment != null ? currentAssignment.similarityThreshold : 75.0}" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
                     </div>
                     <div>
                         <label class="block text-slate-300 mb-1">Điểm tối đa</label>
-                        <input type="number" name="maxScore" step="0.01" min="0.01" max="999.99" value="${currentAssignment.maxScore != 0 ? currentAssignment.maxScore : 100.0}" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
+                        <input aria-label="Điểm tối đa" type="number" name="maxScore" step="0.01" min="0.01" max="999.99" value="${currentAssignment.maxScore != 0 ? currentAssignment.maxScore : 100.0}" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
                     </div>
                 </div>
                 <div>
                     <label class="block text-slate-300 mb-1">Hạn nộp bài (Deadline)</label>
-                    <input type="datetime-local" name="deadline" value="${selectedDeadline}" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
+                    <input aria-label="Hạn nộp bài" type="datetime-local" name="deadline" value="${selectedDeadline}" class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-amber-400 outline-none">
                 </div>
                 <div class="pt-3 border-t border-white/10 flex items-center justify-end gap-2">
                     <button type="button" onclick="closeEditAssignmentModal()" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 text-xs">Hủy</button>
@@ -475,11 +475,11 @@
                 <div class="font-bold text-cyan-400 text-xs uppercase tracking-wider mb-2">Thông Tin Cá Nhân</div>
                 <div>
                     <label class="block text-slate-300 mb-1">Họ và tên</label>
-                    <input type="text" name="fullName" value="${fn:escapeXml(sessionScope.currentUser.fullName)}" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
+                    <input aria-label="Họ và tên" type="text" name="fullName" value="${fn:escapeXml(sessionScope.currentUser.fullName)}" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
                 </div>
                 <div>
                     <label class="block text-slate-300 mb-1">URL Ảnh Đại Diện</label>
-                    <input type="text" name="avatarUrl" value="${fn:escapeXml(sessionScope.currentUser.avatarUrl)}" placeholder="https://..." class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
+                    <input aria-label="URL ảnh đại diện" type="text" name="avatarUrl" value="${fn:escapeXml(sessionScope.currentUser.avatarUrl)}" placeholder="https://..." class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-cyan-400 outline-none">
                 </div>
                 <div class="flex justify-end">
                     <button type="submit" class="px-3.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs">Cập Nhật Hồ Sơ</button>
@@ -492,11 +492,11 @@
                 <div class="font-bold text-rose-400 text-xs uppercase tracking-wider mb-2">Đổi Mật Khẩu</div>
                 <div>
                     <label class="block text-slate-300 mb-1">Mật khẩu hiện tại</label>
-                    <input type="password" name="oldPassword" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-rose-400 outline-none">
+                    <input aria-label="Mật khẩu hiện tại" type="password" name="oldPassword" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-rose-400 outline-none">
                 </div>
                 <div>
                     <label class="block text-slate-300 mb-1">Mật khẩu mới (tối thiểu 6 ký tự)</label>
-                    <input type="password" name="newPassword" minlength="8" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-rose-400 outline-none">
+                    <input aria-label="Mật khẩu mới" type="password" name="newPassword" minlength="8" required class="w-full px-3 py-2 rounded-lg bg-[#141628] border border-white/10 text-white focus:border-rose-400 outline-none">
                 </div>
                 <div class="flex justify-end">
                     <button type="submit" class="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs">Đổi Mật Khẩu</button>
