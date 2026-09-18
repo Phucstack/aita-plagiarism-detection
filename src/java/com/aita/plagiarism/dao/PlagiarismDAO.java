@@ -34,31 +34,72 @@ public class PlagiarismDAO {
 
     public int createReport(PlagiarismReport r) {
         if (r == null) return -1;
-        String sql = "INSERT INTO PlagiarismReports (assignment_id, submission_a_id, submission_b_id, similarity_score, risk_level, ai_analysis_summary) " +
-                     "VALUES (?, ?, ?, ?, ?, ?)";
-        try (Connection conn = DBContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            ps.setInt(1, r.getAssignmentId());
-            ps.setInt(2, r.getSubmissionAId());
-            ps.setInt(3, r.getSubmissionBId());
-            ps.setDouble(4, r.getSimilarityScore());
-            ps.setString(5, r.getRiskLevel() != null ? r.getRiskLevel() : "SAFE");
-            ps.setString(6, r.getAiAnalysisSummary());
+        if (r.getSubmissionAId() <= 0 || r.getSubmissionBId() <= 0
+                || r.getSubmissionAId() == r.getSubmissionBId()) {
+            throw new IllegalArgumentException("A plagiarism report requires two distinct submissions.");
+        }
+        String assignmentSql = "SELECT sa.assignment_id FROM Submissions sa " +
+                "JOIN Submissions sb ON sb.submission_id = ? " +
+                "WHERE sa.submission_id = ? AND sa.assignment_id = sb.assignment_id";
+        try (Connection conn = DBContext.getConnection()) {
+            int derivedAssignmentId;
+            try (PreparedStatement assignmentPs = conn.prepareStatement(assignmentSql)) {
+                assignmentPs.setInt(1, r.getSubmissionBId());
+                assignmentPs.setInt(2, r.getSubmissionAId());
+                try (ResultSet assignmentRs = assignmentPs.executeQuery()) {
+                    if (!assignmentRs.next()) {
+                        throw new IllegalArgumentException("Both submissions must exist and belong to the same assignment.");
+                    }
+                    derivedAssignmentId = assignmentRs.getInt(1);
+                }
+            }
 
-            int affected = ps.executeUpdate();
-            if (affected > 0) {
-                try (ResultSet rs = ps.getGeneratedKeys()) {
-                    if (rs.next()) {
-                        int id = rs.getInt(1);
-                        r.setReportId(id);
-                        return id;
+            if (r.getAssignmentId() > 0 && r.getAssignmentId() != derivedAssignmentId) {
+                throw new IllegalArgumentException("Report assignment does not match the submissions.");
+            }
+            r.setAssignmentId(derivedAssignmentId);
+
+            boolean legacySchema = hasLegacyAssignmentColumn(conn);
+            String sql = legacySchema
+                    ? "INSERT INTO PlagiarismReports (assignment_id, submission_a_id, submission_b_id, similarity_score, risk_level, ai_analysis_summary) VALUES (?, ?, ?, ?, ?, ?)"
+                    : "INSERT INTO PlagiarismReports (submission_a_id, submission_b_id, similarity_score, risk_level, ai_analysis_summary) VALUES (?, ?, ?, ?, ?)";
+            try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                int offset = 0;
+                if (legacySchema) {
+                    ps.setInt(1, derivedAssignmentId);
+                    offset = 1;
+                }
+                ps.setInt(1 + offset, r.getSubmissionAId());
+                ps.setInt(2 + offset, r.getSubmissionBId());
+                ps.setDouble(3 + offset, r.getSimilarityScore());
+                ps.setString(4 + offset, r.getRiskLevel() != null ? r.getRiskLevel() : "SAFE");
+                ps.setString(5 + offset, r.getAiAnalysisSummary());
+
+                int affected = ps.executeUpdate();
+                if (affected > 0) {
+                    try (ResultSet rs = ps.getGeneratedKeys()) {
+                        if (rs.next()) {
+                            int id = rs.getInt(1);
+                            r.setReportId(id);
+                            return id;
+                        }
                     }
                 }
             }
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
             throw new DataAccessException(e);
         }
         return -1;
+    }
+
+    private boolean hasLegacyAssignmentColumn(Connection conn) throws Exception {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT CASE WHEN COL_LENGTH('dbo.PlagiarismReports', 'assignment_id') IS NULL THEN 0 ELSE 1 END");
+             ResultSet rs = ps.executeQuery()) {
+            return rs.next() && rs.getInt(1) == 1;
+        }
     }
 
     public int createMatchingBlock(MatchingBlock b) {
@@ -93,18 +134,14 @@ public class PlagiarismDAO {
     }
 
     public boolean clearReportsByAssignment(int assignmentId) {
-        // Xóa các MatchingBlocks liên quan trước nếu CSDL không cấu hình cascade
-        String sqlBlocks = "DELETE FROM MatchingBlocks WHERE report_id IN (SELECT report_id FROM PlagiarismReports WHERE assignment_id = ?)";
-        String sqlReports = "DELETE FROM PlagiarismReports WHERE assignment_id = ?";
-        try (Connection conn = DBContext.getConnection()) {
-            try (PreparedStatement ps1 = conn.prepareStatement(sqlBlocks)) {
-                ps1.setInt(1, assignmentId);
-                ps1.executeUpdate();
-            }
-            try (PreparedStatement ps2 = conn.prepareStatement(sqlReports)) {
-                ps2.setInt(1, assignmentId);
-                ps2.executeUpdate();
-            }
+        String sql = "DELETE pr FROM PlagiarismReports pr " +
+                "JOIN Submissions sa ON sa.submission_id = pr.submission_a_id " +
+                "JOIN Submissions sb ON sb.submission_id = pr.submission_b_id " +
+                "WHERE sa.assignment_id = ? AND sb.assignment_id = sa.assignment_id";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, assignmentId);
+            ps.executeUpdate();
             return true;
         } catch (Exception e) {
             throw new DataAccessException(e);
@@ -113,13 +150,15 @@ public class PlagiarismDAO {
 
     public List<PlagiarismReport> getReportsByAssignment(int assignmentId) {
         List<PlagiarismReport> list = new ArrayList<>();
-        String sql = "SELECT pr.*, u1.full_name AS student_a_name, u2.full_name AS student_b_name " +
+        String sql = "SELECT pr.report_id, s1.assignment_id AS assignment_id, pr.submission_a_id, pr.submission_b_id, " +
+                     "pr.similarity_score, pr.risk_level, pr.ai_analysis_summary, pr.created_at, " +
+                     "u1.full_name AS student_a_name, u2.full_name AS student_b_name " +
                      "FROM PlagiarismReports pr " +
                      "JOIN Submissions s1 ON pr.submission_a_id = s1.submission_id " +
                      "JOIN Users u1 ON s1.student_id = u1.user_id " +
                      "JOIN Submissions s2 ON pr.submission_b_id = s2.submission_id " +
                      "JOIN Users u2 ON s2.student_id = u2.user_id " +
-                     "WHERE pr.assignment_id = ? " +
+                     "WHERE s1.assignment_id = ? AND s2.assignment_id = s1.assignment_id " +
                      "ORDER BY pr.similarity_score DESC";
 
         try (Connection conn = DBContext.getConnection();
@@ -137,13 +176,15 @@ public class PlagiarismDAO {
     }
 
     public PlagiarismReport getReportById(int reportId) {
-        String sql = "SELECT pr.*, u1.full_name AS student_a_name, u2.full_name AS student_b_name " +
+        String sql = "SELECT pr.report_id, s1.assignment_id AS assignment_id, pr.submission_a_id, pr.submission_b_id, " +
+                     "pr.similarity_score, pr.risk_level, pr.ai_analysis_summary, pr.created_at, " +
+                     "u1.full_name AS student_a_name, u2.full_name AS student_b_name " +
                      "FROM PlagiarismReports pr " +
                      "JOIN Submissions s1 ON pr.submission_a_id = s1.submission_id " +
                      "JOIN Users u1 ON s1.student_id = u1.user_id " +
                      "JOIN Submissions s2 ON pr.submission_b_id = s2.submission_id " +
                      "JOIN Users u2 ON s2.student_id = u2.user_id " +
-                     "WHERE pr.report_id = ?";
+                     "WHERE pr.report_id = ? AND s2.assignment_id = s1.assignment_id";
 
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

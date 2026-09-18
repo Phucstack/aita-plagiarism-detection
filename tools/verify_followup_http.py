@@ -72,7 +72,12 @@ try:
     subs=[]
     for owner in (student_id,user_id):
         subs.append(int(sql("INSERT Submissions(assignment_id,student_id,file_name,file_path,sha256_hash) OUTPUT INSERTED.submission_id VALUES ("+str(aid)+","+str(owner)+",'fixture.java','not-a-real-file','"+'a'*64+"')")))
-    report_id=int(sql("INSERT PlagiarismReports(assignment_id,submission_a_id,submission_b_id,similarity_score,risk_level,ai_analysis_summary) OUTPUT INSERTED.report_id VALUES ("+str(aid)+","+str(subs[0])+","+str(subs[1])+",42.50,'MEDIUM','private-peer-summary')"))
+    legacy_report_schema=int(sql("SELECT CASE WHEN COL_LENGTH('dbo.PlagiarismReports','assignment_id') IS NULL THEN 0 ELSE 1 END"))==1
+    if legacy_report_schema:
+        report_sql="INSERT PlagiarismReports(assignment_id,submission_a_id,submission_b_id,similarity_score,risk_level,ai_analysis_summary) OUTPUT INSERTED.report_id VALUES ("+str(aid)+","+str(subs[0])+","+str(subs[1])+",42.50,'MEDIUM','private-peer-summary')"
+    else:
+        report_sql="INSERT PlagiarismReports(submission_a_id,submission_b_id,similarity_score,risk_level,ai_analysis_summary) OUTPUT INSERTED.report_id VALUES ("+str(subs[0])+","+str(subs[1])+",42.50,'MEDIUM','private-peer-summary')"
+    report_id=int(sql(report_sql))
     check('owner instructor can read report',teacher.request('/diff-inspector?reportId='+str(report_id))[0]==200)
     check('other instructor cannot read report',other.request('/diff-inspector?reportId='+str(report_id))[0]==403)
     check('admin can read report',admin.request('/diff-inspector?reportId='+str(report_id))[0]==200)

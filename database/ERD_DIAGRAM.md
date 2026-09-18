@@ -12,19 +12,19 @@ erDiagram
     USERS ||--o{ SUBMISSIONS : "nộp bài (submits)"
     COURSES ||--o{ ASSIGNMENTS : "chứa (contains)"
     ASSIGNMENTS ||--o{ SUBMISSIONS : "yêu cầu (requires)"
-    ASSIGNMENTS ||--o{ PLAGIARISM_REPORTS : "được đối soát theo (analyzed_under)"
     SUBMISSIONS ||--o{ PLAGIARISM_REPORTS : "bài nộp A (submission_a)"
     SUBMISSIONS ||--o{ PLAGIARISM_REPORTS : "bài nộp B (submission_b)"
-    PLAGIARISM_REPORTS ||--|{ MATCHING_BLOCKS : "bao gồm (contains)"
+    PLAGIARISM_REPORTS ||--o{ MATCHING_BLOCKS : "bao gồm (contains)"
 
     USERS {
         int user_id PK "Tự tăng (IDENTITY)"
         string username UK "Tên đăng nhập duy nhất"
-        string password_hash "Mật khẩu băm (SHA-256 / MD5)"
+        string password_hash "PBKDF2-HMAC-SHA256; MD5/SHA-256 chỉ để migration legacy"
         string full_name "Họ và tên người dùng"
         string email UK "Email tổ chức (@fpt.edu.vn)"
         string role "CHECK: ADMIN, INSTRUCTOR, STUDENT"
         string avatar_url "URL ảnh đại diện"
+        string google_subject UK "Google subject duy nhất khi đã liên kết"
         datetime created_at "Thời điểm tạo tài khoản"
     }
 
@@ -44,6 +44,7 @@ erDiagram
         string description "Mô tả chi tiết yêu cầu"
         decimal max_score "Điểm tối đa (100.00)"
         datetime deadline "Hạn chót nộp bài"
+        decimal similarity_threshold "Ngưỡng HIGH_RISK của bài tập"
         datetime created_at "Thời điểm tạo bài tập"
     }
 
@@ -53,6 +54,7 @@ erDiagram
         int student_id FK "Liên kết USERS.user_id (Role: STUDENT)"
         string file_name "Tên tệp mã nguồn (.java/.zip)"
         string file_path "Đường dẫn lưu trữ artifact"
+        string file_type "CHECK: JAVA, TEXT, DOCX, ZIP"
         string sha256_hash "Mã băm SHA-256 chống giả mạo"
         datetime submitted_at "Thời điểm sinh viên nộp"
         string status "CHECK: PENDING, PARSED, ANALYZED, FLAGGED"
@@ -60,7 +62,6 @@ erDiagram
 
     PLAGIARISM_REPORTS {
         int report_id PK "Tự tăng (IDENTITY)"
-        int assignment_id FK "Liên kết ASSIGNMENTS.assignment_id"
         int submission_a_id FK "Bài nộp sinh viên A (SUBMISSIONS)"
         int submission_b_id FK "Bài nộp sinh viên B (SUBMISSIONS)"
         decimal similarity_score "Tỷ lệ trùng lặp logic (%)"
@@ -95,8 +96,14 @@ erDiagram
 
 3. **Chuẩn 3NF (Third Normal Form):**
    - Loại bỏ phụ thuộc bắc cầu (Transitive Dependency). Ví dụ: `Submissions` chỉ lưu `student_id` và `assignment_id`, không lưu thừa tên môn học hay họ tên sinh viên.
+   - `PlagiarismReports` không lưu `assignment_id` vì thuộc tính này đã được xác định bởi `submission_a_id`/`submission_b_id`. Assignment của report được suy ra qua `Submissions.assignment_id`, tránh phụ thuộc bắc cầu `report_id -> submission_id -> assignment_id`.
+   - Trigger `TR_PlagiarismReports_SameAssignment` bắt buộc hai submission trong cùng report phải thuộc cùng một assignment, giữ toàn vẹn dữ liệu mà không cần lưu lặp `assignment_id`.
+   - `risk_level` và `ai_analysis_summary` là snapshot của lần phân tích tại `created_at`; chúng không được hiểu là dữ liệu luôn tái suy ra từ cấu hình assignment hiện tại.
 
 4. **Ràng buộc toàn vẹn & Bảo mật (Integrity & Security):**
-   - **Xác thực toàn vẹn mã nguồn (Section 4.4.2):** Cột `sha256_hash` (CHAR 64) trong `Submissions` đảm bảo phát hiện ngay lập tức bất kỳ sự can thiệp nào vào mã nguồn sau khi nộp.
+   - **Xác thực toàn vẹn mã nguồn (Section 4.4.2):** Cột `sha256_hash` (`VARCHAR(64)`) trong `Submissions` lưu checksum SHA-256 để đối chiếu tính toàn vẹn artifact.
+   - **Bảo mật mật khẩu:** Mật khẩu mới dùng PBKDF2-HMAC-SHA256 với salt ngẫu nhiên; MD5/SHA-256 chỉ được chấp nhận cho dữ liệu legacy và được nâng cấp sang PBKDF2 sau khi đăng nhập hợp lệ.
+   - **Google Identity:** `google_subject` có unique filtered index, chỉ cho phép một tài khoản liên kết với một Google subject không-null.
    - **Bảo mật vai trò:** Cột `role` trong bảng `Users` có ràng buộc `CHECK (role IN ('ADMIN', 'INSTRUCTOR', 'STUDENT'))`.
+   - **Toàn vẹn báo cáo:** `submission_a_id` và `submission_b_id` phải khác nhau và cùng thuộc một assignment; trigger trên `Submissions` ngăn cập nhật làm phá vỡ invariant này.
    - **Xóa xếp tầng an toàn:** Ràng buộc `ON DELETE CASCADE` ở các quan hệ cha - con (`Courses` -> `Assignments` -> `Submissions`, `PlagiarismReports` -> `MatchingBlocks`) đảm bảo tính nhất quán dữ liệu.

@@ -20,9 +20,10 @@ public class PlagiarismDAOTest {
     void setUp() {
         plagiarismDAO = new PlagiarismDAO();
         PlagiarismReport report = new PlagiarismReport();
-        report.setAssignmentId(2); report.setSubmissionAId(1); report.setSubmissionBId(2);
+        report.setSubmissionAId(1); report.setSubmissionBId(2);
         report.setSimilarityScore(88.5); report.setRiskLevel("HIGH_RISK"); report.setAiAnalysisSummary("Test fixture");
         fixtureReportId = plagiarismDAO.createReport(report);
+        assertEquals(2, report.getAssignmentId(), "Assignment phải được suy ra từ hai submission");
         MatchingBlock block = new MatchingBlock();
         block.setReportId(fixtureReportId); block.setFunctionName("test");
         block.setStudentAStartLine(1); block.setStudentAEndLine(2);
@@ -60,8 +61,21 @@ public class PlagiarismDAOTest {
     void testGetReportById() {
         PlagiarismReport report = plagiarismDAO.getReportById(fixtureReportId);
         assertNotNull(report, "Báo cáo ID 1 phải tồn tại");
+        assertEquals(2, report.getAssignmentId(), "DAO phải ánh xạ assignment qua Submissions thay vì cột dư thừa");
         assertTrue(report.getSimilarityScore() > 0);
         assertNotNull(report.getAiAnalysisSummary(), "Tóm tắt phân tích AI không được null");
+    }
+
+    @Test
+    @DisplayName("Từ chối báo cáo tự so sánh cùng một bài nộp")
+    void rejectsSelfComparison() {
+        PlagiarismReport report = new PlagiarismReport();
+        report.setSubmissionAId(1);
+        report.setSubmissionBId(1);
+        report.setSimilarityScore(100.0);
+        report.setRiskLevel("HIGH_RISK");
+
+        assertThrows(IllegalArgumentException.class, () -> plagiarismDAO.createReport(report));
     }
 
     @Test

@@ -73,14 +73,13 @@ IF OBJECT_ID(N'dbo.PlagiarismReports', N'U') IS NULL
 BEGIN
 CREATE TABLE PlagiarismReports (
     report_id INT IDENTITY(1,1) PRIMARY KEY,
-    assignment_id INT NOT NULL,
     submission_a_id INT NOT NULL,
     submission_b_id INT NOT NULL,
     similarity_score DECIMAL(5,2) NOT NULL, -- Điểm tương đồng %
     risk_level VARCHAR(20) NOT NULL CHECK (risk_level IN ('SAFE', 'LOW', 'MEDIUM', 'HIGH_RISK')),
     ai_analysis_summary NVARCHAR(MAX), -- Phân tích ngữ nghĩa từ LLM / AI Watermark
     created_at DATETIME DEFAULT GETDATE(),
-    FOREIGN KEY (assignment_id) REFERENCES Assignments(assignment_id),
+    CONSTRAINT CK_PlagiarismReports_DistinctSubmissions CHECK (submission_a_id <> submission_b_id),
     FOREIGN KEY (submission_a_id) REFERENCES Submissions(submission_id),
     FOREIGN KEY (submission_b_id) REFERENCES Submissions(submission_id)
 );
@@ -147,8 +146,8 @@ INSERT INTO Submissions (assignment_id, student_id, file_name, file_path, file_t
 (2, 7, 'OrderManager_TienN.java', '/uploads/sub_04/OrderManager.java', 'JAVA', 'b45cffe084dd3d20d928bee85e7b0f21ac6a4bc845aa7315ceda582593571377', 'ANALYZED');
 
 -- Báo cáo đạo văn đối chứng
-INSERT INTO PlagiarismReports (assignment_id, submission_a_id, submission_b_id, similarity_score, risk_level, ai_analysis_summary) VALUES
-(2, 1, 2, 88.50, 'HIGH_RISK', N'Gemini AI phát hiện 14 khối mã tương đồng logic, 7 phương thức trùng khớp kiến trúc AST. Sinh viên B đã thay đổi biến _cart thành _basket, total_amt thành final_cost và đảo vị trí câu lệnh rẽ nhánh if-else.');
+INSERT INTO PlagiarismReports (submission_a_id, submission_b_id, similarity_score, risk_level, ai_analysis_summary) VALUES
+(1, 2, 88.50, 'HIGH_RISK', N'Gemini AI phát hiện 14 khối mã tương đồng logic, 7 phương thức trùng khớp kiến trúc AST. Sinh viên B đã thay đổi biến _cart thành _basket, total_amt thành final_cost và đảo vị trí câu lệnh rẽ nhánh if-else.');
 
 -- Chi tiết đoạn code trùng
 INSERT INTO MatchingBlocks (report_id, function_name, student_a_start_line, student_a_end_line, student_b_start_line, student_b_end_line, matched_code_snippet, variable_renaming_notes) VALUES
@@ -172,4 +171,91 @@ IF COL_LENGTH('dbo.Users', 'google_subject') IS NULL
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_Users_GoogleSubject' AND object_id = OBJECT_ID('dbo.Users'))
     EXEC('CREATE UNIQUE INDEX UX_Users_GoogleSubject ON dbo.Users(google_subject) WHERE google_subject IS NOT NULL');
+GO
+
+-- Normalize legacy PlagiarismReports to strict 3NF.
+-- assignment_id is derivable from either submission and must not be stored redundantly.
+IF COL_LENGTH('dbo.PlagiarismReports', 'assignment_id') IS NOT NULL
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM dbo.PlagiarismReports pr
+        LEFT JOIN dbo.Submissions sa ON sa.submission_id = pr.submission_a_id
+        LEFT JOIN dbo.Submissions sb ON sb.submission_id = pr.submission_b_id
+        WHERE sa.submission_id IS NULL
+           OR sb.submission_id IS NULL
+           OR pr.assignment_id <> sa.assignment_id
+           OR pr.assignment_id <> sb.assignment_id
+           OR sa.assignment_id <> sb.assignment_id
+           OR pr.submission_a_id = pr.submission_b_id
+    )
+        THROW 50001, 'Cannot normalize PlagiarismReports: legacy rows contain inconsistent assignment/submission relationships.', 1;
+
+    DECLARE @dropAssignmentFk NVARCHAR(MAX) = N'';
+    SELECT @dropAssignmentFk = @dropAssignmentFk
+        + N'ALTER TABLE dbo.PlagiarismReports DROP CONSTRAINT ' + QUOTENAME(fk.name) + N';'
+    FROM sys.foreign_keys fk
+    JOIN sys.foreign_key_columns fkc ON fkc.constraint_object_id = fk.object_id
+    JOIN sys.columns c ON c.object_id = fkc.parent_object_id AND c.column_id = fkc.parent_column_id
+    WHERE fk.parent_object_id = OBJECT_ID(N'dbo.PlagiarismReports')
+      AND c.name = N'assignment_id';
+
+    SET @dropAssignmentFk = @dropAssignmentFk
+        + N'ALTER TABLE dbo.PlagiarismReports DROP COLUMN assignment_id;';
+    EXEC sys.sp_executesql @dropAssignmentFk;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.check_constraints
+    WHERE parent_object_id = OBJECT_ID(N'dbo.PlagiarismReports')
+      AND name = N'CK_PlagiarismReports_DistinctSubmissions'
+)
+    ALTER TABLE dbo.PlagiarismReports WITH CHECK
+        ADD CONSTRAINT CK_PlagiarismReports_DistinctSubmissions
+        CHECK (submission_a_id <> submission_b_id);
+GO
+
+-- Database-level invariant: the two submissions in one plagiarism report must belong to the same assignment.
+CREATE OR ALTER TRIGGER dbo.TR_PlagiarismReports_SameAssignment
+ON dbo.PlagiarismReports
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        JOIN dbo.Submissions sa ON sa.submission_id = i.submission_a_id
+        JOIN dbo.Submissions sb ON sb.submission_id = i.submission_b_id
+        WHERE sa.assignment_id <> sb.assignment_id
+           OR i.submission_a_id = i.submission_b_id
+    )
+    BEGIN
+        THROW 50002, 'PlagiarismReports requires both submissions to belong to the same assignment.', 1;
+    END;
+END;
+GO
+
+-- Preserve the same-assignment invariant if a submission is reassigned directly in SQL.
+CREATE OR ALTER TRIGGER dbo.TR_Submissions_PreserveReportAssignment
+ON dbo.Submissions
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF UPDATE(assignment_id) AND EXISTS (
+        SELECT 1
+        FROM dbo.PlagiarismReports pr
+        JOIN dbo.Submissions sa ON sa.submission_id = pr.submission_a_id
+        JOIN dbo.Submissions sb ON sb.submission_id = pr.submission_b_id
+        WHERE (pr.submission_a_id IN (SELECT submission_id FROM inserted)
+            OR pr.submission_b_id IN (SELECT submission_id FROM inserted))
+          AND sa.assignment_id <> sb.assignment_id
+    )
+        THROW 50003, 'Cannot reassign a submission while it would split an existing plagiarism report across assignments.', 1;
+END;
 GO
