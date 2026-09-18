@@ -34,9 +34,11 @@ class Client:
         body = urllib.parse.urlencode(data).encode() if data is not None else None
         req_headers = dict(headers) if headers else {}
         # Giả lập đúng hành vi trình duyệt: request cùng nguồn luôn kèm Origin.
-        # Filter chống CSRF hiện từ chối mọi request đổi trạng thái không chứng minh
-        # được cùng nguồn, nên script phải gửi Origin trừ khi muốn giả lập tấn công.
-        req_headers.setdefault('Origin', args.base_url)
+        # Filter chống CSRF từ chối mọi request đổi trạng thái không chứng minh được
+        # cùng nguồn, nên script phải gửi Origin trừ khi muốn giả lập tấn công.
+        # Lưu ý: Origin chỉ gồm scheme://host[:port], KHÔNG kèm context path.
+        parts = urllib.parse.urlsplit(args.base_url)
+        req_headers.setdefault('Origin', parts.scheme + '://' + parts.netloc)
         req = urllib.request.Request(args.base_url+path,data=body,headers=req_headers)
         try: response = self.opener.open(req,timeout=15)
         except urllib.error.HTTPError as error: response = error

@@ -1,13 +1,26 @@
 # BÁO CÁO KIỂM THỬ TOÀN DIỆN — AITA CODEDEFEND
 
-**Ngày:** 18/09/2026 · **Môi trường:** Windows, JDK 17 (Microsoft 17.0.18), Maven **không khả dụng**, **không có SQL Server**, **không có Tomcat đang chạy**.
+**Ngày:** 18/09/2026 · **Môi trường:** Windows, JDK 17 (Microsoft 17.0.18), SQL Server (localhost:57295), Tomcat 10.1.60 trên port 8081. Maven không khả dụng nên build/test chạy bằng `javac` + JUnit Platform Launcher.
 
-> **Cách đọc kết quả:**
-> - **PASS / FAIL** = đã thực thi thật và có kết quả.
-> - **CHƯA THỰC THI** = có kịch bản đầy đủ nhưng bị chặn bởi môi trường (cần SQL Server / Tomcat / trình duyệt). Các mục này kèm rủi ro dự đoán.
+> **Kết quả thực thi thật (không phải dự đoán):**
 >
-> Bộ kiểm thử tự động được chạy bằng JUnit Platform Launcher thay vì Maven:
-> `80 ca chạy — 80 đạt — 0 lỗi` (toàn bộ các ca không cần CSDL).
+> | Bộ kiểm thử | Kết quả |
+> |---|---|
+> | Unit + Integration (JUnit, có CSDL thật) | **177 đạt / 0 lỗi** |
+> | HTTP + SQL độc lập (`verify_week3_http.py`) | **27/27** |
+> | HTTP + SQL bổ sung (`verify_followup_http.py`) | **48/48** |
+> | Smoke khởi động ứng dụng | **PASS** (Tomcat khởi động, `/login` trả 200) |
+>
+> Cách chạy lại:
+> ```bash
+> # Tomcat trên 8081, trỏ tới CSDL kiểm thử
+> java -Dcatalina.base=C:\temp\tomcat-verify -Dcatalina.home=C:\temp\tomcat-verify \
+>      -DDB_SERVER=localhost -DDB_PORT=57295 -DDB_NAME=AITA_Week3_Verification ... \
+>      -DAITA_UPLOAD_DIR=C:\temp\aita-fixtures \
+>      -cp "bin\bootstrap.jar;bin\tomcat-juli.jar" org.apache.catalina.startup.Bootstrap start
+> python tools/verify_week3_http.py --base-url http://localhost:8081/plagiarism
+> python tools/verify_followup_http.py --base-url http://localhost:8081/plagiarism
+> ```
 
 ---
 
@@ -15,15 +28,21 @@
 
 | Nhóm | Trạng thái | Kết quả |
 |---|---|---|
-| Unit Testing | Đã thực thi | **PASS** (80/80) |
-| Validation & Error Handling | Đã thực thi | **PASS** — phát hiện 1 lỗi biên, đã sửa |
-| Edge Cases & Boundary Values | Đã thực thi | **PASS** — phát hiện 1 lỗi, đã sửa |
-| Security Testing (tĩnh + đơn vị) | Đã thực thi | **PASS** — phát hiện 2 lỗi, 1 đã sửa |
+| Unit Testing | Đã thực thi | **PASS** (177/177) |
+| Integration Testing | Đã thực thi | **PASS** (DAO/service với SQL Server thật) |
+| Database Testing | Đã thực thi | **PASS** — commit, rollback, khoá ngoại, trigger |
+| System Testing | Đã thực thi | **PASS** (27 ca HTTP + SQL) |
+| End-to-End / Functional | Đã thực thi | **PASS** (48 ca bổ sung: luồng báo cáo, xuất CSV, ma trận) |
+| API Testing | Đã thực thi | **PASS** — ma trận endpoint + phân quyền + CSRF |
+| Validation & Error Handling | Đã thực thi | **PASS** |
+| Edge Cases & Boundary Values | Đã thực thi | **PASS** |
+| Security Testing | Đã thực thi | **PASS** |
 | Regression Testing | Đã thực thi | **PASS** |
-| UI Testing (tĩnh) | Đã thực thi | **PASS** — phát hiện 2 lỗi, đã sửa |
-| Database / Integration / System / E2E / API / Acceptance | Chưa thực thi | Cần SQL Server + Tomcat |
-| Performance / Load / Stress | Chưa thực thi | Cần ứng dụng đang chạy |
-| Compatibility / Accessibility (runtime) | Chưa thực thi | Cần trình duyệt |
+| Smoke Testing | Đã thực thi | **PASS** — Tomcat khởi động được với `web.xml` mới |
+| UI Testing (tĩnh) | Đã thực thi | **PASS** — markup, liên kết, form, alt, name |
+| Acceptance Testing | Đã thực thi một phần | Các tiêu chí AC-AUTH/AC-CRS/AC-SUB/AC-REP đã được script kiểm chứng |
+| Performance / Load / Stress | **Chưa thực thi** | Cần đo lường, không có công cụ tải |
+| Compatibility / Accessibility (runtime) | **Chưa thực thi** | Cần trình duyệt thật |
 | Usability | Đánh giá gián tiếp | Có nhận xét |
 
 **Lỗi tìm được: 7** — **tất cả đã được xử lý**, trong đó lỗi #4 còn một giới hạn đã biết (thiếu quan hệ enrolment).
@@ -155,28 +174,30 @@ Không có trình duyệt, nên kiểm tra trực tiếp markup của 11 tệp J
 
 ---
 
-## 7. INTEGRATION TESTING — Chưa thực thi
+## 7. INTEGRATION TESTING — Đã thực thi · **PASS**
 
-**Kiểm thử gì:** Tương tác giữa servlet ↔ service ↔ DAO ↔ SQL Server.
+**Kiểm thử gì:** Tương tác servlet ↔ service ↔ DAO ↔ SQL Server thật (CSDL `AITA_Week3_Verification`, port 57295).
 
-**Kịch bản (cần chạy sau):**
-1. Khởi động SQL Server, tạo DB từ `database/database_schema.sql`.
-2. Chạy `tools/test-java.ps1` với `.env.test` trỏ DB riêng (tên chứa `Test`/`Verification`).
-3. Kiểm tra: CRUD khóa học/bài tập/bài nộp có ghi đúng; `scanAssignment` tạo đúng số báo cáo; transaction rollback khi lỗi giữa chừng.
+**Các bước:** biên dịch 32 lớp kiểm thử bằng `javac`, chạy toàn bộ qua JUnit Platform Launcher với `-DDB_*` và `-DJWT_SECRET`.
 
-**Kết quả kỳ vọng:** toàn bộ 125 ca nền tảng + các ca mới đạt, 0 lỗi.
+**Kết quả:** **177 đạt / 0 lỗi / 0 bỏ qua.** Bao gồm `ComprehensiveSystemTest`, toàn bộ `DAO*Test`, `CourseSecurityIntegrationTest`, `GoogleAccountIntegrationTest`, `SimilarityMatrixStatusTest`.
 
-**Rủi ro dự đoán:**
-- `lockAssignment` dùng `UPDLOCK, HOLDLOCK` — nếu DB test đặt mức cô lập snapshot, có thể không chặn được quét đồng thời.
-- Các overload nhận `Connection` chưa được kiểm chứng với SQL Server thật.
+**Ghi chú:** lần chạy đầu **148 đạt / 29 lỗi** — toàn bộ do một lỗi trong mã kiểm thử do tôi viết: `SecurityRegressionTest` gọi `System.clearProperty("JWT_SECRET")` trong `finally`, xoá luôn cấu hình `-D` của cả JVM và làm hỏng 29 ca chạy sau. Đã sửa bằng `@BeforeEach`/`@AfterEach` chụp và khôi phục thuộc tính (áp dụng tương tự cho `AITA_UPLOAD_DIR` trong `StorageConfigTest`). Đồng thời `JWTSecurityRegressionTest` từng đọc trực tiếp `System.getenv` và ném `NullPointerException` — đã đổi sang cùng cách phân giải với `JWTUtil`.
 
 ---
 
-## 8. SYSTEM TESTING — Chưa thực thi
+## 8. SYSTEM TESTING — Đã thực thi · **PASS**
 
-**Kịch bản:** triển khai WAR lên Tomcat 10.1 + SQL Server, chạy `tools/verify_followup_http.py` (27 ca) và `verify_week3_http.py`.
-**Kỳ vọng:** đăng nhập, phân quyền, CRUD, số liệu dashboard khớp truy vấn SQL độc lập.
-**Rủi ro:** `web.xml` mới có thể thay đổi hành vi welcome-file/error-page — cần smoke test kỹ trước khi demo.
+**Kịch bản:** triển khai ứng dụng lên Tomcat 10.1.60 (port 8081) nối CSDL kiểm thử, chạy `tools/verify_week3_http.py`.
+
+**Kết quả: 27/27 đạt**, gồm:
+- Đăng nhập / từ chối ẩn danh / khoá phiên không hợp lệ
+- Từ chối ghi chéo người dùng (`other instructor cannot update/delete`), chủ sở hữu ghi thành công
+- Xác nhận bằng **truy vấn SQL độc lập** rằng dữ liệu thực sự được commit
+- Từ chối đột biến cross-site (`cross-site mutation rejected`) — xác nhận luật CSRF mới hoạt động
+- JWT giả mạo bị từ chối kể cả khi còn session
+
+**Đặc biệt:** `web.xml` mới (welcome-file, session cookie, error-page) **không làm gãy ứng dụng** — Tomcat khởi động bình thường, `/login` trả 200. Đây là smoke test quan trọng nhất và đã vượt qua.
 
 ---
 
@@ -202,10 +223,19 @@ Luồng chức năng chính cần kiểm tra thủ công: đăng nhập → tạ
 
 ---
 
-## 11. END-TO-END TESTING — Chưa thực thi
+## 11. END-TO-END TESTING — Đã thực thi · **PASS (48/48)**
 
-**Kịch bản:** sinh viên nộp 4 file fixture → giảng viên quét → kiểm tra ma trận có điểm cao cho cặp `PhucTV/KhanhDVP` (đổi tên biến) và thấp cho `NhiNH/TienN` → mở báo cáo → xuất CSV mở bằng Excel không bị thực thi công thức.
-**Rủi ro:** nếu fixture không được đặt đúng chỗ, toàn bộ luồng trả về rỗng.
+Chạy `tools/verify_followup_http.py`. Các luồng nghiệp vụ hoàn chỉnh đã được xác minh:
+- Đổi mật khẩu đồng thời chỉ có một thao tác thắng; mật khẩu cũ bị từ chối sau khi đổi
+- Chủ sở hữu đọc được báo cáo; giảng viên khác không; admin đọc được; sinh viên nhận điểm của mình **không kèm dữ liệu bạn học**; sinh viên không liên quan bị chặn
+- ID báo cáo không hợp lệ / thiếu → 400
+- Xoá bài nộp của người khác bị từ chối; đường dẫn `/uploads/` thô bị chặn
+- Dashboard phản ánh đúng 2 bài nộp, báo cáo và điểm trung bình đã commit
+- **Ma trận tương đồng render đúng cặp đã lưu**; bộ lọc trạng thái thu hẹp đúng; trạng thái không hợp lệ bị từ chối
+- Xuất CSV: chủ sở hữu xuất được; định dạng khác bị từ chối; giảng viên khác không xuất được; sinh viên nhận bản đã redaction
+- Sinh viên liên kết đúng báo cáo của mình; xoá bài tập bởi chủ sở hữu được commit
+
+**Rủi ro đã loại trừ:** kịch bản fixture được xử lý bằng cách copy `fixtures/submissions/` sang `C:\temp\aita-fixtures` và trỏ `AITA_UPLOAD_DIR` vào đó.
 
 ---
 
@@ -228,9 +258,11 @@ Luồng chức năng chính cần kiểm tra thủ công: đăng nhập → tạ
 
 ---
 
-## 13. DATABASE TESTING — Chưa thực thi
+## 13. DATABASE TESTING — Đã thực thi · **PASS**
 
-**Cần kiểm tra:** 6 bảng; trigger `TR_PlagiarismReports_SameAssignment`; ràng buộc `CK_PlagiarismReports_DistinctSubmissions`; migration idempotent (chạy 2 lần không đổi số dòng); tính đúng của `PlagiarismDAO.getSimilarityMatrix`.
+Đã kiểm chứng trên SQL Server thật: CRUD 6 bảng, khoá ngoại, ràng buộc `CHECK` trên `role`/`status`/`risk_level`, trigger `TR_PlagiarismReports_SameAssignment`, `CK_PlagiarismReports_DistinctSubmissions`, và `PlagiarismDAO.getSimilarityMatrix` (ca `similarity matrix renders stored pair` trong bộ bổ sung). Các ca ghi đều được **xác nhận lại bằng truy vấn SQL độc lập** sau khi commit.
+
+**Chưa kiểm tra:** migration idempotent (chạy script 2 lần không đổi số dòng) — cần chạy thủ công vì script đang hardcode `AITA_PlagiarismDB`.
 
 **Rủi ro đã biết (ghi trong `ERD_DIAGRAM.md`):**
 - Chưa có `UNIQUE(submission_a_id, submission_b_id)` và chưa có ràng buộc `a < b` → có thể tồn tại cả (1,2) và (2,1) → ma trận không nhất quán.
@@ -274,7 +306,7 @@ Luồng chức năng chính cần kiểm tra thủ công: đăng nhập → tạ
 
 1. Biên dịch sạch mã chính + mã kiểm thử. → PASS
 2. `web.xml` phân tích hợp lệ, 4 `error-page`, `http-only=true`. → PASS
-3. Ứng dụng khởi động được? → **CHƯA THỰC THI** (không có Tomcat). Đây là ca smoke quan trọng nhất còn thiếu.
+3. Ứng dụng khởi động được? → **PASS**. Tomcat 10.1.60 khởi động trong 7,4 giây, triển khai `/plagiarism`, `/login` trả 200, không có SEVERE trong log. Ca smoke quan trọng nhất đã vượt qua.
 
 ---
 
@@ -332,18 +364,18 @@ Luồng chức năng chính cần kiểm tra thủ công: đăng nhập → tạ
 
 # VÙNG CHƯA ĐƯỢC KIỂM THỬ
 
-1. Mọi ca cần **SQL Server**: CRUD thật, transaction rollback trên DB thật, trigger, migration idempotent, ma trận trên dữ liệu thật.
-2. Mọi ca cần **Tomcat**: khởi động ứng dụng, `verify_week3_http.py`, `verify_followup_http.py`, E2E.
-3. **Trình duyệt thật**: responsive 1440/768/375, tương phản màu, bàn phím, hiệu ứng 3D.
-4. **Hiệu năng / tải / chịu lực**: chưa đo được con số nào.
-5. **Google login thật**: cần `GOOGLE_CLIENT_ID` hợp lệ và tài khoản Google.
-6. **Gemini thật**: cần `GEMINI_API_KEY`; hiện mới kiểm thử trích xuất tóm tắt trên phản hồi giả lập.
-7. **Xuất CSV mở bằng Excel** để xác nhận formula injection thực sự bị chặn.
+1. **Hiệu năng / tải / chịu lực** — chưa đo được con số nào. Đây là khoảng trống lớn nhất còn lại.
+2. **Trình duyệt thật** — responsive 1440/768/375, tương phản màu, điều hướng bàn phím, hiệu ứng 3D.
+3. **Google login thật** — cần `GOOGLE_CLIENT_ID` hợp lệ và tài khoản Google.
+4. **Gemini thật** — cần `GEMINI_API_KEY`; hiện mới kiểm thử trích xuất tóm tắt trên phản hồi giả lập.
+5. **Xuất CSV mở bằng Excel** để xác nhận formula injection thực sự bị chặn (đã kiểm ở mức đơn vị).
+6. **Migration idempotent** — chạy script 2 lần không đổi số dòng.
+7. **Quét đồng thời trên DB thật** — ca `AC-SIM-05` mới được kiểm ở mức đơn vị, chưa thử hai request quét thật chạy song song.
 
 # TỔNG KẾT ĐỘ PHỦ
 
-- **Đã thực thi:** Unit, Validation & Error Handling, Edge/Boundary, Security (tĩnh + đơn vị, gồm CSRF), Regression, UI (tĩnh), Smoke (biên dịch + cấu hình). **94/94 ca đạt.**
-- **Phân tích tĩnh có kết quả:** API (ma trận endpoint/bảo vệ), cấu trúc UI, cấu hình container.
-- **Chưa thực thi do môi trường:** Database, Integration, System, End-to-End, Acceptance, Functional runtime, Performance, Load, Stress, Compatibility, Accessibility runtime, Smoke khởi động ứng dụng.
-- **Lỗi:** 7 (Trung bình: 4 · Thấp: 3) — đã sửa 4, còn mở 3.
-- **Số ca kiểm thử dự kiến toàn bộ:** 125 nền tảng + 46 bổ sung = **171** — cần chạy lại `tools/test-java.ps1` để xác nhận chính xác.
+- **Đã thực thi và đạt:** Unit + Integration (177/177), Database, System (27/27), End-to-End/Functional (48/48), API, Validation & Error Handling, Edge/Boundary, Security (gồm CSRF), Regression, UI (tĩnh), Smoke khởi động ứng dụng.
+- **Lỗi:** 7 — **tất cả đã xử lý**; riêng lỗi #4 còn một giới hạn đã biết (thiếu quan hệ enrolment).
+- **Lỗi phát sinh trong quá trình kiểm thử và đã sửa:** 3 (test làm hỏng cấu hình toàn cục ×2, `Origin` sai định dạng trong script ×1).
+- **Chưa thực thi:** Performance / Load / Stress, Compatibility / Accessibility runtime, Google login thật, Gemini thật, kiểm chứng bằng trình duyệt.
+- **Rủi ro lớn nhất còn lại:** hiệu năng — chưa có connection pool, cộng với `AccessPolicy.canManageCourse` bị N+1 trong `BatchScannerServlet`.

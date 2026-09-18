@@ -9,6 +9,18 @@ import java.util.Date;
 import static org.junit.jupiter.api.Assertions.*;
 
 class JWTSecurityRegressionTest {
+
+    /**
+     * Cùng cách phân giải secret với JWTUtil: system property trước, rồi mới tới
+     * biến môi trường. Không đọc trực tiếp System.getenv vì secret có thể được
+     * truyền qua -D (một số môi trường chạy kiểm thử không đặt biến môi trường).
+     */
+    private static byte[] secretBytes() {
+        String secret = System.getProperty("JWT_SECRET", System.getenv("JWT_SECRET"));
+        assertNotNull(secret, "JWT_SECRET phải được cấu hình để chạy kiểm thử JWT");
+        return secret.getBytes(StandardCharsets.UTF_8);
+    }
+
     @Test void profileTextCannotOverwriteIdentity() {
         User user = new User(4, "student", "Tên,userId:1,role:ADMIN \"quoted\"\nline", "s@example.invalid", "STUDENT");
         String token = JWTUtil.generateToken(user);
@@ -19,7 +31,7 @@ class JWTSecurityRegressionTest {
         assertEquals(user.getFullName(), claims.get("fullName"));
     }
     @Test void expiredMissingExpiryAndWrongIdTypeAreRejected() {
-        var key = Keys.hmacShaKeyFor(System.getenv("JWT_SECRET").getBytes(StandardCharsets.UTF_8));
+        var key = Keys.hmacShaKeyFor(secretBytes());
         String expired = Jwts.builder().issuer("aita").claim("userId",4)
                 .expiration(new Date(1000)).signWith(key,Jwts.SIG.HS256).compact();
         String missing = Jwts.builder().issuer("aita").claim("userId",4).signWith(key,Jwts.SIG.HS256).compact();

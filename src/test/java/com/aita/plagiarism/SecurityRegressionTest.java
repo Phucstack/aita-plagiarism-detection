@@ -4,6 +4,8 @@ import com.aita.plagiarism.controller.ExportReportServlet;
 import com.aita.plagiarism.model.User;
 import com.aita.plagiarism.util.JWTUtil;
 import com.aita.plagiarism.util.PasswordUtil;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +28,27 @@ import static org.junit.jupiter.api.Assertions.*;
 class SecurityRegressionTest {
 
     private static final String SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef";
+
+    /**
+     * Các ca dưới đây thay đổi System property toàn cục. Phải chụp lại và khôi phục
+     * sau mỗi ca, nếu không sẽ làm hỏng cấu hình của mọi kiểm thử chạy sau trong cùng JVM
+     * (đặc biệt khi secret được truyền qua -D thay vì biến môi trường).
+     */
+    private String originalJwtSecret;
+
+    @BeforeEach
+    void snapshotJwtSecret() {
+        originalJwtSecret = System.getProperty("JWT_SECRET");
+    }
+
+    @AfterEach
+    void restoreJwtSecret() {
+        if (originalJwtSecret == null) {
+            System.clearProperty("JWT_SECRET");
+        } else {
+            System.setProperty("JWT_SECRET", originalJwtSecret);
+        }
+    }
 
     private static User user(int id, String role) {
         User u = new User();

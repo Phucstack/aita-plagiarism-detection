@@ -1,5 +1,7 @@
 package com.aita.plagiarism.config;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -16,6 +18,23 @@ class StorageConfigTest {
 
     @TempDir
     Path tempDir;
+
+    /** Khôi phục cấu hình toàn cục sau mỗi ca để không ảnh hưởng kiểm thử khác. */
+    private String originalUploadDir;
+
+    @BeforeEach
+    void snapshotUploadDir() {
+        originalUploadDir = System.getProperty("AITA_UPLOAD_DIR");
+    }
+
+    @AfterEach
+    void restoreUploadDir() {
+        if (originalUploadDir == null) {
+            System.clearProperty("AITA_UPLOAD_DIR");
+        } else {
+            System.setProperty("AITA_UPLOAD_DIR", originalUploadDir);
+        }
+    }
 
     @Test
     @DisplayName("AITA_UPLOAD_DIR được ưu tiên làm thư mục gốc")
