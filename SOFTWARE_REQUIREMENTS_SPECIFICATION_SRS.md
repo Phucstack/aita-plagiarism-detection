@@ -345,7 +345,9 @@ AITA CodeDefend System
   4. **Similarity Metric Calculation:**
      - Tính toán chỉ số **Jaccard Similarity Index**:
        $$J(A, B) = \frac{|Tokens_A \cap Tokens_B|}{|Tokens_A \cup Tokens_B|} \times 100\%$$
-     - Tính khoảng cách **Normalized Levenshtein Distance** trên chuỗi token:
+     - Tính khoảng cách **Normalized Levenshtein Distance** trên chuỗi token
+       (cài đặt tính trên **dãy token**, không phải từng ký tự — nhanh hơn ~25 lần và
+       đúng với mô tả "trên chuỗi token"):
        $$Sim_{Lev}(A, B) = \left(1 - \frac{Lev(A, B)}{\max(|A|, |B|)}\right) \times 100\%$$
      - Điểm tổng hợp tương đồng mã nguồn:
        $$Score_{Java} = 0.6 \times J(A, B) + 0.4 \times Sim_{Lev}(A, B)$$
@@ -545,9 +547,7 @@ AITA CodeDefend System
 ### 4.2. Hiệu năng & Tải (Performance - NFR-PERF)
 * **[NFR-PERF-01] Tốc độ phản hồi Web:** Thời gian phản hồi trung bình (Response Time) cho các tác vụ CRUD thông thường phải $\le 500$ms trên Apache Tomcat 10.1.
 * **[NFR-PERF-02] Tốc độ Lõi Đối soát:** Thuật toán tính toán ma trận tương đồng cục bộ cho lớp học 50 sinh viên ($C(50, 2) = 1,225$ phép so sánh) phải hoàn thành trong $\le 5$ giây.
-* **[NFR-PERF-03] Quản lý Kết nối CSDL:** `⏳ CHƯA TRIỂN KHAI — DỰ KIẾN W4–9`.
-  - **Hiện trạng:** `DBContext.getConnection()` gọi trực tiếp `DriverManager.getConnection(...)` cho **mỗi lần gọi**, không có connection pool; `pom.xml` không có HikariCP hay Tomcat JDBC Pool. (`DBContext.java:25`)
-  - **Kế hoạch:** bổ sung pool với tối thiểu 10 kết nối thường trực. Mỗi DAO hiện tự mở và đóng kết nối riêng, nên việc thêm pool không làm thay đổi mã gọi.
+* **[NFR-PERF-03] Quản lý Kết nối CSDL:** `✅` Dùng connection pool **HikariCP**, tối đa 10 kết nối, tối thiểu 2 kết nối nhàn rỗi (cấu hình được qua `DB_POOL_MAX`, `DB_POOL_MIN_IDLE`). (`config/DBContext.java`)
 
 ### 4.3. Tính Tin cậy & Khả năng Phục hồi (Reliability & Resilience - NFR-REL)
 * **[NFR-REL-01] Tính toàn vẹn giao dịch (ACID):** `🟡 MỘT PHẦN (W1–3)` — các thao tác ghi **nhiều bước** được bọc trong transaction:
@@ -635,7 +635,7 @@ Các hạng mục dưới đây **nằm trong tầm nhìn dự án** nhưng **ch
 | Tô màu heatmap theo dải cảnh báo | FE-06.1 | Tuần 4–9 |
 | Nhận diện nội dung do LLM sinh (Burstiness) | FE-05.2, WP-14 | Tuần 7–9 |
 | Bóc tách MatchingBlocks bằng LCS (toạ độ thật) | FE-04.4 | Tuần 4–9 |
-| Connection pooling (HikariCP / Tomcat JDBC) | NFR-PERF-03 | Tuần 4–6 |
+| ~~Connection pooling~~ | NFR-PERF-03 | **Đã hoàn thành** (HikariCP) |
 | Quan hệ enrolment (sinh viên đăng ký khóa học) | Mục 1.2 | Tuần 4–6 |
 
 ---

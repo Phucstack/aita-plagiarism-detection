@@ -10,6 +10,7 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Tầng truy xuất dữ liệu độc lập cho Bảng Submissions (Chuẩn 3NF)
@@ -165,6 +166,59 @@ public class SubmissionDAO {
             throw new DataAccessException(e);
         }
         return false;
+    }
+
+    /**
+     * Gán trạng thái cho toàn bộ bài nộp của một bài tập sau khi quét: bài nằm trong ít
+     * nhất một cặp HIGH_RISK thành {@code FLAGGED}, còn lại thành {@code ANALYZED}.
+     *
+     * Dùng 2 câu lệnh thay vì 2 câu cho mỗi cặp bài nộp.
+     */
+    public boolean markSubmissionsByOutcome(int assignmentId, Set<Integer> flaggedIds, Connection conn) {
+        if (conn == null) throw new IllegalArgumentException("connection is required");
+        Set<Integer> flagged = flaggedIds == null ? Set.of() : flaggedIds;
+        try {
+            if (!flagged.isEmpty()) {
+                try (PreparedStatement ps = conn.prepareStatement(
+                        buildInClause("UPDATE Submissions SET status = 'FLAGGED' WHERE assignment_id = ? AND submission_id IN (", flagged.size()) + ")")) {
+                    ps.setInt(1, assignmentId);
+                    bindIds(ps, 2, flagged);
+                    ps.executeUpdate();
+                }
+            }
+            // Những bài không bị gắn cờ -> ANALYZED (câu lệnh này chạy cả khi flagged rỗng).
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "UPDATE Submissions SET status = 'ANALYZED' WHERE assignment_id = ?"
+                            + (flagged.isEmpty() ? "" :
+                            " AND submission_id NOT IN (" + placeholders(flagged.size()) + ")"))) {
+                ps.setInt(1, assignmentId);
+                bindIds(ps, 2, flagged);
+                ps.executeUpdate();
+            }
+            return true;
+        } catch (Exception e) {
+            throw new DataAccessException(e);
+        }
+    }
+
+    private static String placeholders(int count) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            if (i > 0) sb.append(',');
+            sb.append('?');
+        }
+        return sb.toString();
+    }
+
+    private static String buildInClause(String prefix, int count) {
+        return prefix + placeholders(count);
+    }
+
+    private static void bindIds(PreparedStatement ps, int startIndex, Set<Integer> ids) throws java.sql.SQLException {
+        int i = startIndex;
+        for (Integer id : ids) {
+            ps.setInt(i++, id);
+        }
     }
 
     private Submission mapSubmission(ResultSet rs) throws Exception {

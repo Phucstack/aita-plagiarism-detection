@@ -1,7 +1,9 @@
 package com.aita.plagiarism.controller;
 
 import com.aita.plagiarism.dao.AssignmentDAO;
+import com.aita.plagiarism.dao.CourseDAO;
 import com.aita.plagiarism.model.Assignment;
+import com.aita.plagiarism.model.Course;
 import com.aita.plagiarism.model.User;
 import com.aita.plagiarism.service.AccessPolicy;
 import com.aita.plagiarism.service.PlagiarismEngineService;
@@ -12,7 +14,9 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @WebServlet("/batch-scanner")
 public class BatchScannerServlet extends HttpServlet {
@@ -26,11 +30,29 @@ public class BatchScannerServlet extends HttpServlet {
         response.setContentType("text/html;charset=UTF-8");
 
         User actor = (User) request.getSession().getAttribute("currentUser");
-        List<Assignment> assignments = assignmentDAO.getAllAssignments().stream()
-                .filter(a -> AccessPolicy.canManageCourse(actor, a.getCourseId())).toList();
+        List<Assignment> assignments = listAssignmentsFor(actor);
         request.setAttribute("assignments", assignments);
 
         request.getRequestDispatcher("/batch-scanner.jsp").forward(request, response);
+    }
+
+    /**
+     * Lấy các bài tập mà người dùng được phép quét.
+     *
+     * Trước đây dùng {@code AccessPolicy.canManageCourse} cho từng bài tập, sinh ra
+     * N+1 truy vấn (mỗi bài tập một lần xuống CSDL). Ở đây lấy danh sách khóa học được
+     * quản lý một lần rồi lọc trong bộ nhớ.
+     */
+    private List<Assignment> listAssignmentsFor(User actor) {
+        List<Assignment> all = assignmentDAO.getAllAssignments();
+        if (actor == null) return List.of();
+        if ("ADMIN".equals(actor.getRole())) return all;
+
+        Set<Integer> managed = new HashSet<>();
+        for (Course course : new CourseDAO().getCoursesByInstructor(actor.getUserId())) {
+            managed.add(course.getCourseId());
+        }
+        return all.stream().filter(a -> managed.contains(a.getCourseId())).toList();
     }
 
     @Override

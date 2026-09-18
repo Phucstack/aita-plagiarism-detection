@@ -41,7 +41,8 @@
 | Smoke Testing | Đã thực thi | **PASS** — Tomcat khởi động được với `web.xml` mới |
 | UI Testing (tĩnh) | Đã thực thi | **PASS** — markup, liên kết, form, alt, name |
 | Acceptance Testing | Đã thực thi một phần | Các tiêu chí AC-AUTH/AC-CRS/AC-SUB/AC-REP đã được script kiểm chứng |
-| Performance / Load / Stress | **Chưa thực thi** | Cần đo lường, không có công cụ tải |
+| Performance Testing | Đã thực thi | **PASS** sau tối ưu (1,49 s / 4,05 s) |
+| Load / Stress | **Chưa thực thi** | Chưa có công cụ tạo tải |
 | Compatibility / Accessibility (runtime) | **Chưa thực thi** | Cần trình duyệt thật |
 | Usability | Đánh giá gián tiếp | Có nhận xét |
 
@@ -270,7 +271,38 @@ Chạy `tools/verify_followup_http.py`. Các luồng nghiệp vụ hoàn chỉnh
 
 ---
 
-## 14. PERFORMANCE / 15. LOAD / 16. STRESS — Chưa thực thi
+## 14. PERFORMANCE TESTING — Đã thực thi · **PASS (sau tối ưu)**
+
+Đo trên Tomcat thật + SQL Server thật bằng `target/perf/perf_scan.py` (đo thời gian
+toàn bộ request `POST /batch-scanner`, đã trừ bỏ phần tạo dữ liệu).
+
+| Kịch bản | Tiêu chí | Trước tối ưu | Sau tối ưu | Kết quả |
+|---|---|---|---|---|
+| 20 bài nộp (190 cặp) | — | 2,76 s | — | — |
+| 30 bài nộp (435 cặp) | AC-SIM-03: < 3 s | **4,02 s** ❌ | **1,49 s** | **PASS** |
+| 50 bài nộp (1.225 cặp) | NFR-PERF-02: ≤ 5 s | **10,90 s** ❌ | **4,05 s** | **PASS** |
+
+**Ba nguyên nhân gây chậm, theo thứ tự mức độ ảnh hưởng:**
+
+1. **Mỗi tệp bị đọc lại N−1 lần.** `readSubmissionContent` nằm trong vòng lặp kép →
+   50 bài nộp = 2.450 lần đọc đĩa thay vì 50. Sửa: đọc một lần vào `Map` trước vòng lặp.
+2. **~2.450 câu `UPDATE` trạng thái.** Mỗi cặp cập nhật 2 lần. Sửa: gom thành 2 câu lệnh
+   cho toàn bộ bài tập (`SubmissionDAO.markSubmissionsByOutcome`).
+3. **~1.225 `SELECT` xác nhận thừa.** `createReport` truy vấn lại assignment cho mỗi cặp
+   dù bài nộp đã được lấy theo assignment. Sửa: chỉ truy vấn khi người gọi chưa biết.
+
+Kèm theo: connection pool **HikariCP** (NFR-PERF-03, trước đây `⏳`), sửa N+1 trong
+`BatchScannerServlet.doGet`, và Levenshtein chuyển sang tính trên **dãy token** như SRS
+mô tả thay vì từng ký tự.
+
+**Lưu ý:** kết quả phụ thuộc kích thước tệp. Các con số trên đo với fixture ~600 ký tự.
+Tệp lớn hơn sẽ chậm hơn tỷ lệ với độ dài.
+
+## 15. LOAD / 16. STRESS — Chưa thực thi
+
+Chưa có công cụ tạo tải. Có thể thực hiện sau bằng cách gửi nhiều request quét đồng thời
+để kiểm tra khoá `UPDLOCK` và giới hạn pool (10 kết nối). Rủi ro: nếu số request đồng thời
+vượt quá pool, các request sẽ phải chờ tối đa 10 giây rồi lỗi.
 
 **Kịch bản cần chạy:**
 - Hiệu năng: quét 30 bài nộp (AC-SIM-03 mục tiêu < 3 giây).
@@ -364,7 +396,7 @@ Chạy `tools/verify_followup_http.py`. Các luồng nghiệp vụ hoàn chỉnh
 
 # VÙNG CHƯA ĐƯỢC KIỂM THỬ
 
-1. **Hiệu năng / tải / chịu lực** — chưa đo được con số nào. Đây là khoảng trống lớn nhất còn lại.
+1. **Tải / chịu lực** — đã đo hiệu năng đơn lẻ, chưa thử nhiều request đồng thời.
 2. **Trình duyệt thật** — responsive 1440/768/375, tương phản màu, điều hướng bàn phím, hiệu ứng 3D.
 3. **Google login thật** — cần `GOOGLE_CLIENT_ID` hợp lệ và tài khoản Google.
 4. **Gemini thật** — cần `GEMINI_API_KEY`; hiện mới kiểm thử trích xuất tóm tắt trên phản hồi giả lập.
@@ -377,5 +409,5 @@ Chạy `tools/verify_followup_http.py`. Các luồng nghiệp vụ hoàn chỉnh
 - **Đã thực thi và đạt:** Unit + Integration (177/177), Database, System (27/27), End-to-End/Functional (48/48), API, Validation & Error Handling, Edge/Boundary, Security (gồm CSRF), Regression, UI (tĩnh), Smoke khởi động ứng dụng.
 - **Lỗi:** 7 — **tất cả đã xử lý**; riêng lỗi #4 còn một giới hạn đã biết (thiếu quan hệ enrolment).
 - **Lỗi phát sinh trong quá trình kiểm thử và đã sửa:** 3 (test làm hỏng cấu hình toàn cục ×2, `Origin` sai định dạng trong script ×1).
-- **Chưa thực thi:** Performance / Load / Stress, Compatibility / Accessibility runtime, Google login thật, Gemini thật, kiểm chứng bằng trình duyệt.
-- **Rủi ro lớn nhất còn lại:** hiệu năng — chưa có connection pool, cộng với `AccessPolicy.canManageCourse` bị N+1 trong `BatchScannerServlet`.
+- **Chưa thực thi:** Load / Stress, Compatibility / Accessibility runtime, Google login thật, Gemini thật, kiểm chứng bằng trình duyệt.
+- **Rủi ro còn lại:** chưa thử tải đồng thời — nếu nhiều lượt quét chạy cùng lúc, pool 10 kết nối có thể trở thành nút thắt.

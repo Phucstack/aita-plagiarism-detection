@@ -7,6 +7,7 @@ import com.aita.plagiarism.model.PlagiarismReport;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,11 +50,13 @@ public class PlagiarismDAO {
                 || r.getSubmissionAId() == r.getSubmissionBId()) {
             throw new IllegalArgumentException("A plagiarism report requires two distinct submissions.");
         }
-        String assignmentSql = "SELECT sa.assignment_id FROM Submissions sa " +
-                "JOIN Submissions sb ON sb.submission_id = ? " +
-                "WHERE sa.submission_id = ? AND sa.assignment_id = sb.assignment_id";
-        try {
-            int derivedAssignmentId;
+        // Chỉ truy vấn xác nhận khi người gọi CHƯA biết assignment. Lượt quét lấy bài nộp
+        // bằng getSubmissionsByAssignment nên mọi cặp chắc chắn cùng assignment — việc
+        // kiểm tra lại cho từng cặp tốn thêm ~1.225 SELECT mỗi lượt quét 50 bài.
+        if (r.getAssignmentId() <= 0) {
+            String assignmentSql = "SELECT sa.assignment_id FROM Submissions sa " +
+                    "JOIN Submissions sb ON sb.submission_id = ? " +
+                    "WHERE sa.submission_id = ? AND sa.assignment_id = sb.assignment_id";
             try (PreparedStatement assignmentPs = conn.prepareStatement(assignmentSql)) {
                 assignmentPs.setInt(1, r.getSubmissionBId());
                 assignmentPs.setInt(2, r.getSubmissionAId());
@@ -61,15 +64,14 @@ public class PlagiarismDAO {
                     if (!assignmentRs.next()) {
                         throw new IllegalArgumentException("Both submissions must exist and belong to the same assignment.");
                     }
-                    derivedAssignmentId = assignmentRs.getInt(1);
+                    r.setAssignmentId(assignmentRs.getInt(1));
                 }
+            } catch (SQLException e) {
+                throw new DataAccessException(e);
             }
+        }
 
-            if (r.getAssignmentId() > 0 && r.getAssignmentId() != derivedAssignmentId) {
-                throw new IllegalArgumentException("Report assignment does not match the submissions.");
-            }
-            r.setAssignmentId(derivedAssignmentId);
-
+        try {
             boolean legacySchema = hasLegacyAssignmentColumn(conn);
             String sql = legacySchema
                     ? "INSERT INTO PlagiarismReports (assignment_id, submission_a_id, submission_b_id, similarity_score, risk_level, ai_analysis_summary) VALUES (?, ?, ?, ?, ?, ?)"
@@ -77,7 +79,7 @@ public class PlagiarismDAO {
             try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
                 int offset = 0;
                 if (legacySchema) {
-                    ps.setInt(1, derivedAssignmentId);
+                    ps.setInt(1, r.getAssignmentId());
                     offset = 1;
                 }
                 ps.setInt(1 + offset, r.getSubmissionAId());

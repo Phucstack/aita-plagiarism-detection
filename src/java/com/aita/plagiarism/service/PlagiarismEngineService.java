@@ -131,12 +131,22 @@ public class PlagiarismEngineService {
     /**
      * Tính Normalized Levenshtein Distance
      */
+    /**
+     * Khoảng cách Levenshtein chuẩn hóa, tính trên <b>chuỗi token</b> (đúng như SRS
+     * FE-04.1 mô tả), không phải trên từng ký tự.
+     *
+     * Lý do: với hai tệp ~500 ký tự, Levenshtein theo ký tự tốn ~250.000 ô bảng cho
+     * mỗi cặp; theo token (~100 token) chỉ tốn ~10.000 ô — nhanh hơn khoảng 25 lần mà
+     * ý nghĩa so sánh vẫn giữ nguyên (đều là khoảng cách chỉnh sửa trên dãy đã chuẩn hóa).
+     */
     public double calculateNormalizedLevenshtein(String strA, String strB) {
         if (strA.equals(strB)) return 100.0;
-        int maxLen = Math.max(strA.length(), strB.length());
+        String[] a = strA.isBlank() ? new String[0] : strA.trim().split("\\s+");
+        String[] b = strB.isBlank() ? new String[0] : strB.trim().split("\\s+");
+        int maxLen = Math.max(a.length, b.length);
         if (maxLen == 0) return 100.0;
 
-        int distance = computeLevenshteinDistance(strA, strB);
+        int distance = computeLevenshteinDistance(a, b);
         double similarity = (1.0 - (double) distance / maxLen) * 100.0;
         return Math.max(0.0, similarity);
     }
@@ -208,13 +218,23 @@ public class PlagiarismEngineService {
                 reportsGenerated = 0;
                 skipped = 0;
 
+                // Đọc nội dung MỘT LẦN cho mỗi bài nộp. Trước đây việc đọc nằm trong vòng
+                // lặp kép nên mỗi tệp bị đọc lại N-1 lần (50 bài nộp = 2.450 lần đọc đĩa
+                // thay vì 50). Đây là nút thắt lớn nhất của lượt quét.
+                Map<Integer, String> contents = new HashMap<>();
+                for (Submission s : submissions) {
+                    contents.put(s.getSubmissionId(), readSubmissionContent(s));
+                }
+
+                Set<Integer> flagged = new HashSet<>();
+
                 for (int i = 0; i < submissions.size(); i++) {
                     for (int j = i + 1; j < submissions.size(); j++) {
                         Submission subA = submissions.get(i);
                         Submission subB = submissions.get(j);
 
-                        String codeA = readSubmissionContent(subA);
-                        String codeB = readSubmissionContent(subB);
+                        String codeA = contents.get(subA.getSubmissionId());
+                        String codeB = contents.get(subB.getSubmissionId());
                         if (codeA == null || codeB == null || codeA.isBlank() || codeB.isBlank()) {
                             // Không đọc được nội dung thật, hoặc tệp rỗng/chỉ có comment:
                             // bỏ qua cặp này, tuyệt đối không thay bằng nội dung giả
@@ -254,14 +274,17 @@ public class PlagiarismEngineService {
                         }
 
                         if ("HIGH_RISK".equals(riskLevel)) {
-                            submissionDAO.updateSubmissionStatus(subA.getSubmissionId(), "FLAGGED", conn);
-                            submissionDAO.updateSubmissionStatus(subB.getSubmissionId(), "FLAGGED", conn);
+                            flagged.add(subA.getSubmissionId());
+                            flagged.add(subB.getSubmissionId());
                             highRiskPairs.add(new HighRiskPair(reportId, score, codeA, codeB));
-                        } else if (!"FLAGGED".equals(subA.getStatus())) {
-                            submissionDAO.updateSubmissionStatus(subA.getSubmissionId(), "ANALYZED", conn);
                         }
                     }
                 }
+
+                // Cập nhật trạng thái HAI câu lệnh cho toàn bộ bài tập, thay vì 2 câu
+                // cho mỗi cặp (1.225 cặp = 2.450 câu lệnh).
+                submissionDAO.markSubmissionsByOutcome(assignmentId, flagged, conn);
+
                 conn.commit();
             } catch (Exception e) {
                 conn.rollback();
@@ -400,20 +423,27 @@ public class PlagiarismEngineService {
         return ngrams;
     }
 
-    private int computeLevenshteinDistance(String a, String b) {
-        int[] costs = new int[b.length() + 1];
+    /** Khoảng cách Levenshtein trên hai dãy token, dùng một hàng chi phí (O(n) bộ nhớ). */
+    private int computeLevenshteinDistance(String[] a, String[] b) {
+        if (a.length < b.length) {
+            String[] swap = a;
+            a = b;
+            b = swap;
+        }
+        int[] costs = new int[b.length + 1];
         for (int j = 0; j < costs.length; j++) costs[j] = j;
 
-        for (int i = 1; i <= a.length(); i++) {
+        for (int i = 1; i <= a.length; i++) {
             costs[0] = i;
             int nw = i - 1;
-            for (int j = 1; j <= b.length(); j++) {
+            String ai = a[i - 1];
+            for (int j = 1; j <= b.length; j++) {
                 int cj = Math.min(1 + Math.min(costs[j], costs[j - 1]),
-                        a.charAt(i - 1) == b.charAt(j - 1) ? nw : nw + 1);
+                        ai.equals(b[j - 1]) ? nw : nw + 1);
                 nw = costs[j];
                 costs[j] = cj;
             }
         }
-        return costs[b.length()];
+        return costs[b.length];
     }
 }
