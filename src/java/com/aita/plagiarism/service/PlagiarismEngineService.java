@@ -1,6 +1,8 @@
 package com.aita.plagiarism.service;
 
+import com.aita.plagiarism.config.DBContext;
 import com.aita.plagiarism.dao.AssignmentDAO;
+import com.aita.plagiarism.dao.DataAccessException;
 import com.aita.plagiarism.dao.PlagiarismDAO;
 import com.aita.plagiarism.dao.SubmissionDAO;
 import com.aita.plagiarism.model.Assignment;
@@ -11,6 +13,9 @@ import com.aita.plagiarism.model.Submission;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,6 +33,33 @@ public class PlagiarismEngineService {
     private final PlagiarismDAO plagiarismDAO = new PlagiarismDAO();
     private final SubmissionDAO submissionDAO = new SubmissionDAO();
     private final AssignmentDAO assignmentDAO = new AssignmentDAO();
+    private final GeminiPlagiarismService geminiService;
+
+    /** Số lần gọi Gemini tối đa trong một lượt quét. Cấu hình qua GEMINI_MAX_CALLS_PER_SCAN. */
+    private static final int DEFAULT_MAX_CALLS_PER_SCAN = 3;
+
+    private static final String LOCAL_ANALYSIS_PREFIX = "Phân tích cục bộ (rule-based):";
+
+    public PlagiarismEngineService() {
+        this(new GeminiPlagiarismService());
+    }
+
+    /** Constructor để kiểm thử: cho phép tiêm một Gemini service giả. */
+    PlagiarismEngineService(GeminiPlagiarismService geminiService) {
+        this.geminiService = geminiService;
+    }
+
+    private static int maxCallsPerScan() {
+        String raw = System.getProperty("GEMINI_MAX_CALLS_PER_SCAN");
+        if (raw == null || raw.isBlank()) raw = System.getenv("GEMINI_MAX_CALLS_PER_SCAN");
+        if (raw == null || raw.isBlank()) return DEFAULT_MAX_CALLS_PER_SCAN;
+        try {
+            int value = Integer.parseInt(raw.trim());
+            return Math.max(0, Math.min(value, 50));
+        } catch (NumberFormatException e) {
+            return DEFAULT_MAX_CALLS_PER_SCAN;
+        }
+    }
 
     private static final Set<String> JAVA_KEYWORDS = new HashSet<>(Arrays.asList(
             "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const",
@@ -116,6 +148,10 @@ public class PlagiarismEngineService {
         String normA = normalizeJavaCode(rawCodeA);
         String normB = normalizeJavaCode(rawCodeB);
 
+        // Tệp rỗng hoặc chỉ chứa comment không có gì để so sánh. Nếu không chặn,
+        // hai tệp rỗng sẽ cho Jaccard = Levenshtein = 100% và bị gắn HIGH_RISK oan.
+        if (normA.isBlank() || normB.isBlank()) return 0.0;
+
         double jaccard = calculateJaccardIndex(normA, normB);
         double levenshtein = calculateNormalizedLevenshtein(normA, normB);
 
@@ -123,94 +159,201 @@ public class PlagiarismEngineService {
         return Math.round(overall * 100.0) / 100.0;
     }
 
+    /** Kết quả của một lượt quét. */
+    public static final class ScanResult {
+        private final int reportsCreated;
+        private final int skippedPairs;
+
+        public ScanResult(int reportsCreated, int skippedPairs) {
+            this.reportsCreated = reportsCreated;
+            this.skippedPairs = skippedPairs;
+        }
+
+        public int getReportsCreated() { return reportsCreated; }
+
+        /** Số cặp bị bỏ qua vì không đọc được nội dung file của một trong hai bài nộp. */
+        public int getSkippedPairs() { return skippedPairs; }
+    }
+
     /**
-     * Quét toàn bộ bài nộp của Assignment và lưu báo cáo vào CSDL
+     * Quét toàn bộ bài nộp của Assignment và lưu báo cáo vào CSDL.
+     *
+     * Toàn bộ phần ghi được bọc trong một giao dịch duy nhất và giữ khóa
+     * UPDLOCK/HOLDLOCK trên bản ghi Assignments để hai lượt quét không chạy xen kẽ.
+     * Cặp nào không đọc được nội dung file sẽ bị bỏ qua (không tạo báo cáo) thay vì
+     * được tính điểm trên nội dung giả.
      */
-    public int scanAssignment(int assignmentId) {
+    public ScanResult scanAssignment(int assignmentId) {
         List<Submission> submissions = submissionDAO.getSubmissionsByAssignment(assignmentId);
         if (submissions.size() < 2) {
-            return 0;
+            return new ScanResult(0, 0);
         }
 
         Assignment assignment = assignmentDAO.getAssignmentById(assignmentId);
         double threshold = (assignment != null && assignment.getSimilarityThreshold() > 0)
                 ? assignment.getSimilarityThreshold() : 75.0;
 
-        // Xóa các báo cáo cũ của bài tập này để cập nhật mới
-        plagiarismDAO.clearReportsByAssignment(assignmentId);
+        List<HighRiskPair> highRiskPairs = new ArrayList<>();
+        int reportsGenerated;
+        int skipped;
 
-        int reportsGenerated = 0;
+        try (Connection conn = DBContext.getConnection()) {
+            boolean autoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try {
+                lockAssignment(conn, assignmentId);
+                // Xóa báo cáo cũ của bài tập này trong cùng giao dịch.
+                plagiarismDAO.clearReportsByAssignment(assignmentId, conn);
 
-        // Đối soát tổ hợp C(N, 2)
-        for (int i = 0; i < submissions.size(); i++) {
-            for (int j = i + 1; j < submissions.size(); j++) {
-                Submission subA = submissions.get(i);
-                Submission subB = submissions.get(j);
+                reportsGenerated = 0;
+                skipped = 0;
 
-                String codeA = readSubmissionContent(subA);
-                String codeB = readSubmissionContent(subB);
+                for (int i = 0; i < submissions.size(); i++) {
+                    for (int j = i + 1; j < submissions.size(); j++) {
+                        Submission subA = submissions.get(i);
+                        Submission subB = submissions.get(j);
 
-                double score = calculateOverallSimilarity(codeA, codeB);
-                String riskLevel = determineRiskLevel(score, threshold);
+                        String codeA = readSubmissionContent(subA);
+                        String codeB = readSubmissionContent(subB);
+                        if (codeA == null || codeB == null || codeA.isBlank() || codeB.isBlank()) {
+                            // Không đọc được nội dung thật, hoặc tệp rỗng/chỉ có comment:
+                            // bỏ qua cặp này, tuyệt đối không thay bằng nội dung giả
+                            // cũng như không tạo báo cáo từ nội dung không có gì để so sánh.
+                            skipped++;
+                            continue;
+                        }
 
-                String aiSummary = generateAiSummary(score, subA.getFileName(), subB.getFileName(), riskLevel);
+                        double score = calculateOverallSimilarity(codeA, codeB);
+                        String riskLevel = determineRiskLevel(score, threshold);
 
-                PlagiarismReport report = new PlagiarismReport();
-                report.setAssignmentId(assignmentId);
-                report.setSubmissionAId(subA.getSubmissionId());
-                report.setSubmissionBId(subB.getSubmissionId());
-                report.setSimilarityScore(score);
-                report.setRiskLevel(riskLevel);
-                report.setAiAnalysisSummary(aiSummary);
+                        PlagiarismReport report = new PlagiarismReport();
+                        report.setAssignmentId(assignmentId);
+                        report.setSubmissionAId(subA.getSubmissionId());
+                        report.setSubmissionBId(subB.getSubmissionId());
+                        report.setSimilarityScore(score);
+                        report.setRiskLevel(riskLevel);
+                        report.setAiAnalysisSummary(localSummary(score, subA.getFileName(), subB.getFileName(), riskLevel));
 
-                int reportId = plagiarismDAO.createReport(report);
-                reportsGenerated++;
+                        int reportId = plagiarismDAO.createReport(report, conn);
+                        reportsGenerated++;
 
-                // Bóc tách khối mã trùng lặp nếu tương đồng đáng chú ý (>= 40%)
-                if (score >= 40.0) {
-                    MatchingBlock block = new MatchingBlock();
-                    block.setReportId(reportId);
-                    block.setFunctionName("executeCoreLogic()");
-                    block.setStudentAStartLine(15);
-                    block.setStudentAEndLine(Math.min(45, Math.max(20, codeA.split("\n").length)));
-                    block.setStudentBStartLine(20);
-                    block.setStudentBEndLine(Math.min(50, Math.max(25, codeB.split("\n").length)));
-                    block.setMatchedCodeSnippet("// Matching AST logic chunk\n" + (codeA.length() > 200 ? codeA.substring(0, 200) : codeA));
-                    block.setVariableRenamingNotes("Phát hiện các định danh biến cục bộ đã bị đổi tên, luồng thuật toán tương đồng " + score + "%");
-                    plagiarismDAO.createMatchingBlock(block);
+                        // Khối mã minh hoạ khi tương đồng đáng chú ý (>= 40%).
+                        // Toạ độ dòng mang tính heuristic, không phải kết quả bóc tách LCS.
+                        if (score >= 40.0) {
+                            MatchingBlock block = new MatchingBlock();
+                            block.setReportId(reportId);
+                            block.setFunctionName("executeCoreLogic()");
+                            block.setStudentAStartLine(15);
+                            block.setStudentAEndLine(Math.min(45, Math.max(20, codeA.split("\n").length)));
+                            block.setStudentBStartLine(20);
+                            block.setStudentBEndLine(Math.min(50, Math.max(25, codeB.split("\n").length)));
+                            block.setMatchedCodeSnippet("// Khối mã minh hoạ (heuristic), chưa phải bóc tách LCS\n"
+                                    + (codeA.length() > 200 ? codeA.substring(0, 200) : codeA));
+                            block.setVariableRenamingNotes("Phát hiện các định danh biến cục bộ đã bị đổi tên, luồng thuật toán tương đồng " + score + "%");
+                            plagiarismDAO.createMatchingBlock(block, conn);
+                        }
+
+                        if ("HIGH_RISK".equals(riskLevel)) {
+                            submissionDAO.updateSubmissionStatus(subA.getSubmissionId(), "FLAGGED", conn);
+                            submissionDAO.updateSubmissionStatus(subB.getSubmissionId(), "FLAGGED", conn);
+                            highRiskPairs.add(new HighRiskPair(reportId, score, codeA, codeB));
+                        } else if (!"FLAGGED".equals(subA.getStatus())) {
+                            submissionDAO.updateSubmissionStatus(subA.getSubmissionId(), "ANALYZED", conn);
+                        }
+                    }
                 }
-
-                // Cập nhật trạng thái bài nộp
-                if ("HIGH_RISK".equals(riskLevel)) {
-                    submissionDAO.updateSubmissionStatus(subA.getSubmissionId(), "FLAGGED");
-                    submissionDAO.updateSubmissionStatus(subB.getSubmissionId(), "FLAGGED");
-                } else if (!"FLAGGED".equals(subA.getStatus())) {
-                    submissionDAO.updateSubmissionStatus(subA.getSubmissionId(), "ANALYZED");
+                conn.commit();
+            } catch (Exception e) {
+                conn.rollback();
+                throw new DataAccessException(e);
+            } finally {
+                try {
+                    conn.setAutoCommit(autoCommit);
+                } catch (Exception ignored) {
+                    // Không làm thay đổi kết quả chính.
                 }
             }
+        } catch (DataAccessException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new DataAccessException(e);
         }
-        return reportsGenerated;
+
+        // Làm giàu bằng Gemini SAU khi đã commit: không giữ khóa CSDL trong lúc chờ mạng.
+        enrichWithGemini(highRiskPairs);
+
+        return new ScanResult(reportsGenerated, skipped);
     }
 
-    private String readSubmissionContent(Submission sub) {
-        if (sub.getFilePath() != null) {
-            try {
-                File file = new File(sub.getFilePath());
-                if (file.exists()) {
-                    return Files.readString(file.toPath(), StandardCharsets.UTF_8);
-                }
-            } catch (Exception ignored) {}
+    /** Giữ khóa hàng Assignments để ngăn hai lượt quét đồng thời trên cùng bài tập. */
+    private void lockAssignment(Connection conn, int assignmentId) {
+        String sql = "SELECT assignment_id FROM Assignments WITH (UPDLOCK, HOLDLOCK) WHERE assignment_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, assignmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+            }
+        } catch (Exception e) {
+            throw new DataAccessException(e);
         }
-        // Nội dung mẫu nếu file chưa lưu thực tế
-        return "public class " + sub.getFileName().replace(".java", "") + " {\n" +
-               "    public void processOrder(int orderId) {\n" +
-               "        double total = 0.0;\n" +
-               "        for (int i = 0; i < 10; i++) {\n" +
-               "            total += i * 1.5;\n" +
-               "        }\n" +
-               "        System.out.println(\"Total: \" + total);\n" +
-               "    }\n" +
-               "}";
+    }
+
+    private static final class HighRiskPair {
+        final int reportId;
+        final double score;
+        final String codeA;
+        final String codeB;
+
+        HighRiskPair(int reportId, double score, String codeA, String codeB) {
+            this.reportId = reportId;
+            this.score = score;
+            this.codeA = codeA;
+            this.codeB = codeB;
+        }
+    }
+
+    /**
+     * Gọi Gemini cho tối đa {@code GEMINI_MAX_CALLS_PER_SCAN} cặp HIGH_RISK có điểm cao nhất.
+     * Khi thiếu cấu hình hoặc lỗi, bản ghi giữ nguyên nhận định cục bộ đã gắn nhãn.
+     */
+    private void enrichWithGemini(List<HighRiskPair> pairs) {
+        if (pairs.isEmpty() || geminiService == null || !geminiService.isConfigured()) {
+            return;
+        }
+        int cap = maxCallsPerScan();
+        if (cap <= 0) return;
+
+        pairs.sort((a, b) -> Double.compare(b.score, a.score));
+        int limit = Math.min(cap, pairs.size());
+        for (int i = 0; i < limit; i++) {
+            HighRiskPair pair = pairs.get(i);
+            try {
+                String response = geminiService.analyzeCodeSimilarity(pair.codeA, pair.codeB);
+                String summary = GeminiPlagiarismService.extractSummary(response);
+                if (summary != null && !summary.isBlank()) {
+                    plagiarismDAO.updateAnalysisSummary(pair.reportId, "[Gemini] " + summary);
+                }
+            } catch (Exception e) {
+                // Mất kết nối/quota: giữ nguyên nhận định cục bộ, không làm gãy lượt quét.
+            }
+        }
+    }
+
+    /**
+     * Đọc nội dung thật của bài nộp.
+     *
+     * @return nội dung tệp, hoặc {@code null} nếu không đọc được — người gọi phải bỏ qua cặp này.
+     */
+    private String readSubmissionContent(Submission sub) {
+        File file = com.aita.plagiarism.config.StorageConfig.resolve(sub.getFilePath());
+        if (file == null || !file.exists() || !file.isFile()) {
+            return null;
+        }
+        try {
+            return Files.readString(file.toPath(), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private String determineRiskLevel(double score, double threshold) {
@@ -220,15 +363,25 @@ public class PlagiarismEngineService {
         return "SAFE";
     }
 
-    private String generateAiSummary(double score, String fileA, String fileB, String riskLevel) {
+    /**
+     * Nhận định cục bộ (rule-based), được gắn nhãn rõ ràng.
+     *
+     * Nguyên tắc: không một văn bản nào được mang chữ "AI"/"Gemini" nếu nó không thực sự
+     * do mô hình sinh ra. Khi Gemini được gọi thành công, bản ghi sẽ được cập nhật với
+     * tiền tố {@code [Gemini]}.
+     */
+    private String localSummary(double score, String fileA, String fileB, String riskLevel) {
+        String body;
         if ("HIGH_RISK".equals(riskLevel)) {
-            return String.format("AITA AI phát hiện mức độ tương đồng báo động đỏ (%.1f%%) giữa %s và %s. Phát hiện hành vi đổi tên định danh biến/hàm và tái cấu trúc khối lệnh nhằm qua mặt bộ lọc.",
+            body = String.format("mức độ tương đồng báo động đỏ (%.1f%%) giữa %s và %s. Dấu hiệu đổi tên định danh biến/hàm và tái cấu trúc khối lệnh.",
                     score, fileA, fileB);
         } else if ("MEDIUM".equals(riskLevel)) {
-            return String.format("AITA AI ghi nhận tương đồng mức trung bình (%.1f%%). Một số hàm tiện ích và cấu trúc vòng lặp có mẫu hình tương tự.", score);
+            body = String.format("tương đồng mức trung bình (%.1f%%). Một số hàm tiện ích và cấu trúc vòng lặp có mẫu hình tương tự.", score);
         } else {
-            return String.format("Độ tương đồng an toàn (%.1f%%). Logic thuật toán mang tính độc lập cao.", score);
+            body = String.format("độ tương đồng an toàn (%.1f%%). Logic thuật toán mang tính độc lập cao.", score);
         }
+        return LOCAL_ANALYSIS_PREFIX + " " + body
+                + " Đây không phải kết quả từ mô hình ngôn ngữ lớn.";
     }
 
     private Set<String> extractNgrams(String[] tokens, int n) {

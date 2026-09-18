@@ -92,6 +92,18 @@ try:
     page=teacher.request('/dashboard?courseId='+str(course_id)+'&assignmentId='+str(aid))[2]
     check('dashboard reflects two committed submissions',re.search(r'id="stat-submissions"[^>]*>2</strong>',page) is not None)
     check('dashboard reflects committed report and average','id="stat-average">42.50%' in page and re.search(r'id="stat-reports"[^>]*>1</strong>',page) is not None)
+    matrix_page=teacher.request('/dashboard?courseId='+str(course_id)+'&assignmentId='+str(aid))[2]
+    check('similarity matrix renders stored pair','id="similarity-matrix"' in matrix_page and '42.5' in matrix_page)
+    pending_page=teacher.request('/dashboard?courseId='+str(course_id)+'&assignmentId='+str(aid)+'&status=ANALYZED')[2]
+    check('submission status filter narrows to pending',re.search(r'id="stat-submissions"[^>]*>0</strong>',pending_page) is not None)
+    check('invalid submission status rejected',teacher.request('/dashboard?courseId='+str(course_id)+'&assignmentId='+str(aid)+'&status=GRADED')[0]==400)
+    export=teacher.request('/export-report?assignmentId='+str(aid))
+    check('owner exports committed CSV',export[0]==200 and 'text/csv' in export[1].get('Content-Type','') and '42.5' in export[2] and 'private-peer-summary' in export[2])
+    check('export rejects unsupported format',teacher.request('/export-report?assignmentId='+str(aid)+'&format=pdf')[0]==400)
+    check('other instructor cannot export',other.request('/export-report?assignmentId='+str(aid))[0]==403)
+    student_export=student.request('/export-report?assignmentId='+str(aid))
+    check('student sees redacted export','REDACTED' in student_export[2] and '42.5' in student_export[2] and 'private-peer-summary' not in student_export[2])
+    check('unrelated student cannot export',outsider.request('/export-report?assignmentId='+str(aid))[0]==403)
     check('student portal links actual owned report',('/diff-inspector?reportId='+str(report_id)) in student.request('/student-portal')[2])
     sql('DELETE PlagiarismReports WHERE report_id='+str(report_id));report_id=None
     check('owner deletes assignment',teacher.request('/assignment-action',{'action':'delete','assignmentId':aid,'courseId':course_id})[0]==302)

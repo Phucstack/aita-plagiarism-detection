@@ -56,7 +56,8 @@ public class BatchScannerServletTest {
         when(request.getParameter("assignmentId")).thenReturn("2");
 
         try (var engine = mockConstruction(com.aita.plagiarism.service.PlagiarismEngineService.class,
-                (mock, context) -> when(mock.scanAssignment(2)).thenReturn(0))) {
+                (mock, context) -> when(mock.scanAssignment(2))
+                        .thenReturn(new com.aita.plagiarism.service.PlagiarismEngineService.ScanResult(0, 0)))) {
             new BatchScannerServlet().doPost(request, response);
             verify(engine.constructed().get(0)).scanAssignment(2);
         }

@@ -21,11 +21,38 @@
         </table></div>
     </c:otherwise></c:choose>
 </section>
+<section class="cyber-card p-5 mb-6" aria-labelledby="matrix-heading">
+    <h2 id="matrix-heading" class="text-lg font-bold mb-2">Ma trận tương đồng NxN</h2>
+    <p class="text-sm text-slate-400 mb-4">Đọc trực tiếp từ PlagiarismReports đã lưu của bài tập đang chọn. Ô trống nghĩa là chưa có báo cáo cho cặp đó.</p>
+    <c:choose><c:when test="${empty similarityMatrix}"><p id="matrix-empty" class="text-slate-300">Chưa có dữ liệu ma trận cho bài tập này.</p></c:when>
+    <c:otherwise>
+        <div class="overflow-x-auto"><table class="w-full text-sm text-left" id="similarity-matrix">
+            <thead class="text-slate-400"><tr><th class="p-3">Bài nộp</th><c:forEach items="${similarityMatrix}" var="column"><th class="p-3">#<c:out value="${column.key}"/></th></c:forEach></tr></thead>
+            <tbody><c:forEach items="${similarityMatrix}" var="row"><tr class="border-t border-white/10">
+                <th class="p-3">#<c:out value="${row.key}"/></th>
+                <c:forEach items="${similarityMatrix}" var="column"><td class="p-3"><c:out value="${row.value[column.key] == null ? '—' : row.value[column.key]}"/></td></c:forEach>
+            </tr></c:forEach></tbody>
+        </table></div>
+    </c:otherwise></c:choose>
+</section>
 <section id="submission-list" class="cyber-card p-5 mb-6" aria-labelledby="submission-heading">
     <h2 id="submission-heading" class="text-lg font-bold mb-4">Bài nộp của bài tập đã chọn</h2>
+    <form method="get" action="${pageContext.request.contextPath}/dashboard" class="flex flex-wrap items-center gap-2 mb-4">
+        <input type="hidden" name="courseId" value="${selectedCourseId}"/>
+        <input type="hidden" name="assignmentId" value="${selectedAssignmentId}"/>
+        <label class="text-sm text-slate-400" for="status-filter">Lọc theo trạng thái chấm:</label>
+        <select id="status-filter" name="status" class="px-3 py-2 rounded-lg bg-[#080911] border border-white/10 text-sm">
+            <option value="" ${empty statusFilter ? 'selected' : ''}>Tất cả</option>
+            <option value="PENDING" ${statusFilter == 'PENDING' ? 'selected' : ''}>PENDING</option>
+            <option value="PARSED" ${statusFilter == 'PARSED' ? 'selected' : ''}>PARSED</option>
+            <option value="ANALYZED" ${statusFilter == 'ANALYZED' ? 'selected' : ''}>ANALYZED</option>
+            <option value="FLAGGED" ${statusFilter == 'FLAGGED' ? 'selected' : ''}>FLAGGED</option>
+        </select>
+        <button type="submit" class="px-3 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm">Lọc</button>
+    </form>
     <c:if test="${empty submissions}"><p class="text-slate-400">Chưa có bài nộp.</p></c:if>
     <ul class="space-y-3"><c:forEach items="${submissions}" var="s"><li class="border-t border-white/10 pt-3 break-words">
         <c:out value="${s.fileName}"/> · ID sinh viên ${s.studentId} · <c:out value="${s.status}"/> · <c:out value="${s.submittedAt}"/>
     </li></c:forEach></ul>
 </section>
-<p class="text-xs text-slate-400 mb-6">Biểu đồ xu hướng, trạng thái AI trực tuyến, quota và điểm chấm chéo chưa được triển khai trên trang này.</p>
+<p class="text-xs text-slate-400 mb-6">Biểu đồ xu hướng, trạng thái AI trực tuyến, quota và điểm chấm chéo chưa được triển khai trên trang này. Ma trận và bộ lọc trạng thái chỉ đọc dữ liệu PlagiarismReports/Submissions đã lưu.</p>

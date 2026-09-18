@@ -18,10 +18,13 @@ import java.util.List;
  */
 public class AssignmentDAO {
 
-    public int createAssignment(Assignment a) { return createAssignment(a, null); }
-
+    /**
+     * Tạo bài tập. Bắt buộc truyền {@code actor}: không có overload nào thiếu actor,
+     * vì trước đây thiếu actor đồng nghĩa với việc bỏ qua toàn bộ kiểm tra sở hữu.
+     */
     public int createAssignment(Assignment a, User actor) {
         if (a == null) return -1;
+        requireActor(actor);
         String sql = "INSERT INTO Assignments (course_id, title, description, max_score, deadline, similarity_threshold) " +
                      "SELECT ?, ?, ?, ?, ?, ? FROM Courses WHERE course_id = ? " +
                      "AND (? = 1 OR instructor_id = ? OR ? = 'ADMIN')";
@@ -52,10 +55,9 @@ public class AssignmentDAO {
         return -1;
     }
 
-    public boolean updateAssignment(Assignment a) { return updateAssignment(a, null); }
-
     public boolean updateAssignment(Assignment a, User actor) {
         if (a == null || a.getAssignmentId() <= 0) return false;
+        requireActor(actor);
         String sql = "UPDATE Assignments SET title = ?, description = ?, max_score = ?, deadline = ?, similarity_threshold = ? " +
                      "WHERE assignment_id = ? AND EXISTS (SELECT 1 FROM Courses c WHERE c.course_id = Assignments.course_id " +
                      "AND (? = 1 OR c.instructor_id = ? OR ? = 'ADMIN'))";
@@ -75,9 +77,8 @@ public class AssignmentDAO {
         }
     }
 
-    public boolean deleteAssignment(int assignmentId) { return deleteAssignment(assignmentId, null); }
-
     public boolean deleteAssignment(int assignmentId, User actor) {
+        requireActor(actor);
         String sql = "DELETE FROM Assignments WHERE assignment_id = ? AND EXISTS " +
                 "(SELECT 1 FROM Courses c WHERE c.course_id = Assignments.course_id " +
                 "AND (? = 1 OR c.instructor_id = ? OR ? = 'ADMIN'))";
@@ -139,10 +140,18 @@ public class AssignmentDAO {
         return list;
     }
 
+    /** Không bao giờ cho phép bỏ qua kiểm tra sở hữu: thiếu actor là lỗi lập trình. */
+    private static void requireActor(User actor) {
+        if (actor == null) {
+            throw new IllegalArgumentException("actor is required: ownership checks must never be skipped");
+        }
+    }
+
     private void bindActor(PreparedStatement ps, int index, User actor) throws java.sql.SQLException {
-        ps.setInt(index, actor == null ? 1 : 0);
-        ps.setInt(index + 1, actor != null && "INSTRUCTOR".equals(actor.getRole()) ? actor.getUserId() : -1);
-        ps.setString(index + 2, actor == null ? "" : actor.getRole());
+        requireActor(actor);
+        ps.setInt(index, 0);
+        ps.setInt(index + 1, "INSTRUCTOR".equals(actor.getRole()) ? actor.getUserId() : -1);
+        ps.setString(index + 2, actor.getRole());
     }
 
     private Assignment mapAssignment(ResultSet rs) throws Exception {

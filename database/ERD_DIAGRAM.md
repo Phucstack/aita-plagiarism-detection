@@ -1,5 +1,5 @@
 # SƠ ĐỒ QUAN HỆ THỰC THỂ (ERD) - HỆ THỐNG AITA
-## NHÓM 4: AI PLAGIARISM & CODE SIMILARITY DETECTION
+## NHÓM 7 (SE20C): AI PLAGIARISM & CODE SIMILARITY DETECTION
 ### ĐÁP ỨNG TIÊU CHUẨN ĐÁNH GIÁ PRJ301 / PRJ30x (10 ĐIỂM DATABASE DESIGN)
 
 ---
@@ -100,7 +100,12 @@ erDiagram
    - Trigger `TR_PlagiarismReports_SameAssignment` bắt buộc hai submission trong cùng report phải thuộc cùng một assignment, giữ toàn vẹn dữ liệu mà không cần lưu lặp `assignment_id`.
    - `risk_level` và `ai_analysis_summary` là snapshot của lần phân tích tại `created_at`; chúng không được hiểu là dữ liệu luôn tái suy ra từ cấu hình assignment hiện tại.
 
-4. **Ràng buộc toàn vẹn & Bảo mật (Integrity & Security):**
+4. **Ràng buộc chưa có (đã biết, ghi nhận trung thực):**
+   - Chưa có `UNIQUE (submission_a_id, submission_b_id)` và chưa có ràng buộc `submission_a_id < submission_b_id`. Về lý thuyết có thể tồn tại cả hai bản ghi `(1,2)` và `(2,1)` cho cùng một cặp bài nộp, khiến ma trận tương đồng hiển thị hai ô khác nhau cho cùng một cặp.
+   - Chưa có ràng buộc ở tầng CSDL bảo đảm `Courses.instructor_id` trỏ tới `Users` có `role = 'INSTRUCTOR'` (hoặc Admin), và `Submissions.student_id` trỏ tới `Users` có `role = 'STUDENT'`. Hiện việc này được kiểm soát ở tầng ứng dụng: controller chỉ gán `instructor_id`/`student_id` từ người dùng đang đăng nhập và chỉ cho phép vai trò tương ứng thực hiện.
+   - Hai mục trên là hạng mục dự kiến bổ sung ở các tuần tiếp theo, không được trình bày là đã có.
+
+5. **Ràng buộc toàn vẹn & Bảo mật (Integrity & Security):**
    - **Xác thực toàn vẹn mã nguồn (Section 4.4.2):** Cột `sha256_hash` (`VARCHAR(64)`) trong `Submissions` lưu checksum SHA-256 để đối chiếu tính toàn vẹn artifact.
    - **Bảo mật mật khẩu:** Mật khẩu mới dùng PBKDF2-HMAC-SHA256 với salt ngẫu nhiên; MD5/SHA-256 chỉ được chấp nhận cho dữ liệu legacy và được nâng cấp sang PBKDF2 sau khi đăng nhập hợp lệ.
    - **Google Identity:** `google_subject` có unique filtered index, chỉ cho phép một tài khoản liên kết với một Google subject không-null.

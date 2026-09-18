@@ -1,6 +1,7 @@
 package com.aita.plagiarism.dao;
 
 import com.aita.plagiarism.model.Assignment;
+import com.aita.plagiarism.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,16 @@ import static org.junit.jupiter.api.Assertions.*;
 public class AssignmentDAOTest {
 
     private AssignmentDAO assignmentDAO;
+
+    /** Actor dùng cho các thao tác dọn dẹp dữ liệu kiểm thử. */
+    private static User admin() {
+        User u = new User();
+        u.setUserId(1);
+        u.setUsername("admin");
+        u.setFullName("Quản Trị Viên");
+        u.setRole("ADMIN");
+        return u;
+    }
 
     @BeforeEach
     void setUp() {
@@ -60,7 +71,7 @@ public class AssignmentDAOTest {
         a.setSimilarityThreshold(80.0);
         a.setDeadline(new Timestamp(System.currentTimeMillis() + 86400000L));
 
-        int newId = assignmentDAO.createAssignment(a);
+        int newId = assignmentDAO.createAssignment(a, admin());
         assertTrue(newId > 0, "ID bài tập tạo mới phải lớn hơn 0");
 
         // 2. Read
@@ -71,11 +82,11 @@ public class AssignmentDAOTest {
         // 3. Update
         created.setTitle("Updated Title " + System.currentTimeMillis());
         created.setSimilarityThreshold(85.0);
-        boolean updateOk = assignmentDAO.updateAssignment(created);
+        boolean updateOk = assignmentDAO.updateAssignment(created, admin());
         assertTrue(updateOk, "Cập nhật bài tập phải trả về true");
 
         // 4. Delete
-        boolean deleteOk = assignmentDAO.deleteAssignment(newId);
+        boolean deleteOk = assignmentDAO.deleteAssignment(newId, admin());
         assertTrue(deleteOk, "Xóa bài tập phải trả về true");
     }
 }

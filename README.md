@@ -64,7 +64,7 @@ Xem [báo cáo kiểm chứng tuần 1–3](BAO_CAO_TIEN_DO_TUAN_1_3.md) để p
 +-------------------------------------------------------------------------+
 |                       Data Persistence Layer                            |
 |   - Microsoft SQL Server                                        |
-|   - Schemas: Users, Roles, Assignments, Submissions, SimilarityReports  |
+|   - Schemas: Users, Courses, Assignments, Submissions, PlagiarismReports, MatchingBlocks (6 bảng, 3NF)  |
 +-------------------------------------------------------------------------+
 ```
 
@@ -72,19 +72,19 @@ Xem [báo cáo kiểm chứng tuần 1–3](BAO_CAO_TIEN_DO_TUAN_1_3.md) để p
 
 ## ✨ Tính năng Nổi bật
 
-1. **Đối soát Mã nguồn Đa luồng (Code Similarity Engine):**
-   - Hỗ trợ tải lên nhiều bài nộp mã nguồn Java cùng lúc.
-   - Phân tách Token, loại bỏ comments, chuẩn hóa biến (Identifier Normalization), đối chiếu cấu trúc lệnh (AST/Control Flow).
-   - Xuất ma trận độ tương đồng (Similarity Matrix) chi tiết giữa từng cặp bài.
+1. **Đối soát mã nguồn Java (Code Similarity Engine) — đã triển khai:**
+   - Hỗ trợ tải lên nhiều bài nộp mã nguồn Java (.java, .txt).
+   - Token hóa bằng biểu thức chính quy, loại bỏ comment, chuẩn hóa định danh biến/hàm thành `$ID_n`.
+   - Tính Jaccard trên tập n-gram (k = 3) và Normalized Levenshtein; điểm tổng hợp = 0.6·Jaccard + 0.4·Levenshtein.
+   - Xuất ma trận độ tương đồng N×N giữa từng cặp bài.
+   - *Lưu ý:* thực hiện tuần tự bằng regex tokenizer, **không** dùng AST/JavaParser và **không** đa luồng.
 
-2. **So sánh Văn bản Tiếng Anh & Bài luận (Essay & Text Similarity):**
-   - Hỗ trợ nộp bài văn tiếng Anh (định dạng text/doc).
-   - Tiền xử lý NLP: Tokenization, Lowercasing, Stop-words removal, Stemming.
-   - Tính toán độ tương đồng qua TF-IDF và Cosine Similarity.
+2. **So sánh văn bản tiếng Anh & bài luận (TF-IDF + Cosine) — ⏳ dự kiến tuần 4–9:**
+   - Chưa có mã nguồn. Hiện tại lõi đối soát xử lý mọi chuỗi ký tự như nhau, không phân biệt ngôn ngữ.
 
-3. **Phân tích Dấu vết AI (AI Content & LLM Detection):**
-   - Đánh giá Perplexity và Burstiness đặc trưng của các mô hình ngôn ngữ lớn (ChatGPT, Gemini, Claude).
-   - Phát hiện các mẫu câu rập khuôn, cấu trúc mã nguồn sinh tự động, cảnh báo mức độ can thiệp của AI.
+3. **Phân tích dấu vết AI (AI Content & LLM Detection) — ⏳ dự kiến tuần 4–9:**
+   - Chưa triển khai đánh giá Perplexity/Burstiness.
+   - Đã triển khai: `GeminiPlagiarismService` gọi `gemini-2.0-flash` cho các cặp nguy cơ cao trong hạn mức; khi thiếu khóa hoặc lỗi, hệ thống lưu nhận định cục bộ và **gắn nhãn rõ ràng là không phải kết quả AI**.
 
 4. **Trải nghiệm Thị giác 3D Đột phá (3D Cinematic Scrollytelling):**
    - Mô hình 3D chiếc khiên công nghệ Cyber Shield tương tác thời gian thực.
@@ -100,37 +100,45 @@ Xem [báo cáo kiểm chứng tuần 1–3](BAO_CAO_TIEN_DO_TUAN_1_3.md) để p
 
 ```mermaid
 flowchart TD
-    A[Sinh viên / Giảng viên Nộp bài] -->|Upload 10 File Code & 10 File Văn bản| B[Bộ lọc Tiếp nhận & Giải nén]
-    B --> C{Phân loại Định dạng}
-    
-    C -->|Mã nguồn Java| D[Java Lexer & AST Parser]
-    D --> D1[Loại bỏ Comment & Chuẩn hóa Biến]
-    D1 --> D2[Sinh N-Gram & Token Hash]
-    D2 --> D3[Jaccard & Levenshtein Matrix]
-    
-    C -->|Văn bản Tiếng Anh| E[NLP Text Preprocessing]
-    E --> E1[Stopword Removal & Lemmatization]
-    E1 --> E2[TF-IDF Vector Space]
-    E2 --> E3[Cosine Similarity Calculation]
-    
-    D3 --> F[AI Watermark & Anomaly Scanner]
-    E3 --> F
-    
-    F --> G[Tổng hợp Báo cáo & Ma trận Trùng lặp]
-    G --> H[Bảng điều khiển Giảng viên / Xuất PDF Report]
+    A["Sinh viên nộp bài / Giảng viên kích hoạt quét"] -->|"Upload .java, .txt, .docx, .zip"| B["SubmissionServlet<br/>whitelist extension + SHA-256"]
+    B --> C["PlagiarismEngineService<br/>quét C(N,2) trong một giao dịch"]
+
+    C --> D["Regex Tokenizer<br/>bỏ comment, chuẩn hóa định danh"]
+    D --> D1["Sinh N-Gram, k = 3"]
+    D1 --> D2["Jaccard + Normalized Levenshtein"]
+    D2 --> D3["Điểm tổng hợp 0.6 / 0.4"]
+
+    D3 --> E{"Vượt ngưỡng<br/>similarity_threshold?"}
+    E -->|"Có, HIGH_RISK"| F1["Gemini 2.0 Flash<br/>tối đa GEMINI_MAX_CALLS_PER_SCAN"]
+    E -->|"Không"| F2["Nhận định cục bộ<br/>gắn nhãn rule-based"]
+    F1 -->|"lỗi / thiếu key"| F2
+
+    D3 --> G["MatchingBlocks<br/>khối minh hoạ theo heuristic"]
+    F2 --> H["PlagiarismReports + ma trận N×N"]
+    G --> H
+    H --> I["Dashboard giảng viên<br/>xuất CSV (PDF: tuần 4-9)"]
+
+    C -.-> X["⏳ Tuần 4-9:<br/>TF-IDF/Cosine văn bản<br/>giải nén ZIP<br/>nhận diện LLM"]
+    style X stroke-dasharray: 5 5
 ```
 
 ---
 
 ## ⚙️ Thuật toán Đối soát
 
-| Hạng mục | Thuật toán Áp dụng | Mục đích |
-| :--- | :--- | :--- |
-| **Java Code** | Token-based Jaccard Index | Đo tỷ lệ tập từ khóa và lệnh trùng lặp |
-| **Java Code** | Normalized Levenshtein Distance | Đo khoảng cách chỉnh sửa giữa chuỗi token |
-| **English Text** | TF-IDF + Cosine Similarity | So sánh góc vector giữa các bài luận |
-| **English Text** | 3-Gram Overlap | Phát hiện sao chép nguyên văn từng đoạn |
-| **AI Detection** | Heuristic Perplexity & Structure Analysis | Đánh giá xác suất văn bản do AI sinh |
+Bảng dưới đây chỉ liệt kê những thuật toán **thực sự có trong mã nguồn**. Các hạng mục chưa triển khai được ghi rõ trạng thái.
+
+| Hạng mục | Thuật toán Áp dụng | Trạng thái | Mục đích |
+| :--- | :--- | :--- | :--- |
+| **Java Code** | Token-based Jaccard Index (n-gram, k = 3) | ✅ Đã triển khai | Đo tỷ lệ tập n-gram token trùng lặp |
+| **Java Code** | Normalized Levenshtein Distance | ✅ Đã triển khai | Đo khoảng cách chỉnh sửa giữa chuỗi token |
+| **Java Code** | Điểm tổng hợp `0.6·Jaccard + 0.4·Levenshtein` | ✅ Đã triển khai | Tổng hợp độ tương đồng mã nguồn |
+| **English Text** | TF-IDF + Cosine Similarity | ⏳ Tuần 4–9 | So sánh góc vector giữa các bài luận |
+| **English Text** | 3-Gram Overlap | ⏳ Tuần 4–9 | Phát hiện sao chép nguyên văn từng đoạn |
+| **AI Detection** | Heuristic Perplexity & Burstiness | ⏳ Tuần 4–9 | Đánh giá xác suất văn bản do AI sinh |
+| **AI Analysis** | Gemini 2.0 Flash (có hạn mức + fallback gắn nhãn) | 🟡 Một phần | Nhận định ngữ nghĩa cho cặp nguy cơ cao |
+
+Chi tiết từng hạng mục và bằng chứng `file:line`: xem [SRS Mục 0](SOFTWARE_REQUIREMENTS_SPECIFICATION_SRS.md#0-trạng-thái-triển-khai-tính-đến-18092026).
 
 ---
 
@@ -190,7 +198,7 @@ AITA-CodeDefend-PRJ301/
 │   │   ├── css/                         # Liquid Glass, Motion Effects, Styles
 │   │   ├── js/                          # Three.js 3D Controller, GSAP animations
 │   │   └── models/                      # Mô hình 3D cyber-shield.glb
-│   ├── index.html                       # 3D Scrollytelling Landing Page
+│   ├── index.jsp                        # 3D Scrollytelling Landing Page
 │   └── WEB-INF/                         # web.xml và cấu hình bảo mật
 ├── pom.xml                              # Cấu hình Maven dependencies & build
 ├── .gitignore                           # Danh sách loại trừ tệp rác / build

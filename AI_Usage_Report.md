@@ -11,7 +11,7 @@
 | **Semester** | Fall 2026 |
 | **Lecturer Name** | Nguyễn Hoài Nhi |
 | **Group Code** | 7 |
-| **Project Title** | <<e.g. AITA-mini: Assignment Submission & Grading Portal>> |
+| **Project Title** | AITA CodeDefend - AI Plagiarism & Code Similarity Detection Suite |
 
 ### Danh sách sinh viên
 
@@ -35,12 +35,25 @@
 
 ---
 
-## Sheet: 2. Week n
+## Sheet: 2. Week 2
 
 | No. | SDLC Phase | Task / Activity | AI Tool Used | AI Output | Student's Validation / Modification | Evidence / Link | Quantitative Measure | Value Added (1-5) | Risks / Limitations Observed |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | <<sample data>><br>Implementation | Servlet + JSP CRUD for Assignment module | GitHub Copilot | Generated AssignmentServlet doGet/doPost skeleton | Fixed SQL injection risk, added PreparedStatement | GitHub commit link | 1 Servlet, 4 JSP pages, 6 methods | 5 | Generated code used string concatenation for SQL |
-| 2 | Testing | Test case generation for login & submission upload | ChatGPT | 12 draft test cases (positive/negative) | Kept 9, removed 3 irrelevant to Servlet routing | Google Sheet link | 9 test cases, 7 passed | 3 | Missed edge case for expired deadline |
+| 1 | Design | Chuẩn hóa ERD 6 bảng 3NF + trigger cùng-assignment cho PlagiarismReports | Gemini | Đề xuất tách MatchingBlocks khỏi PlagiarismReports và bỏ cột assignment_id dư thừa | Giữ Users/Courses/Assignments/Submissions/PlagiarismReports/MatchingBlocks, bổ sung trigger TR_PlagiarismReports_SameAssignment + TR_Submissions_PreserveReportAssignment, unique filtered google_subject | PENDING-EVIDENCE: Group7_Session4_ERD3NF | 6 entities, 2 triggers, 1 unique filtered index | 5 | AI ban đầu vẫn giữ assignment_id dư thừa gây phụ thuộc bắc cầu |
+| 2 | Implementation | Review AuthFilter + JWT HS256 + PBKDF2 upgrade mật khẩu legacy | Muse Spark | Gợi ý rotate sessionId, cookie HttpOnly/SameSite Strict, reject token sai/hết hạn, update password có điều kiện COLLATE BIN2 | Áp dụng JWTUtil issuer aita/expiry 24h, AuthFilter chặn JSP trực tiếp + /uploads + cross-site Origin, PasswordUtil PBKDF2 600k vòng | PENDING-EVIDENCE: Group7_Session5_AuthReview | 3 classes, 116 tests auth/JWT/password PASS | 5 | AI gợi ý cấu hình chung, phải tự gắn với Users.role và quyền sở hữu SQL |
+| 3 | Implementation | CRUD Course/Assignment gắn quyền sở hữu ngay trong SQL | GitHub Copilot | Sinh skeleton CourseAction/AssignmentAction + DAO update/delete cơ bản | Thêm điều kiện instructor_id/ADMIN trong SQL, validate courseCode/title/deadline/threshold 0-100, giữ deadline cũ khi update rỗng | PENDING-EVIDENCE: Group7_Session6_CRUDOwnership | 2 servlets, 2 DAO, 400/403/404/409 phân biệt | 4 | Code sinh ra chỉ check quyền ở servlet, thiếu enforcement ở DAO |
+
+---
+
+## Sheet: 3. Week 3
+
+| No. | SDLC Phase | Task / Activity | AI Tool Used | AI Output | Student's Validation / Modification | Evidence / Link | Quantitative Measure | Value Added (1-5) | Risks / Limitations Observed |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | Implementation | Engine deterministic Java: normalize $ID_n + Jaccard 3-gram + Levenshtein + MatchingBlocks | Muse Spark | Gợi ý pipeline lexer/normalize/score/risk và template ai_analysis_summary | Triển khai PlagiarismEngineService.scanAssignment, risk theo threshold/50/30, không lưu điểm AI giả vào DB | PENDING-EVIDENCE: Group7_Session7_Engine | 1 service, 5 engine tests, scan empty PASS | 4 | Template summary dễ bị hiểu nhầm là AI thật nên phải ghi rõ trong DEMO |
+| 2 | Implementation & Testing | Ma trận NxN + lọc trạng thái chấm + export CSV có redaction sinh viên | Muse Spark | Đề xuất query GROUP BY cặp submission + filter status whitelist + CSV BOM UTF-8 | Thêm PlagiarismDAO.getSimilarityMatrix, SubmissionDAO.getSubmissionsByAssignmentAndStatus, ExportReportServlet kiểm tra format trước quyền, sinh viên chỉ thấy REDACTED | PENDING-EVIDENCE: Group7_Session8_MatrixExport | 48 follow-up HTTP/SQL checks PASS, 125 JUnit PASS | 5 | Export ban đầu để /export-report trong STAFF filter nên sinh viên bị 403, phải chuyển enforcement về servlet |
+| 3 | Testing | Mở rộng verify HTTP/SQL + browser đa viewport cho dashboard/report/export | Muse Spark | Gợi ý thêm check matrix/filter/export vào verify_followup_http.py | Thêm 8 checks: matrix renders, status filter, invalid status 400, owner CSV 200, format pdf 400, foreign export 403, student redacted, outsider 403 | PENDING-EVIDENCE: Group7_Session9_Verify | 27 week3 + 48 follow-up checks PASS, Google forged/replay rejected | 5 | Script cũ assert sai trạng thái PENDING khi fixture không có PENDING, phải đổi sang ANALYZED |
+
+---
 
 ---
 

@@ -62,3 +62,6 @@ __pycache__/
 
 # Local server installation
 .runtime/
+
+# Agent working memory (không phải mã nguồn dự án)
+.workbuddy-ai/

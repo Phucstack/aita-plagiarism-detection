@@ -6,6 +6,8 @@ Phạm vi nền tảng: đăng nhập, JWT, JDBC/SQL Server, quản lý khóa h�
 
 Chạy `tools/run-java.ps1` với `.env` đã cấu hình. Dùng dữ liệu demo của nhóm; các script kiểm thử chỉ được dùng với `.env.test` và database riêng. Không dùng preview tĩnh cổng 8089 để chứng minh Servlet/JDBC.
 
+**Lưu ý về lưu trữ bài nộp:** artifact được ghi ra thư mục cấu hình bởi `AITA_UPLOAD_DIR` (mặc định `${catalina.base}/aita-uploads`, nằm ngoài web root). Để quét được dữ liệu seed, trỏ `AITA_UPLOAD_DIR=fixtures/submissions` hoặc copy 4 tệp trong `fixtures/submissions/` vào thư mục lưu trữ. Nếu không tìm thấy tệp, lõi quét **bỏ qua cặp đó và báo số cặp bị bỏ qua** — nó không thay nội dung thật bằng nội dung giả để tạo điểm.
+
 ## Luồng trình bày
 
 1. Đăng nhập giảng viên. Nêu rõ danh sách khóa học được lọc theo người sở hữu; Admin có thể xem mọi khóa học.
@@ -35,13 +37,14 @@ Chạy `tools/run-java.ps1` với `.env` đã cấu hình. Dùng dữ liệu dem
 
 Schema vẫn gồm sáu bảng. Không thêm bảng hồ sơ hay thay đổi quan hệ để triển khai các bản sửa này. `Users.role` xác định vai trò; `Courses.instructor_id` và `Submissions.student_id` xác định sở hữu bản ghi.
 
+`PlagiarismReports` **không** lưu `assignment_id`: cột này là phụ thuộc bắc cầu qua `Submissions` nên đã được loại bỏ khỏi schema; assignment của một báo cáo được suy ra từ `Submissions.assignment_id`, và ràng buộc "hai bài nộp cùng một assignment" được bảo đảm bằng trigger `TR_PlagiarismReports_SameAssignment`. (Sơ đồ trên đã bỏ cạnh `Assignments → PlagiarismReports` cho khớp schema.)
+
 ```mermaid
 erDiagram
     Users ||--o{ Courses : instructor_id
     Users ||--o{ Submissions : student_id
     Courses ||--o{ Assignments : course_id
     Assignments ||--o{ Submissions : assignment_id
-    Assignments ||--o{ PlagiarismReports : assignment_id
     Submissions ||--o{ PlagiarismReports : submission_a_id
     Submissions ||--o{ PlagiarismReports : submission_b_id
     PlagiarismReports ||--o{ MatchingBlocks : report_id
@@ -59,7 +62,7 @@ Mật khẩu mới trong chức năng đổi mật khẩu dài 8–1024 ký tự
 
 ## Các phần không dùng làm bằng chứng hoàn thành
 
-Google login đã được triển khai riêng theo GOOGLE_LOGIN.md. AI trực tuyến, quota, biểu đồ xu hướng và giải trình tự động chưa được triển khai trong các trang dữ liệu này. Scan engine còn cần kiểm tra tính nguyên tử khi nhiều scan đồng thời, khả năng rollback và chất lượng đọc file/thuật toán. Bản sửa quyền scan không chứng minh các khả năng đó. Các số liệu có sẵn trong database demo chỉ chứng minh hiển thị bản ghi, không chứng minh AI đã tạo chúng.
+Google login đã được triển khai riêng theo GOOGLE_LOGIN.md. Hướng B đã làm thật: ma trận NxN đọc từ PlagiarismReports đã lưu, lọc trạng thái chấm PENDING/PARSED/ANALYZED/FLAGGED, export CSV có redaction sinh viên, Gemini có timeout/quota/fallback gắn nhãn, Docker có Dockerfile + compose mẫu. Chưa làm: biểu đồ xu hướng, giải trình tự động, export PDF, sandbox chấm điểm cô lập, scan đồng thời nguyên tử/rollback. Scan engine còn cần kiểm tra tính nguyên tử khi nhiều scan đồng thời, khả năng rollback và chất lượng đọc file/thuật toán. Các số liệu có sẵn trong database demo chỉ chứng minh hiển thị bản ghi, không chứng minh AI đã tạo chúng.
 
 ## Tái chạy kiểm tra
 

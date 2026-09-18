@@ -32,7 +32,12 @@ class Client:
         self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.jar),NoRedirect())
     def request(self,path,data=None,headers=None):
         body = urllib.parse.urlencode(data).encode() if data is not None else None
-        req = urllib.request.Request(args.base_url+path,data=body,headers=headers or {})
+        req_headers = dict(headers) if headers else {}
+        # Giả lập đúng hành vi trình duyệt: request cùng nguồn luôn kèm Origin.
+        # Filter chống CSRF hiện từ chối mọi request đổi trạng thái không chứng minh
+        # được cùng nguồn, nên script phải gửi Origin trừ khi muốn giả lập tấn công.
+        req_headers.setdefault('Origin', args.base_url)
+        req = urllib.request.Request(args.base_url+path,data=body,headers=req_headers)
         try: response = self.opener.open(req,timeout=15)
         except urllib.error.HTTPError as error: response = error
         return response.status,response.headers,response.read().decode('utf-8',errors='replace')

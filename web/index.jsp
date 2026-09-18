@@ -1,12 +1,13 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi" class="dark scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AITA CodeDefend - 3D Camera Scrollytelling & Academic Integrity Engine</title>
-    <meta name="description" content="Nền tảng kiểm định mã nguồn thông minh và phát hiện đạo văn AI bằng Google Gemini 2.0 Flash & Chuẩn hóa Cây Cú Pháp AST. Dự án Nghiên cứu RBL Nhóm 4 môn PRJ301.">
+    <meta name="description" content="Nền tảng kiểm định mã nguồn thông minh và phát hiện đạo văn AI bằng Google Gemini 2.0 Flash & Chuẩn hóa Cây Cú Pháp AST. Dự án Nghiên cứu RBL SE20C Nhóm 7 môn PRJ301.">
 
     <!-- Tailwind CSS with Cyber Dark Palette -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -126,7 +127,7 @@
                 <c:when test="${not empty sessionScope.currentUser}">
                     <a href="${pageContext.request.contextPath}/dashboard" class="px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/80 text-cyan-300 hover:bg-cyan-500/30 text-xs font-semibold flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)]" data-sound="tick">
                         <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
-                        <span class="hidden sm:inline">Vào Dashboard (${sessionScope.currentUser.fullName})</span>
+                        <span class="hidden sm:inline">Vào Dashboard (${fn:escapeXml(sessionScope.currentUser.fullName)})</span>
                         <span class="sm:hidden">Dashboard</span>
                     </a>
                 </c:when>
@@ -278,7 +279,7 @@
                 Kiến Trúc Kỹ Thuật Đạt Chuẩn Đánh Giá 100đ
             </h2>
             <p class="text-sm text-slate-400 mt-2 font-mono">
-                Thỏa mãn toàn diện các yêu cầu của Khung Barem PRJ30x &amp; Đề cương RBL Nhóm 4
+                Thỏa mãn toàn diện các yêu cầu của Khung Barem PRJ30x &amp; Đề cương RBL SE20C Nhóm 7
             </p>
         </div>
 
@@ -371,7 +372,7 @@
                 <span>— Hệ thống Kiểm định Đạo văn &amp; Tương đồng Mã nguồn</span>
             </div>
             <div>
-                <span>PRJ301 Research-Based Learning (RBL) • Nhóm 4 • FPT University</span>
+                <span>PRJ301 Research-Based Learning (RBL) • SE20C Nhóm 7 • FPT University</span>
             </div>
         </div>
     </footer>

@@ -21,7 +21,7 @@ Ngày cập nhật: 18/09/2026. Các lượt kiểm thử chạy ngày 17–18/0
 | Phạm vi | Bằng chứng | Giới hạn |
 |---|---|---|
 | Java và WAR | Maven biên dịch và đóng gói thành công với JDK 17 | Build không thay thế runtime |
-| JUnit và JDBC | 112 tests, không failure/error/skip; có truy vấn và CRUD SQL Server thật trên database kiểm thử | Có cả test unit/mock và test JDBC; không gọi toàn bộ là end-to-end |
+| JUnit và JDBC | 125 tests, không failure/error/skip; có truy vấn và CRUD SQL Server thật trên database kiểm thử | Có cả test unit/mock và test JDBC; không gọi toàn bộ là end-to-end |
 | JWT regression | Tên chứa dấu phẩy, userId và role giả vẫn giữ nguyên định danh; token sai/hết hạn/thiếu expiry bị từ chối | Không thay thế audit bảo mật toàn hệ thống |
 | Course concurrency | Hai thao tác đồng thời tạo cùng mã: đúng một bản ghi được commit | Chỉ kiểm tra tình huống trùng mã khóa học |
 | Tomcat/HTTP/SQL | Kịch bản tools/verify_week3_http.py kiểm tra đăng nhập, vai trò, JWT, CRUD và đọc SQL độc lập sau commit | 27 kiểm tra PASS; kết quả lưu target/week3-http-verification.json |
@@ -42,7 +42,7 @@ SQL verification chạy trên AITA_Week3_Verification, tách khỏi dữ liệu 
 
 ## Phạm vi chưa được nghiệm thu
 
-- Không tuyên bố hoàn thành AI thật, Docker sandbox, grading queue hay toàn bộ tuần 4–9 từ kết quả tuần 1–3.
+- Không tuyên bố hoàn thành biểu đồ xu hướng, giải trình tự động, export PDF, sandbox chấm điểm cô lập hay toàn bộ tuần 4–9 từ kết quả hiện tại. Hướng B đã có ma trận NxN, lọc trạng thái chấm, export CSV, Gemini fallback gắn nhãn và Docker mẫu.
 - Google login không tự đăng ký người dùng; email phải được cấp tài khoản trước. Đăng nhập Google thật đến hết callback cần người dùng thực hiện bằng tài khoản của họ.
 - Quyền assignment/report và xóa bài nộp đã được sửa theo ma trận trong DEMO_TUAN_1_3.md. Chưa tuyên bố toàn bộ hệ thống đạt yêu cầu production.
 - Mật khẩu cũ MD5/SHA-256 được chuyển sang PBKDF2 khi đăng nhập đúng; đổi mật khẩu dùng salt ngẫu nhiên và cập nhật có điều kiện. Chưa có cơ chế thu hồi mọi phiên sau đổi mật khẩu.
@@ -59,4 +59,24 @@ Mật khẩu dùng PBKDF2-HMAC-SHA256 (600.000 vòng, salt 16 byte). HTTP test x
 
 Xem DEMO_TUAN_1_3.md để biết kịch bản trình bày, ma trận quyền, ERD, quyết định kỹ thuật và giới hạn của scan engine. Kết quả kiểm tra bổ sung nằm trong target/followup-http-verification.json và target/followup-browser/results.json.
 
-Kết quả chốt: **112 test Java/JDBC đạt**, **27 kiểm tra HTTP/SQL nền tảng + 40 kiểm tra bổ sung đạt**. Sáu trường hợp viewport/vai trò đạt ở 1440, 768 và 375 px. Đã kiểm tra ảnh của dashboard, portal, báo cáo giảng viên và kết quả sinh viên. Các finding review độc lập về escaping avatar, ngưỡng 0, giữ deadline khi sửa và assignment bị xóa đồng thời đã được xử lý; review nguồn không thay thế kiểm chứng runtime.
+Kết quả chốt: **125 test Java/JDBC đạt**, **27 kiểm tra HTTP/SQL nền tảng + 48 kiểm tra bổ sung đạt** (gồm ma trận, lọc trạng thái, export CSV, redaction sinh viên). Sáu trường hợp viewport/vai trò đạt ở 1440, 768 và 375 px. Đã kiểm tra ảnh của dashboard, portal, báo cáo giảng viên và kết quả sinh viên. Các finding review độc lập về escaping avatar, ngưỡng 0, giữ deadline khi sửa và assignment bị xóa đồng thời đã được xử lý; review nguồn không thay thế kiểm chứng runtime.
+
+---
+
+## Đợt đồng bộ tài liệu – mã nguồn (18/09/2026)
+
+Sau khi rà soát toàn bộ repo, SRS đã được đưa về khớp với mã nguồn thay vì tiếp tục mô tả một phiên bản chưa tồn tại.
+
+**Tài liệu**
+- SRS: thêm [Mục 0 – Trạng thái triển khai](SOFTWARE_REQUIREMENTS_SPECIFICATION_SRS.md#0-trạng-thái-triển-khai-tính-đến-18092026) với quy ước `✅ / 🟡 / ⏳` và [Mục 7 – Phạm vi ngoài tuần 1–3](SOFTWARE_REQUIREMENTS_SPECIFICATION_SRS.md#7-phạm-vi-ngoài-tuần-13-out-of-scope).
+- 24 phát biểu sai và 9 phát biểu chưa đầy đủ đã được sửa, mỗi chỗ kèm `file:line`. 20 tên lớp/tệp từng được nêu trong WBS nhưng không tồn tại đã được thay bằng tên thật.
+- Bổ sung `DESIGN_ARTEFACTS.md`: sơ đồ package MVC2 và sơ đồ luồng màn hình — hai artefact mà rubric Milestone 1 yêu cầu.
+- README: bỏ các claim thuật toán chưa có mã (AST, TF-IDF/Cosine, Perplexity), đánh dấu rõ trạng thái từng hạng mục.
+
+**Mã nguồn**
+- `PlagiarismEngineService`: toàn bộ lượt quét nằm trong một giao dịch, có khóa `UPDLOCK`; bỏ nội dung giả khi không đọc được tệp (cặp đó bị bỏ qua và được đếm); nhận định được gắn nhãn *Phân tích cục bộ (rule-based)*; Gemini được gọi thật cho tối đa 3 cặp nguy cơ cao nhất, sau khi đã commit.
+- `SHA256ChecksumUtil` ném lỗi thay vì lưu mã băm của chuỗi rỗng; thêm `digestAndWrite` đọc một lượt.
+- Bài nộp được lưu ngoài web root qua `StorageConfig` (`AITA_UPLOAD_DIR`); `assignmentId` trở thành bắt buộc.
+- Xuất CSV chống formula injection; escape XSS ở `login.jsp`, `index.jsp`, `header.jsp`; thêm `web.xml` (HttpOnly cho cookie phiên, trang lỗi không lộ stack trace).
+
+**Kiểm chứng:** biên dịch sạch cả mã chính lẫn mã kiểm thử; 44 ca kiểm thử không cần CSDL đều đạt (gồm 11 ca mới cho `StorageConfig`, `SHA256ChecksumUtil` và trích xuất tóm tắt Gemini). Các ca cần SQL Server chưa chạy được trong môi trường này — cần chạy lại `tools/test-java.ps1` để chốt con số cuối cùng.

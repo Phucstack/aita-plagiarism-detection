@@ -1,5 +1,6 @@
 package com.aita.plagiarism.controller;
 
+import com.aita.plagiarism.config.StorageConfig;
 import com.aita.plagiarism.dao.SubmissionDAO;
 import com.aita.plagiarism.model.Submission;
 import com.aita.plagiarism.model.User;
@@ -57,10 +58,34 @@ public class SubmissionServlet extends HttpServlet {
 
         // Xử lý nộp file bài tập
         try {
-            int assignmentId = 1;
+            // assignmentId là bắt buộc: không bao giờ ngầm gán một bài tập mặc định,
+            // vì làm vậy có thể gán nhầm bài nộp vào bài tập của người khác.
             String assignParam = request.getParameter("assignmentId");
-            if (assignParam != null && !assignParam.trim().isEmpty()) {
+            if (assignParam == null || assignParam.trim().isEmpty()) {
+                response.sendError(400, "Thiếu assignmentId. Không thể xác định bài tập cần nộp.");
+                return;
+            }
+            int assignmentId;
+            try {
                 assignmentId = Integer.parseInt(assignParam.trim());
+            } catch (NumberFormatException e) {
+                response.sendError(400, "assignmentId không hợp lệ.");
+                return;
+            }
+            if (assignmentId <= 0) {
+                response.sendError(400, "assignmentId không hợp lệ.");
+                return;
+            }
+
+            // Bài tập phải tồn tại. Nếu không, từ chối ngay thay vì để CSDL ném lỗi khoá ngoại.
+            if (new com.aita.plagiarism.dao.AssignmentDAO().getAssignmentById(assignmentId) == null) {
+                response.sendError(404, "Bài tập không tồn tại.");
+                return;
+            }
+            // Còn hạn nộp? (Chính sách đầy đủ cần quan hệ enrolment — xem AccessPolicy.canSubmitTo)
+            if (!com.aita.plagiarism.service.AccessPolicy.canSubmitTo(currentUser, assignmentId)) {
+                response.sendError(403, "Bài tập đã hết hạn nộp.");
+                return;
             }
 
             Part filePart = request.getPart("file");
@@ -78,49 +103,31 @@ public class SubmissionServlet extends HttpServlet {
                 return;
             }
 
-            // Tạo thư mục lưu trữ an toàn
-            String uploadDir = getServletContext().getRealPath("/uploads");
-            if (uploadDir == null) {
-                uploadDir = System.getProperty("java.io.tmpdir") + File.separator + "aita_uploads";
-            }
-            File uploadFolder = new File(uploadDir);
-            if (!uploadFolder.exists()) {
-                uploadFolder.mkdirs();
-            }
-
+            // Thư mục lưu trữ nằm NGOÀI web root (AITA_UPLOAD_DIR, mặc định
+            // ${catalina.base}/aita-uploads) — không thể bị truy cập qua HTTP.
             String safeFileName = "sub_" + currentUser.getUserId() + "_" + System.currentTimeMillis() + "_" + submittedFileName;
-            File targetFile = new File(uploadFolder, safeFileName);
+            File targetFile = StorageConfig.newTarget(safeFileName);
 
+            // Băm và ghi xuống đĩa trong một lượt đọc. Nếu băm lỗi, thao tác bị từ chối:
+            // không bao giờ lưu mã băm thay thế.
             String sha256Hash;
             try (InputStream is = filePart.getInputStream();
                  FileOutputStream fos = new FileOutputStream(targetFile)) {
-                
-                byte[] buffer = new byte[8192];
-                int bytesRead;
-                java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
-
-                while ((bytesRead = is.read(buffer)) != -1) {
-                    digest.update(buffer, 0, bytesRead);
-                    fos.write(buffer, 0, bytesRead);
-                }
-                
-                StringBuilder hex = new StringBuilder();
-                for (byte b : digest.digest()) {
-                    String h = Integer.toHexString(0xff & b);
-                    if (h.length() == 1) hex.append('0');
-                    hex.append(h);
-                }
-                sha256Hash = hex.toString();
+                sha256Hash = SHA256ChecksumUtil.digestAndWrite(is, fos);
             } catch (Exception ex) {
-                sha256Hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+                if (targetFile.exists()) {
+                    targetFile.delete();
+                }
+                response.sendError(500, "Không tính được mã băm SHA-256 cho tệp tải lên. Bài nộp chưa được lưu.");
+                return;
             }
 
-            // Ghi bản ghi vào CSDL
+            // Ghi bản ghi vào CSDL. Lưu đường dẫn tương đối để có thể di chuyển thư mục lưu trữ.
             Submission sub = new Submission();
             sub.setAssignmentId(assignmentId);
             sub.setStudentId(currentUser.getUserId());
             sub.setFileName(submittedFileName);
-            sub.setFilePath(targetFile.getAbsolutePath());
+            sub.setFilePath(safeFileName);
             sub.setFileType(fileExt.equals("TXT") ? "TEXT" : fileExt);
             sub.setSha256Hash(sha256Hash);
             sub.setStatus("PENDING");
@@ -144,10 +151,10 @@ public class SubmissionServlet extends HttpServlet {
             // Kiểm tra quyền sở hữu bài nộp (chỉ chính sinh viên đó hoặc Giảng viên/Admin mới được xóa)
             if (sub != null && (sub.getStudentId() == currentUser.getUserId() || com.aita.plagiarism.service.AccessPolicy.canManageAssignment(currentUser, sub.getAssignmentId()))) {
                 if (!submissionDAO.deleteSubmission(subId, currentUser)) { response.sendError(409); return; }
-                // Xóa file trên đĩa nếu tồn tại
-                if (sub.getFilePath() != null) {
-                    File f = new File(sub.getFilePath());
-                    if (f.exists()) f.delete();
+                // Xóa file trên đĩa nếu tồn tại (hỗ trợ cả đường dẫn tuyệt đối cũ)
+                File f = StorageConfig.resolve(sub.getFilePath());
+                if (f != null && f.exists()) {
+                    f.delete();
                 }
                 response.sendRedirect(request.getContextPath() + "/student-portal?subMsg=deleted");
             } else {

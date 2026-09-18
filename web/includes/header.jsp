@@ -1,11 +1,12 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${param.title != null ? param.title : 'AITA - AI Plagiarism & Code Similarity'}</title>
+    <title>${param.title != null ? fn:escapeXml(param.title) : 'AITA - AI Plagiarism & Code Similarity'}</title>
     <!-- Tailwind CSS v3 via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -55,7 +56,7 @@
                 </div>
                 <div>
                     <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 via-violet-400 to-pink-400 bg-clip-text text-transparent">AITA</span>
-                    <span class="text-xs px-2 py-0.5 ml-2 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-mono">G4 - Code Plagiarism</span>
+                    <span class="text-xs px-2 py-0.5 ml-2 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-mono">SE20C G7 - Code Plagiarism</span>
                 </div>
             </div>
             <!-- Navigation Links -->

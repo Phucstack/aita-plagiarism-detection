@@ -1,5 +1,6 @@
 package com.aita.plagiarism.service;
 
+import com.aita.plagiarism.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,16 @@ import static org.junit.jupiter.api.Assertions.*;
 public class PlagiarismEngineServiceTest {
 
     private PlagiarismEngineService engineService;
+
+    /** Actor ADMIN dùng để tạo/xóa bài tập tạm trong kiểm thử. */
+    private static User admin() {
+        User u = new User();
+        u.setUserId(1);
+        u.setUsername("admin");
+        u.setFullName("Quản Trị Viên");
+        u.setRole("ADMIN");
+        return u;
+    }
 
     @BeforeEach
     void setUp() {
@@ -77,12 +88,13 @@ public class PlagiarismEngineServiceTest {
         assignment.setDeadline(new java.sql.Timestamp(System.currentTimeMillis() + 86400000L));
         assignment.setMaxScore(100);
         assignment.setSimilarityThreshold(75);
-        int id = assignments.createAssignment(assignment);
+        int id = assignments.createAssignment(assignment, admin());
         try {
-            assertEquals(0, engineService.scanAssignment(id));
+            assertEquals(0, engineService.scanAssignment(id).getReportsCreated());
+            assertEquals(0, engineService.scanAssignment(id).getSkippedPairs());
             assertTrue(new com.aita.plagiarism.dao.PlagiarismDAO().getReportsByAssignment(id).isEmpty());
         } finally {
-            assertTrue(assignments.deleteAssignment(id));
+            assertTrue(assignments.deleteAssignment(id, admin()));
         }
     }
 }

@@ -1,5 +1,6 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi" class="dark">
 <head>
@@ -200,7 +201,7 @@
                         </label>
                         <div class="relative">
                             <i data-lucide="mail" class="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
-                            <input type="text" id="email" name="email" required value="${lastEmail != null ? lastEmail : 'ha.nh@fpt.edu.vn'}" placeholder="nhap.email@fpt.edu.vn hoặc username" 
+                            <input type="text" id="email" name="email" required value="${lastEmail != null ? fn:escapeXml(lastEmail) : 'ha.nh@fpt.edu.vn'}" placeholder="nhap.email@fpt.edu.vn hoặc username" 
                                    class="w-full pl-9 pr-3 py-2 rounded-xl bg-[#080911] border border-white/10 text-xs text-white focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_12px_rgba(6,182,212,0.2)] transition-all font-mono">
                         </div>
                     </div>
@@ -221,10 +222,9 @@
                     </div>
 
                     <div class="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
-                        <label class="flex items-center gap-1.5 cursor-pointer">
-                            <input type="checkbox" checked class="w-3.5 h-3.5 rounded border-white/10 text-cyan-500 focus:ring-0 bg-[#080911]">
-                            <span>Duy trì phiên (JWT 24h)</span>
-                        </label>
+                        <span class="flex items-center gap-1.5">
+                            <span>Phiên đăng nhập có hiệu lực 24 giờ</span>
+                        </span>
                         <span class="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> RFC-7519
                         </span>

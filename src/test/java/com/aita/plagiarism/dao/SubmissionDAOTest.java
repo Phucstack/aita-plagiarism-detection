@@ -1,6 +1,7 @@
 package com.aita.plagiarism.dao;
 
 import com.aita.plagiarism.model.Submission;
+import com.aita.plagiarism.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -60,8 +61,18 @@ public class SubmissionDAOTest {
         boolean updateStatusOk = submissionDAO.updateSubmissionStatus(newId, "ANALYZED");
         assertTrue(updateStatusOk, "Cập nhật trạng thái bài nộp phải thành công");
 
-        // 4. Delete
-        boolean deleteOk = submissionDAO.deleteSubmission(newId);
+        // 4. Delete — phải truyền actor (không còn overload bỏ qua kiểm tra sở hữu)
+        User admin = new User();
+        admin.setUserId(1);
+        admin.setUsername("admin");
+        admin.setRole("ADMIN");
+        boolean deleteOk = submissionDAO.deleteSubmission(newId, admin);
         assertTrue(deleteOk, "Xóa bài nộp phải thành công");
+    }
+
+    @Test
+    @DisplayName("Thiếu actor khi xóa bài nộp phải bị từ chối (không bỏ qua kiểm tra sở hữu)")
+    void testDeleteSubmissionWithoutActorRejected() {
+        assertThrows(IllegalArgumentException.class, () -> submissionDAO.deleteSubmission(1, null));
     }
 }

@@ -270,7 +270,7 @@
                 <div>
                     <h3 class="text-base font-bold text-white font-mono flex items-center gap-2">
                         Quy Trình Thuật Toán AST &amp; Gemini Semantic
-                        <span class="px-2 py-0.5 rounded text-[10px] bg-cyan-950 text-cyan-400 border border-cyan-500/30">Nhóm 4 PRJ301</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] bg-cyan-950 text-cyan-400 border border-cyan-500/30">SE20C Nhóm 7 PRJ301</span>
                     </h3>
                     <p class="text-xs text-slate-400">Cơ chế phát hiện đạo văn mã nguồn đa tầng chống thủ thuật làm mờ (Obfuscation)</p>
                 </div>

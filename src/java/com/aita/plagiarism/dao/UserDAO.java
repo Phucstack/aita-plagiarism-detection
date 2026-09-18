@@ -138,7 +138,15 @@ public class UserDAO {
     }
 
     /**
-     * Tự động tra cứu hoặc khởi tạo tài khoản Google khi người dùng đăng nhập OAuth2
+     * Tên phương thức mang tính lịch sử; <b>phương thức này không bao giờ tạo tài khoản</b>.
+     *
+     * Hệ thống chủ trương KHÔNG tự cấp tài khoản chỉ dựa vào email do Google trả về:
+     * mọi tài khoản phải được tạo sẵn, sau đó liên kết qua {@link #authenticateGoogle}.
+     * Vì vậy phương thức luôn ném {@link UnsupportedOperationException}.
+     * Cố tình giữ lại (thay vì xoá) để mọi chỗ gọi nhầm đều thất bại ngay lập tức,
+     * và hành vi này đang được test bảo vệ.
+     *
+     * @throws UnsupportedOperationException luôn luôn
      */
     public User getOrCreateGoogleUser(String email, String fullName, String avatarUrl, String preferredRole) {
         throw new UnsupportedOperationException("Email-only Google provisioning is not supported");

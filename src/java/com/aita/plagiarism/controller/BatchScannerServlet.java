@@ -48,9 +48,12 @@ public class BatchScannerServlet extends HttpServlet {
         if (!AccessPolicy.canManageAssignment(actor, assignmentId)) { response.sendError(403); return; }
 
         // Kích hoạt lõi đối soát thật (Deterministic Java Core: Lexer + Jaccard + Levenshtein + MatchingBlocks)
-        int reportsCount = engineService.scanAssignment(assignmentId);
+        PlagiarismEngineService.ScanResult result = engineService.scanAssignment(assignmentId);
 
-        // Sau khi hoàn thành điều hướng về Dashboard để hiển thị báo cáo thật
-        response.sendRedirect(request.getContextPath() + "/dashboard?courseId=" + assignment.getCourseId() + "&assignmentId=" + assignmentId + "&scanSuccess=true&count=" + reportsCount);
+        // Sau khi hoàn thành điều hướng về Dashboard để hiển thị báo cáo thật.
+        // skipped > 0 nghĩa là có cặp không đọc được nội dung file và đã bị bỏ qua.
+        response.sendRedirect(request.getContextPath() + "/dashboard?courseId=" + assignment.getCourseId()
+                + "&assignmentId=" + assignmentId + "&scanSuccess=true&count=" + result.getReportsCreated()
+                + "&skipped=" + result.getSkippedPairs());
     }
 }

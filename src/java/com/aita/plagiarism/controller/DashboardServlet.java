@@ -79,6 +79,14 @@ public class DashboardServlet extends HttpServlet {
         }
         List<PlagiarismReport> reports = plagiarismDAO.getReportsByAssignment(selectedAssignmentId);
         List<Submission> submissions = submissionDAO.getSubmissionsByAssignment(selectedAssignmentId);
+        String statusFilter = request.getParameter("status");
+        if (statusFilter != null && !statusFilter.trim().isEmpty()) {
+            if (!java.util.Set.of("PENDING", "PARSED", "ANALYZED", "FLAGGED").contains(statusFilter.trim().toUpperCase(java.util.Locale.ROOT))) {
+                response.sendError(400);
+                return;
+            }
+            submissions = submissionDAO.getSubmissionsByAssignmentAndStatus(selectedAssignmentId, statusFilter);
+        }
 
         double threshold = currentAssignment == null ? 75 : currentAssignment.getSimilarityThreshold();
         request.setAttribute("courseCount", courses.size());
@@ -98,6 +106,8 @@ public class DashboardServlet extends HttpServlet {
                 : currentAssignment.getDeadline().toLocalDateTime().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")));
         request.setAttribute("reports", reports);
         request.setAttribute("submissions", submissions);
+        request.setAttribute("statusFilter", statusFilter == null ? "" : statusFilter.trim().toUpperCase(java.util.Locale.ROOT));
+        request.setAttribute("similarityMatrix", plagiarismDAO.getSimilarityMatrix(selectedAssignmentId));
 
         // Chuyển tiếp sang View JSP chuẩn mô hình MVC2
         request.getRequestDispatcher("/dashboard.jsp").forward(request, response);

@@ -9,7 +9,7 @@ cd /d "%~dp0"
 :MAIN_MENU
 cls
 echo ==============================================================================
-echo       AITA CODEDEFEND - ACTIVE AST DEFENSE SUITE [PRJ301 - RBL GROUP 4]      
+echo       AITA CODEDEFEND - ACTIVE AST DEFENSE SUITE [PRJ301 - RBL SE20C GROUP 7]      
 echo    HE THONG GIAM SAT LIEM CHINH HOC THUAT VA DOI SOAT DAO VAN MA NGUON JAVA  
 echo ==============================================================================
 echo.
@@ -275,23 +275,26 @@ echo             HUONG DAN CAU HINH DATABASE SQL SERVER VA APACHE TOMCAT
 echo ==============================================================================
 echo.
 echo 1. CO SO DU LIEU MICROSOFT SQL SERVER:
-echo    - File script tao bang va mau: database\database_schema.sql
-echo    - Ten Database: AITA_PlagiarismDB
-echo    - Chuoi ket noi chuan trong src\java\...\dao\DBContext.java:
-echo      jdbc:sqlserver://localhost:1433;databaseName=AITA_PlagiarismDB;encrypt=false;trustServerCertificate=true;
-echo    - Tai khoan CSDL mac dinh: sa / 123456
+echo    - File script tao bang con thieu: database\database_schema.sql [idempotent, khong DROP/reset du lieu]
+echo    - Ten Database mac dinh: AITA_PlagiarismDB [test dung DB rieng co chu Test/Verification]
+echo    - Cau hinh trong .env theo .env.example: DB_SERVER, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+echo    - DBContext dung encrypt=true; DB_TRUST_SERVER_CERTIFICATE=false mac dinh; chi true o SQL local tin cay.
+echo    - Dung tai khoan DB gioi han quyen tren database ung dung; khong dung sa/sysadmin de chay web.
 echo.
-echo 2. TRIEN KHAI LEN APACHE TOMCAT 10.1+ [Jakarta Servlet 6.0]:
-echo    - Du an su dung chuan Jakarta Servlet 6.0 (Tomcat 10.1 tro len).
-echo    - Sau khi build o muc [2], copy file .war vao: [Tomcat_Home]\webapps\
-echo    - Khoi dong Tomcat [bin\startup.bat] va truy cap:
-echo      http://localhost:8080/aita-plagiarism-detection-1.0.0-SNAPSHOT/
+echo 2. CAU HINH XAC THUC VA GOOGLE LOGIN:
+echo    - JWT_SECRET: chuoi ngau nhien toi thieu 32 byte trong .env; thieu se khong khoi dong duoc.
+echo    - GOOGLE_CLIENT_ID: OAuth Web client trong .env; DB cu chay database\google_identity_migration.sql.
+echo    - Email phai co tai khoan san trong Users; khong tu tao role tu trinh duyet.
 echo.
-echo 3. TAI KHOAN DANG NHAP MAC DINH FPTU:
-echo    - Giang Vien : ha.nh@fpt.edu.vn        ^| Mat khau: 123456
-echo    - Sinh Vien  : longtvse1701@fpt.edu.vn  ^| Mat khau: 123456
-echo    - Khao Thi   : admin.khaothi@fpt.edu.vn ^| Mat khau: 123456
-echo    - Hoac bam nut 'Dang nhap bang tai khoan Google' de vao thang.
+echo 3. TRIEN KHAI LEN APACHE TOMCAT 10.1+ [Jakarta Servlet 6.0]:
+echo    - Khuyen dung: powershell -NoProfile -ExecutionPolicy Bypass -File tools/run-java.ps1
+echo    - Script build WAR va chay Tomcat base rieng tai target/java-runtime; dung -Stop de tat.
+echo    - Truy cap: http://localhost:8080/plagiarism/login
+echo    - Cach thu cong: copy target\aita-plagiarism-detection-1.0.0-SNAPSHOT.war vao [Tomcat_Home]\webapps\
+echo.
+echo 4. TAI KHOAN DEMO CUA NHOM [chi dung du lieu demo, khong in mat khau that tai day]:
+echo    - Xem tai khoan seed trong database\database_schema.sql hoac lien he nhom SE20C-07.
+echo    - Hoac bam nut 'Dang nhap bang tai khoan Google' sau khi cau hinh GOOGLE_CLIENT_ID.
 echo ==============================================================================
 echo.
 echo Nhan phim 'O' de mo file database_schema.sql, hoac phim bat ky de quay lai.

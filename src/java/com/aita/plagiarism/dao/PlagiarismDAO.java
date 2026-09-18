@@ -33,6 +33,17 @@ public class PlagiarismDAO {
     }
 
     public int createReport(PlagiarismReport r) {
+        try (Connection conn = DBContext.getConnection()) {
+            return createReport(r, conn);
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new DataAccessException(e);
+        }
+    }
+
+    /** Ghi báo cáo trong cùng một giao dịch do người gọi quản lý. */
+    public int createReport(PlagiarismReport r, Connection conn) {
         if (r == null) return -1;
         if (r.getSubmissionAId() <= 0 || r.getSubmissionBId() <= 0
                 || r.getSubmissionAId() == r.getSubmissionBId()) {
@@ -41,7 +52,7 @@ public class PlagiarismDAO {
         String assignmentSql = "SELECT sa.assignment_id FROM Submissions sa " +
                 "JOIN Submissions sb ON sb.submission_id = ? " +
                 "WHERE sa.submission_id = ? AND sa.assignment_id = sb.assignment_id";
-        try (Connection conn = DBContext.getConnection()) {
+        try {
             int derivedAssignmentId;
             try (PreparedStatement assignmentPs = conn.prepareStatement(assignmentSql)) {
                 assignmentPs.setInt(1, r.getSubmissionBId());
@@ -103,11 +114,19 @@ public class PlagiarismDAO {
     }
 
     public int createMatchingBlock(MatchingBlock b) {
+        try (Connection conn = DBContext.getConnection()) {
+            return createMatchingBlock(b, conn);
+        } catch (Exception e) {
+            throw new DataAccessException(e);
+        }
+    }
+
+    /** Ghi khối mã trong cùng một giao dịch do người gọi quản lý. */
+    public int createMatchingBlock(MatchingBlock b, Connection conn) {
         if (b == null) return -1;
         String sql = "INSERT INTO MatchingBlocks (report_id, function_name, student_a_start_line, student_a_end_line, student_b_start_line, student_b_end_line, matched_code_snippet, variable_renaming_notes) " +
                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = DBContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, b.getReportId());
             ps.setString(2, b.getFunctionName());
             ps.setInt(3, b.getStudentAStartLine());
@@ -134,18 +153,69 @@ public class PlagiarismDAO {
     }
 
     public boolean clearReportsByAssignment(int assignmentId) {
+        try (Connection conn = DBContext.getConnection()) {
+            return clearReportsByAssignment(assignmentId, conn);
+        } catch (Exception e) {
+            throw new DataAccessException(e);
+        }
+    }
+
+    /** Xóa báo cáo cũ trong cùng một giao dịch do người gọi quản lý. */
+    public boolean clearReportsByAssignment(int assignmentId, Connection conn) {
         String sql = "DELETE pr FROM PlagiarismReports pr " +
                 "JOIN Submissions sa ON sa.submission_id = pr.submission_a_id " +
                 "JOIN Submissions sb ON sb.submission_id = pr.submission_b_id " +
                 "WHERE sa.assignment_id = ? AND sb.assignment_id = sa.assignment_id";
-        try (Connection conn = DBContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, assignmentId);
             ps.executeUpdate();
             return true;
         } catch (Exception e) {
             throw new DataAccessException(e);
         }
+    }
+
+    /**
+     * Cập nhật nhận định phân tích cho một báo cáo đã lưu.
+     * Dùng sau khi gọi Gemini thành công; bản ghi giữ nguyên nếu cập nhật thất bại.
+     */
+    public boolean updateAnalysisSummary(int reportId, String summary) {
+        if (reportId <= 0 || summary == null) return false;
+        String sql = "UPDATE PlagiarismReports SET ai_analysis_summary = ? WHERE report_id = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, summary);
+            ps.setInt(2, reportId);
+            return ps.executeUpdate() == 1;
+        } catch (Exception e) {
+            throw new DataAccessException(e);
+        }
+    }
+
+    public java.util.Map<Integer, java.util.Map<Integer, Double>> getSimilarityMatrix(int assignmentId) {
+        String sql = "SELECT pr.submission_a_id, pr.submission_b_id, MAX(pr.similarity_score) "
+                + "FROM PlagiarismReports pr "
+                + "JOIN Submissions s1 ON pr.submission_a_id = s1.submission_id "
+                + "JOIN Submissions s2 ON pr.submission_b_id = s2.submission_id "
+                + "WHERE s1.assignment_id = ? AND s2.assignment_id = s1.assignment_id "
+                + "GROUP BY pr.submission_a_id, pr.submission_b_id";
+        java.util.Map<Integer, java.util.Map<Integer, Double>> matrix = new java.util.LinkedHashMap<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, assignmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int a = rs.getInt(1);
+                    int b = rs.getInt(2);
+                    double score = rs.getDouble(3);
+                    matrix.computeIfAbsent(a, key -> new java.util.LinkedHashMap<>()).put(b, score);
+                    matrix.computeIfAbsent(b, key -> new java.util.LinkedHashMap<>()).put(a, score);
+                }
+            }
+        } catch (Exception e) {
+            throw new DataAccessException(e);
+        }
+        return matrix;
     }
 
     public List<PlagiarismReport> getReportsByAssignment(int assignmentId) {

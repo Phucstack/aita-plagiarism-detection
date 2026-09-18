@@ -138,16 +138,21 @@ INSERT INTO Assignments (course_id, title, description, max_score, deadline, sim
 (1, N'Assignment 1 - Java Lexer & Code Similarity Engine', N'Xây dựng bộ quét Token và tính toán chỉ số tương đồng Jaccard giữa các file mã nguồn Java.', 100.00, '2026-10-15 23:59:59', 70.00),
 (1, N'Assignment 2 - E-Commerce Web MVC2 & Payment Flow', N'Xây dựng chức năng OrderManager, giỏ hàng Cart và thanh toán an toàn.', 100.00, '2026-10-30 23:59:59', 75.00);
 
--- Bài nộp mẫu
+-- Bài nộp mẫu.
+-- file_path lưu tên tệp TƯƠNG ĐỐI và được giải trong thư mục cấu hình bởi AITA_UPLOAD_DIR
+-- (mặc định ${catalina.base}/aita-uploads, nằm ngoài web root).
+-- Các tệp fixture tương ứng nằm tại fixtures/submissions/; để demo quét, hãy đặt
+-- AITA_UPLOAD_DIR=fixtures/submissions hoặc copy chúng vào thư mục lưu trữ.
+-- Mã băm dưới đây là SHA-256 THẬT của từng tệp fixture, không phải giá trị bịa.
 INSERT INTO Submissions (assignment_id, student_id, file_name, file_path, file_type, sha256_hash, status) VALUES
-(2, 4, 'OrderManager_PhucTV.java', '/uploads/sub_01/OrderManager.java', 'JAVA', 'd7a8fbb307d7809469ca933b02dd32f974ddb16f5f785228a076d9cfac42a458', 'FLAGGED'),
-(2, 5, 'OrderManager_KhanhDVP.java', '/uploads/sub_02/OrderManager.java', 'JAVA', 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'FLAGGED'),
-(2, 6, 'OrderManager_NhiNH.java', '/uploads/sub_03/OrderManager.java', 'JAVA', 'ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb', 'ANALYZED'),
-(2, 7, 'OrderManager_TienN.java', '/uploads/sub_04/OrderManager.java', 'JAVA', 'b45cffe084dd3d20d928bee85e7b0f21ac6a4bc845aa7315ceda582593571377', 'ANALYZED');
+(2, 4, 'OrderManager_PhucTV.java', 'OrderManager_PhucTV.java', 'JAVA', 'ae878e1366c492b11f3fe660128125164107c948817ba4da90a3e329e6d6e732', 'FLAGGED'),
+(2, 5, 'OrderManager_KhanhDVP.java', 'OrderManager_KhanhDVP.java', 'JAVA', 'c67f75af634a2a9fddc7d8695a108ed88a12a87f02b79174e6c36277659e9b45', 'FLAGGED'),
+(2, 6, 'OrderManager_NhiNH.java', 'OrderManager_NhiNH.java', 'JAVA', '5c152a52ed50ca256a319920c27182bad015a40b0f7fd730cd613814f282fd0c', 'ANALYZED'),
+(2, 7, 'OrderManager_TienN.java', 'OrderManager_TienN.java', 'JAVA', '256dfd8943ac55d35daf0f13251da4a8cbf518e2d989298e15b5861f8a262599', 'ANALYZED');
 
 -- Báo cáo đạo văn đối chứng
 INSERT INTO PlagiarismReports (submission_a_id, submission_b_id, similarity_score, risk_level, ai_analysis_summary) VALUES
-(1, 2, 88.50, 'HIGH_RISK', N'Gemini AI phát hiện 14 khối mã tương đồng logic, 7 phương thức trùng khớp kiến trúc AST. Sinh viên B đã thay đổi biến _cart thành _basket, total_amt thành final_cost và đảo vị trí câu lệnh rẽ nhánh if-else.');
+(1, 2, 88.50, 'HIGH_RISK', N'Phân tích cục bộ (rule-based): mức độ tương đồng báo động đỏ (88.5%) giữa OrderManager_PhucTV.java và OrderManager_KhanhDVP.java. Dấu hiệu đổi tên định danh biến/hàm và tái cấu trúc khối lệnh. Đây là dữ liệu seed minh hoạ, không phải kết quả từ mô hình ngôn ngữ lớn.');
 
 -- Chi tiết đoạn code trùng
 INSERT INTO MatchingBlocks (report_id, function_name, student_a_start_line, student_a_end_line, student_b_start_line, student_b_end_line, matched_code_snippet, variable_renaming_notes) VALUES

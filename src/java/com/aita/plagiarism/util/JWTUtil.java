@@ -15,7 +15,8 @@ public final class JWTUtil {
     private JWTUtil() {}
 
     private static SecretKey key() {
-        String secret = System.getenv("JWT_SECRET");
+        // Đọc system property trước (nhất quán với DBContext), rồi mới tới biến môi trường.
+        String secret = System.getProperty("JWT_SECRET", System.getenv("JWT_SECRET"));
         if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
             throw new IllegalStateException("JWT_SECRET must contain at least 32 UTF-8 bytes");
         }

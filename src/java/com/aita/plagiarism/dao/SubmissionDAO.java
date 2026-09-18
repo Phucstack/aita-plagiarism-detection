@@ -64,6 +64,30 @@ public class SubmissionDAO {
         return list;
     }
 
+    public List<Submission> getSubmissionsByAssignmentAndStatus(int assignmentId, String status) {
+        List<Submission> list = new ArrayList<>();
+        String normalized = status == null ? "" : status.trim().toUpperCase(java.util.Locale.ROOT);
+        if (!java.util.Set.of("PENDING", "PARSED", "ANALYZED", "FLAGGED").contains(normalized)) {
+            throw new IllegalArgumentException("Unsupported submission status filter.");
+        }
+        String sql = "SELECT * FROM Submissions WHERE assignment_id = ? AND status = ? ORDER BY submitted_at DESC";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, assignmentId);
+            ps.setString(2, normalized);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapSubmission(rs));
+                }
+            }
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new DataAccessException(e);
+        }
+        return list;
+    }
+
     public List<Submission> getSubmissionsByStudent(int studentId) {
         List<Submission> list = new ArrayList<>();
         String sql = "SELECT * FROM Submissions WHERE student_id = ? ORDER BY submitted_at DESC";
@@ -97,19 +121,24 @@ public class SubmissionDAO {
         return null;
     }
 
-    public boolean deleteSubmission(int submissionId) { return deleteSubmission(submissionId, null); }
-
+    /**
+     * Xóa bài nộp. Bắt buộc truyền {@code actor}: không còn overload thiếu actor,
+     * vì thiếu actor từng đồng nghĩa với việc bỏ qua toàn bộ kiểm tra sở hữu.
+     */
     public boolean deleteSubmission(int submissionId, com.aita.plagiarism.model.User actor) {
+        if (actor == null) {
+            throw new IllegalArgumentException("actor is required: ownership checks must never be skipped");
+        }
         String sql = "DELETE FROM Submissions WHERE submission_id = ? AND (? = 1 OR student_id = ? OR ? = 'ADMIN' " +
                 "OR EXISTS (SELECT 1 FROM Assignments a JOIN Courses c ON c.course_id = a.course_id " +
                 "WHERE a.assignment_id = Submissions.assignment_id AND c.instructor_id = ?))";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, submissionId);
-            ps.setInt(2, actor == null ? 1 : 0);
-            ps.setInt(3, actor == null ? -1 : actor.getUserId());
-            ps.setString(4, actor == null ? "" : actor.getRole());
-            ps.setInt(5, actor != null && "INSTRUCTOR".equals(actor.getRole()) ? actor.getUserId() : -1);
+            ps.setInt(2, 0);
+            ps.setInt(3, actor.getUserId());
+            ps.setString(4, actor.getRole());
+            ps.setInt(5, "INSTRUCTOR".equals(actor.getRole()) ? actor.getUserId() : -1);
             if (ps.executeUpdate() > 0) return true;
         } catch (Exception e) {
             throw new DataAccessException(e);
@@ -118,9 +147,17 @@ public class SubmissionDAO {
     }
 
     public boolean updateSubmissionStatus(int submissionId, String status) {
+        try (Connection conn = DBContext.getConnection()) {
+            return updateSubmissionStatus(submissionId, status, conn);
+        } catch (Exception e) {
+            throw new DataAccessException(e);
+        }
+    }
+
+    /** Cập nhật trạng thái trong cùng một giao dịch do người gọi quản lý. */
+    public boolean updateSubmissionStatus(int submissionId, String status, Connection conn) {
         String sql = "UPDATE Submissions SET status = ? WHERE submission_id = ?";
-        try (Connection conn = DBContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, status);
             ps.setInt(2, submissionId);
             if (ps.executeUpdate() > 0) return true;

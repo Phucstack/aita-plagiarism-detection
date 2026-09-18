@@ -50,12 +50,19 @@ public class AuthFilter implements Filter {
                 return;
             }
             if (!"GET".equals(req.getMethod()) && !"HEAD".equals(req.getMethod())) {
+                String site = req.getHeader("Sec-Fetch-Site");
                 String origin = req.getHeader("Origin");
                 String expected = req.getScheme() + "://" + req.getServerName()
                         + ((req.getServerPort() == 80 && "http".equals(req.getScheme()))
                         || (req.getServerPort() == 443 && "https".equals(req.getScheme())) ? "" : ":" + req.getServerPort());
-                if ("cross-site".equals(req.getHeader("Sec-Fetch-Site"))
-                        || (origin != null && !expected.equals(origin))) {
+
+                // Chỉ chấp nhận khi CÓ BẰNG CHỨNG rõ ràng về cùng nguồn.
+                // Nếu cả Origin lẫn Sec-Fetch-Site đều vắng mặt (trình khách cũ hoặc
+                // không phải trình duyệt), không thể chứng minh cùng nguồn -> từ chối.
+                boolean provenSameOrigin = "same-origin".equals(site) || "none".equals(site);
+                boolean originMatches = origin != null && expected.equals(origin);
+
+                if ("cross-site".equals(site) || (!provenSameOrigin && !originMatches)) {
                     res.sendError(403);
                     return;
                 }
