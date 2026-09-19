@@ -72,4 +72,67 @@ public class CourseDAOTest {
         Assignment assignment = courseDAO.getAssignmentById(99999);
         assertNull(assignment, "Unknown IDs must not return sample assignments");
     }
+
+    // ------------------------------------------------------------------
+    // CÁC TEST SAU CẦN DB SQL SERVER THẬT (seed instructor_id = 2 có PRJ301).
+    // Không chạy trong CI không-DB: chỉ chạy khi có -DDB_* kết nối được.
+    // ------------------------------------------------------------------
+
+    @Test
+    @DisplayName("[DB] Keyword lọc đúng khóa học theo mã/tên (course_code LIKE hoặc course_name LIKE)")
+    void testPagedCoursesKeywordFilter() {
+        List<Course> all = courseDAO.getCoursesByInstructor(2, 1, 50, null);
+        int total = courseDAO.countCoursesByInstructor(2, null);
+        assertEquals(all.size(), total, "count phải khớp với danh sách đầy đủ");
+
+        List<Course> filtered = courseDAO.getCoursesByInstructor(2, 1, 50, "PRJ");
+        assertFalse(filtered.isEmpty(), "Keyword 'PRJ' phải khớp ít nhất PRJ301");
+        for (Course c : filtered) {
+            assertTrue(
+                    c.getCourseCode().toUpperCase(java.util.Locale.ROOT).contains("PRJ")
+                            || c.getCourseName().toUpperCase(java.util.Locale.ROOT).contains("PRJ"),
+                    "Mọi kết quả phải khớp keyword: " + c.getCourseCode());
+        }
+        assertEquals(courseDAO.countCoursesByInstructor(2, "PRJ"), filtered.size());
+
+        // Keyword không khớp gì phải trả rỗng, count = 0
+        List<Course> none = courseDAO.getCoursesByInstructor(2, 1, 50, "ZZZ_KHONG_TON_TAI_999");
+        assertTrue(none.isEmpty());
+        assertEquals(0, courseDAO.countCoursesByInstructor(2, "ZZZ_KHONG_TON_TAI_999"));
+
+        // Ký tự đặc biệt LIKE phải được escape, không ném lỗi cú pháp
+        List<Course> special = courseDAO.getCoursesByInstructor(2, 1, 50, "%_[");
+        assertTrue(special.isEmpty(), "Wildcard phải được coi là chuỗi thường");
+    }
+
+    @Test
+    @DisplayName("[DB] Trang 2 trả đúng phần tử (OFFSET/FETCH khớp với cắt tay trên danh sách đầy đủ)")
+    void testPagedCoursesSecondPage() {
+        int size = 5;
+        List<Course> all = courseDAO.getCoursesByInstructor(2, 1, 50, null);
+        List<Course> page2 = courseDAO.getCoursesByInstructor(2, 2, size, null);
+        int expectedCount = Math.max(0, Math.min(size, all.size() - size));
+        assertEquals(expectedCount, page2.size(), "Trang 2 phải có đúng số phần tử còn lại");
+        for (int i = 0; i < page2.size(); i++) {
+            assertEquals(all.get(size + i).getCourseId(), page2.get(i).getCourseId(),
+                    "Phần tử trang 2 phải trùng với cắt tay theo ORDER BY course_code ASC");
+        }
+    }
+
+    @Test
+    @DisplayName("[DB] Page âm/0 được clamp về trang 1; size được clamp vào [5..50]")
+    void testPagedCoursesClampInvalidParams() {
+        List<Course> page1 = courseDAO.getCoursesByInstructor(2, 1, 5, null);
+        List<Course> pageZero = courseDAO.getCoursesByInstructor(2, 0, 5, null);
+        List<Course> pageNegative = courseDAO.getCoursesByInstructor(2, -7, 5, null);
+        assertEquals(page1.stream().map(Course::getCourseId).toList(),
+                pageZero.stream().map(Course::getCourseId).toList(), "page=0 phải về trang 1");
+        assertEquals(page1.stream().map(Course::getCourseId).toList(),
+                pageNegative.stream().map(Course::getCourseId).toList(), "page âm phải về trang 1");
+
+        List<Course> clampedSize = courseDAO.getCoursesByInstructor(2, 1, 1, null);
+        assertTrue(clampedSize.size() <= 5, "size=1 phải được clamp lên 5");
+        List<Course> hugeSize = courseDAO.getCoursesByInstructor(2, 1, 5000, null);
+        assertTrue(hugeSize.size() <= 50, "size=5000 phải được clamp xuống 50");
+    }
 }

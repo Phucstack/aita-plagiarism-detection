@@ -7,7 +7,16 @@
 <p><c:out value="${report.studentAName}"/> ↔ <c:out value="${report.studentBName}"/></p>
 <p>Thời điểm tạo: <c:out value="${report.createdAt}"/></p><p>Phân loại đã lưu: <c:out value="${report.riskLevel}"/></p>
 <p>Độ tương đồng không tự kết luận đạo văn. Cần xem xét mã khung, yêu cầu bài tập và bối cảnh của từng bài nộp.</p></section>
-<section><h2>Ghi chú đối soát đã lưu</h2><p class="preserve"><c:out value="${report.aiAnalysisSummary}" default="Chưa có ghi chú."/></p></section>
+<section><h2>Ghi chú đối soát đã lưu</h2><p class="preserve"><c:out value="${report.aiAnalysisSummary}" default="Chưa có ghi chú."/></p>
+<c:if test="${not empty aiFlash}"><p><strong><c:out value="${aiFlash}"/></strong></p></c:if>
+<c:if test="${!isStudent and !hasGeminiAnalysis}">
+<form method="post" action="${pageContext.request.contextPath}/diff-inspector" style="margin-top:8px">
+<input type="hidden" name="action" value="analyze-deep">
+<input type="hidden" name="reportId" value="${report.reportId}">
+<button type="submit">Phân tích sâu bằng AI</button>
+</form>
+</c:if>
+<c:if test="${!isStudent and hasGeminiAnalysis}"><p>Báo cáo này đã có phân tích Gemini.</p></c:if></section>
 <section><h2>Đoạn mã khớp đã lưu</h2><c:if test="${empty matchingBlocks}"><p>Chưa có đoạn mã khớp trong báo cáo này.</p></c:if>
 <c:forEach items="${matchingBlocks}" var="b"><article><h3><c:out value="${b.functionName}" default="Đoạn mã"/></h3>
 <p>Bài A: dòng ${b.studentAStartLine}–${b.studentAEndLine} · Bài B: dòng ${b.studentBStartLine}–${b.studentBEndLine}</p>

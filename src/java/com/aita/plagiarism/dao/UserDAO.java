@@ -66,7 +66,7 @@ public class UserDAO {
                         User user = mapUser(rs);
                         if (PasswordUtil.needsUpgrade(storedHash)) {
                             String replacement = PasswordUtil.hashPassword(rawPassword);
-                            if (!replacePassword(user.getUserId(), storedHash, replacement)) {
+                            if (!replacePassword(user.getUserId(), storedHash, replacement, false)) {
                                 // A concurrent login may have upgraded it, or a password change won.
                                 try (PreparedStatement latest = conn.prepareStatement("SELECT password_hash FROM Users WHERE user_id = ?")) {
                                     latest.setInt(1, user.getUserId());
@@ -88,7 +88,7 @@ public class UserDAO {
     }
 
     public User getUserById(int userId) {
-        String sql = "SELECT user_id, username, full_name, email, role, avatar_url, created_at FROM Users WHERE user_id = ?";
+        String sql = "SELECT user_id, username, full_name, email, role, avatar_url, created_at, password_changed_at FROM Users WHERE user_id = ?";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
@@ -137,21 +137,6 @@ public class UserDAO {
         return null;
     }
 
-    /**
-     * Tên phương thức mang tính lịch sử; <b>phương thức này không bao giờ tạo tài khoản</b>.
-     *
-     * Hệ thống chủ trương KHÔNG tự cấp tài khoản chỉ dựa vào email do Google trả về:
-     * mọi tài khoản phải được tạo sẵn, sau đó liên kết qua {@link #authenticateGoogle}.
-     * Vì vậy phương thức luôn ném {@link UnsupportedOperationException}.
-     * Cố tình giữ lại (thay vì xoá) để mọi chỗ gọi nhầm đều thất bại ngay lập tức,
-     * và hành vi này đang được test bảo vệ.
-     *
-     * @throws UnsupportedOperationException luôn luôn
-     */
-    public User getOrCreateGoogleUser(String email, String fullName, String avatarUrl, String preferredRole) {
-        throw new UnsupportedOperationException("Email-only Google provisioning is not supported");
-    }
-
     private User mapUser(ResultSet rs) throws Exception {
         User user = new User();
         user.setUserId(rs.getInt("user_id"));
@@ -161,6 +146,11 @@ public class UserDAO {
         user.setRole(rs.getString("role"));
         user.setAvatarUrl(rs.getString("avatar_url"));
         user.setCreatedAt(rs.getTimestamp("created_at"));
+        try {
+            user.setPasswordChangedAt(rs.getTimestamp("password_changed_at"));
+        } catch (java.sql.SQLException e) {
+            // ResultSet không có cột password_changed_at (các truy vấn cũ) -> bỏ qua.
+        }
         return user;
     }
 
@@ -195,7 +185,7 @@ public class UserDAO {
                     if (!PasswordUtil.verifyPassword(oldPassword, currentHash)) {
                         return false;
                     }
-                    return replacePassword(userId, currentHash, PasswordUtil.hashPassword(newPassword));
+                    return replacePassword(userId, currentHash, PasswordUtil.hashPassword(newPassword), true);
                 }
             }
             return false;
@@ -204,8 +194,20 @@ public class UserDAO {
         }
     }
 
-    private boolean replacePassword(int userId, String expected, String replacement) {
-        String sql = "UPDATE Users SET password_hash = ? WHERE user_id = ? AND password_hash COLLATE Latin1_General_100_BIN2 = ?";
+    /**
+     * Thay hash mật khẩu với điều kiện hash cũ khớp (chống đổi đồng thời).
+     *
+     * <p>{@code markChanged} chỉ bật khi người dùng <b>chủ động đổi mật khẩu</b>
+     * ({@link #changePassword}) — lúc đó {@code password_changed_at} được ghi để
+     * AuthFilter thu hồi mọi JWT phát hành trước đó. Nâng cấp hash legacy
+     * (SHA-256/MD5 → PBKDF2) trong {@link #authenticate} KHÔNG được ghi dấu này:
+     * đó là thao tác kỹ thuật minh bạch, mật khẩu không đổi — nếu ghi dấu thì
+     * chính token vừa phát hành trong request login sẽ bị thu hồi ngay.</p>
+     */
+    private boolean replacePassword(int userId, String expected, String replacement, boolean markChanged) {
+        String sql = markChanged
+                ? "UPDATE Users SET password_hash = ?, password_changed_at = GETDATE() WHERE user_id = ? AND password_hash COLLATE Latin1_General_100_BIN2 = ?"
+                : "UPDATE Users SET password_hash = ? WHERE user_id = ? AND password_hash COLLATE Latin1_General_100_BIN2 = ?";
         try (Connection conn = DBContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, replacement);
             ps.setInt(2, userId);

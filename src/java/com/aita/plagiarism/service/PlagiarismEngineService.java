@@ -70,6 +70,26 @@ public class PlagiarismEngineService {
             "volatile", "while", "true", "false", "null", "String", "List", "ArrayList", "Map", "HashMap"
     ));
 
+    /** Một dòng mã sau chuẩn hóa, kèm số dòng gốc (1-based) trong tệp nguồn. */
+    private static final class NormalizedLine {
+        String normalized;
+        int originalLine;
+    }
+
+    /** Pattern tách từ vựng dùng chung cho mọi pha chuẩn hóa. */
+    private static final Pattern WORD_PATTERN = Pattern.compile(
+            "[a-zA-Z_$][a-zA-Z0-9_$]*|[0-9]+|==|!=|<=|>=|&&|\\|\\||[{}();,\\[\\]=+\\-*/%<>!]");
+
+    /** Các từ khóa điều khiển luồng — loại khỏi nhận diện tên hàm best-effort. */
+    private static final Set<String> CONTROL_FLOW_KEYWORDS = new HashSet<>(Arrays.asList(
+            "if", "for", "while", "switch", "catch", "do", "try", "else",
+            "synchronized", "return", "new", "throw"
+    ));
+
+    /** Pattern best-effort nhận diện dòng khai báo method Java (không dựng AST). */
+    private static final Pattern METHOD_DECL_PATTERN = Pattern.compile(
+            "^\\s*(?:[\\w\\[\\]<>?,]+\\s+)+([a-zA-Z_$][\\w$]*)\\s*\\([^;]*\\)\\s*(?:throws[\\w\\s,.]+)?\\{?\\s*$");
+
     /**
      * Chuẩn hóa mã nguồn Java: loại bỏ comment, khoảng trắng, và thay thế tên biến
      */
@@ -81,13 +101,17 @@ public class PlagiarismEngineService {
         noComments = noComments.replaceAll("//.*", " ");
 
         // 2. Tách từ vựng và chuẩn hóa định danh biến/hàm
-        Pattern wordPattern = Pattern.compile("[a-zA-Z_$][a-zA-Z0-9_$]*|[0-9]+|==|!=|<=|>=|&&|\\|\\||[{}();,\\[\\]=+\\-*/%<>!]");
-        Matcher matcher = wordPattern.matcher(noComments);
+        return normalizeFragment(noComments, new HashMap<>());
+    }
 
+    /**
+     * Tách từ vựng một đoạn văn bản và chuẩn hóa định danh thành {@code $ID_n}.
+     * Bản đồ định danh được truyền từ ngoài để nhiều đoạn (ví dụ từng dòng của
+     * cùng một tệp) dùng chung một cách đánh số nhất quán.
+     */
+    private static String normalizeFragment(String text, Map<String, String> identifierMap) {
+        Matcher matcher = WORD_PATTERN.matcher(text);
         StringBuilder normalized = new StringBuilder();
-        Map<String, String> identifierMap = new HashMap<>();
-        int idCounter = 1;
-
         while (matcher.find()) {
             String token = matcher.group();
             if (JAVA_KEYWORDS.contains(token) || token.matches("[^a-zA-Z_$].*")) {
@@ -95,12 +119,137 @@ public class PlagiarismEngineService {
             } else {
                 // Biến hoặc hàm do người dùng đặt -> chuẩn hóa thành $ID_n
                 if (!identifierMap.containsKey(token)) {
-                    identifierMap.put(token, "$ID_" + (idCounter++));
+                    identifierMap.put(token, "$ID_" + (identifierMap.size() + 1));
                 }
                 normalized.append(identifierMap.get(token)).append(" ");
             }
         }
         return normalized.toString().trim();
+    }
+
+    /**
+     * Chuẩn hóa mã nguồn theo từng dòng, giữ ánh xạ về số dòng gốc (1-based).
+     * Dùng chung logic bỏ comment/token hóa/đổi tên định danh với {@link #normalizeJavaCode},
+     * nhưng áp dụng trên từng dòng để phục vụ bóc tách Matching Block theo tọa độ dòng.
+     * Dòng sau chuẩn hóa mà rỗng (dòng trắng hoặc chỉ chứa comment) bị loại khỏi kết quả.
+     */
+    List<NormalizedLine> normalizeJavaCodeToLines(String rawCode) {
+        List<NormalizedLine> result = new ArrayList<>();
+        if (rawCode == null) return result;
+
+        // Bỏ comment khối trước vì nó có thể trải dài nhiều dòng; comment dòng xử lý theo từng dòng.
+        String noBlockComments = rawCode.replaceAll("/\\*[^*]*(?:\\*(?!/)[^*]*)*\\*/", " ");
+
+        Map<String, String> identifierMap = new HashMap<>();
+        String[] lines = noBlockComments.split("\\R", -1);
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i].replaceAll("//.*", " ");
+            String normalized = normalizeFragment(line, identifierMap);
+            if (normalized.isEmpty()) continue;
+            NormalizedLine nl = new NormalizedLine();
+            nl.normalized = normalized;
+            nl.originalLine = i + 1;
+            result.add(nl);
+        }
+        return result;
+    }
+
+    /**
+     * Bóc tách các khối mã trùng lặp (Matching Block) giữa hai tệp bằng thuật toán
+     * LCS trên bảng quy hoạch động, tính trên các dòng ĐÃ chuẩn hóa (đổi tên định
+     * danh vẫn khớp nhau). Tọa độ block trả về là số dòng GỐC trong từng tệp.
+     * Các đoạn khớp liên tiếp trên đường đi LCS được gom thành một block;
+     * block ngắn hơn 3 dòng bị loại vì quá nhiễu (một cặp ngoặc, một lệnh return...).
+     */
+    List<MatchingBlock> computeMatchingBlocks(String codeA, String codeB) {
+        List<NormalizedLine> linesA = normalizeJavaCodeToLines(codeA);
+        List<NormalizedLine> linesB = normalizeJavaCodeToLines(codeB);
+        List<MatchingBlock> blocks = new ArrayList<>();
+        if (linesA.isEmpty() || linesB.isEmpty()) return blocks;
+
+        int n = linesA.size();
+        int m = linesB.size();
+        int[][] dp = new int[n + 1][m + 1];
+        for (int i = n - 1; i >= 0; i--) {
+            for (int j = m - 1; j >= 0; j--) {
+                if (linesA.get(i).normalized.equals(linesB.get(j).normalized)) {
+                    dp[i][j] = dp[i + 1][j + 1] + 1;
+                } else {
+                    dp[i][j] = Math.max(dp[i + 1][j], dp[i][j + 1]);
+                }
+            }
+        }
+
+        String[] rawLinesA = codeA.split("\\R", -1);
+        int i = 0, j = 0;
+        while (i < n && j < m) {
+            if (linesA.get(i).normalized.equals(linesB.get(j).normalized)) {
+                int startI = i, startJ = j;
+                while (i < n && j < m
+                        && linesA.get(i).normalized.equals(linesB.get(j).normalized)) {
+                    i++;
+                    j++;
+                }
+                int blockLen = i - startI;
+                if (blockLen >= 3) {
+                    MatchingBlock block = new MatchingBlock();
+                    block.setFunctionName(findEnclosingFunctionName(
+                            rawLinesA, linesA.get(startI).originalLine));
+                    block.setStudentAStartLine(linesA.get(startI).originalLine);
+                    block.setStudentAEndLine(linesA.get(i - 1).originalLine);
+                    block.setStudentBStartLine(linesB.get(startJ).originalLine);
+                    block.setStudentBEndLine(linesB.get(j - 1).originalLine);
+                    block.setMatchedCodeSnippet(extractOriginalSnippet(
+                            rawLinesA, linesA.get(startI).originalLine, linesA.get(i - 1).originalLine));
+                    blocks.add(block);
+                }
+            } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+                i++;
+            } else {
+                j++;
+            }
+        }
+        return blocks;
+    }
+
+    /**
+     * Cắt đoạn mã GỐC phía A tương ứng với một block (từ dòng start đến dòng end,
+     * 1-based, cả hai đầu đều lấy), giới hạn tối đa 500 ký tự.
+     */
+    private static String extractOriginalSnippet(String[] rawLines, int startLine, int endLine) {
+        StringBuilder sb = new StringBuilder();
+        for (int line = startLine; line <= endLine && line <= rawLines.length; line++) {
+            sb.append(rawLines[line - 1]);
+            if (line < endLine) sb.append('\n');
+            if (sb.length() > 500) break;
+        }
+        String snippet = sb.toString();
+        return snippet.length() > 500 ? snippet.substring(0, 500) : snippet;
+    }
+
+    /**
+     * Best-effort tìm tên hàm bao chứa một dòng: quét ngược từ dòng đó lên trên,
+     * lấy dòng khai báo method gần nhất khớp {@link #METHOD_DECL_PATTERN}.
+     * Đây KHÔNG phải parser AST — khai báo method trải trên nhiều dòng hoặc lồng
+     * trong class nặc danh có thể nhận diện sai; khi đó trả về "unknown".
+     */
+    private static String findEnclosingFunctionName(String[] rawLines, int lineNumber) {
+        for (int k = Math.min(lineNumber, rawLines.length) - 1; k >= 0; k--) {
+            String line = rawLines[k].trim();
+            if (line.isEmpty() || line.startsWith("//") || line.startsWith("*")
+                    || line.startsWith("/*")) {
+                continue;
+            }
+            Matcher matcher = METHOD_DECL_PATTERN.matcher(line);
+            if (matcher.matches()) {
+                String name = matcher.group(1);
+                if (!CONTROL_FLOW_KEYWORDS.contains(name) && !"class".equals(name)
+                        && !"interface".equals(name) && !"enum".equals(name)) {
+                    return name;
+                }
+            }
+        }
+        return "unknown";
     }
 
     /**
@@ -273,20 +422,16 @@ public class PlagiarismEngineService {
                     int reportId = plagiarismDAO.createReport(report, conn);
                     reportsGenerated++;
 
-                    // Khối mã minh hoạ khi tương đồng đáng chú ý (>= 40%).
-                    // Toạ độ dòng mang tính heuristic, không phải kết quả bóc tách LCS.
+                    // Bóc tách LCS thật khi tương đồng đáng chú ý (>= 40%).
+                    // Tọa độ dòng là số dòng GỐC trong từng tệp; tối đa 5 block/cặp
+                    // để tránh phình bảng MatchingBlocks với các cặp giống hệt nhau.
                     if (outcome.score >= 40.0) {
-                        MatchingBlock block = new MatchingBlock();
-                        block.setReportId(reportId);
-                        block.setFunctionName("executeCoreLogic()");
-                        block.setStudentAStartLine(15);
-                        block.setStudentAEndLine(Math.min(45, Math.max(20, outcome.codeA.split("\n").length)));
-                        block.setStudentBStartLine(20);
-                        block.setStudentBEndLine(Math.min(50, Math.max(25, outcome.codeB.split("\n").length)));
-                        block.setMatchedCodeSnippet("// Khối mã minh hoạ (heuristic), chưa phải bóc tách LCS\n"
-                                + (outcome.codeA.length() > 200 ? outcome.codeA.substring(0, 200) : outcome.codeA));
-                        block.setVariableRenamingNotes("Phát hiện các định danh biến cục bộ đã bị đổi tên, luồng thuật toán tương đồng " + outcome.score + "%");
-                        plagiarismDAO.createMatchingBlock(block, conn);
+                        List<MatchingBlock> blocks = computeMatchingBlocks(outcome.codeA, outcome.codeB);
+                        for (MatchingBlock block : blocks.subList(0, Math.min(5, blocks.size()))) {
+                            block.setReportId(reportId);
+                            block.setVariableRenamingNotes("Khối mã khớp sau chuẩn hóa định danh (đổi tên biến/hàm vẫn khớp), độ tương đồng cặp " + outcome.score + "%");
+                            plagiarismDAO.createMatchingBlock(block, conn);
+                        }
                     }
 
                     if ("HIGH_RISK".equals(outcome.riskLevel)) {
@@ -385,10 +530,12 @@ public class PlagiarismEngineService {
             HighRiskPair pair = pairs.get(i);
             try {
                 String response = geminiService.analyzeCodeSimilarity(pair.codeA, pair.codeB);
-                String summary = GeminiPlagiarismService.extractSummary(response);
-                if (summary != null && !summary.isBlank()) {
-                    plagiarismDAO.updateAnalysisSummary(pair.reportId, "[Gemini] " + summary);
+                GeminiPlagiarismService.GeminiAnalysis analysis = GeminiPlagiarismService.parseAnalysis(response);
+                if (analysis != null) {
+                    plagiarismDAO.updateAnalysisSummary(pair.reportId,
+                            "[Gemini] " + GeminiPlagiarismService.renderAnalysis(analysis));
                 }
+                // JSON malformed hoặc fallback gắn nhãn: giữ nguyên nhận định cục bộ (rule-based).
             } catch (Exception e) {
                 // Mất kết nối/quota: giữ nguyên nhận định cục bộ, không làm gãy lượt quét.
             }

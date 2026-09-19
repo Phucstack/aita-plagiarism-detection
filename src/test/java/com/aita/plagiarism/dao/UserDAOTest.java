@@ -106,24 +106,4 @@ public class UserDAOTest {
         assertTrue(users.stream().anyMatch(u -> "STUDENT".equals(u.getRole())), "Phải có ít nhất 1 sinh viên");
     }
 
-    @Test
-    @DisplayName("Google OAuth disabled: no email-only authentication")
-    void testGetOrCreateGoogleUserExisting() {
-        assertThrows(UnsupportedOperationException.class,
-                () -> userDAO.getOrCreateGoogleUser("unverified@example.invalid", "Unverified", null, "ADMIN"));
-    }
-
-    @Test
-    @DisplayName("Google OAuth disabled: no unverified provisioning")
-    void testGetOrCreateGoogleUserNewStudent() {
-        assertThrows(UnsupportedOperationException.class,
-                () -> userDAO.getOrCreateGoogleUser("unverified@example.invalid", "Unverified", null, "ADMIN"));
-    }
-
-    @Test
-    @DisplayName("Google OAuth disabled: no client-selected role")
-    void testGetOrCreateGoogleUserNullEmail() {
-        assertThrows(UnsupportedOperationException.class,
-                () -> userDAO.getOrCreateGoogleUser("unverified@example.invalid", "Unverified", null, "ADMIN"));
-    }
 }

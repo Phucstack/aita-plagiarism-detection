@@ -14,6 +14,8 @@ class DiffInspectorServletTest {
     private void login() {
         var session = mock(HttpSession.class);
         when(req.getSession(false)).thenReturn(session);
+        // doGet dùng getSession() để đọc/xoá flash message — mock cả hai overload.
+        when(req.getSession()).thenReturn(session);
         when(session.getAttribute("currentUser")).thenReturn(new User(2,"teacher","Teacher","t@example.invalid","INSTRUCTOR"));
     }
     @Test void ownerCanReadAndOtherInstructorCannot() throws Exception {

@@ -125,6 +125,74 @@ public class CourseDAO {
         return list;
     }
 
+    /**
+     * Phân trang + tìm kiếm khóa học của một giảng viên (SQL Server OFFSET/FETCH).
+     * {@code page} bắt đầu từ 1; giá trị < 1 được clamp về 1. {@code size} được clamp vào [5..50].
+     * {@code keyword} rỗng/null thì không lọc; ngược lại lọc theo course_code HOẶC course_name (LIKE).
+     */
+    public List<Course> getCoursesByInstructor(int instructorId, int page, int size, String keyword) {
+        List<Course> list = new ArrayList<>();
+        int safePage = Math.max(1, page);
+        int safeSize = Math.min(50, Math.max(5, size));
+        String kw = keyword == null ? "" : keyword.trim();
+        String sql = "SELECT * FROM Courses WHERE instructor_id = ?"
+                + (kw.isEmpty() ? "" : " AND (course_code LIKE ? ESCAPE '\\' OR course_name LIKE ? ESCAPE '\\')")
+                + " ORDER BY course_code ASC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int idx = 1;
+            ps.setInt(idx++, instructorId);
+            if (!kw.isEmpty()) {
+                String pattern = "%" + escapeLike(kw) + "%";
+                ps.setString(idx++, pattern);
+                ps.setString(idx++, pattern);
+            }
+            ps.setInt(idx++, (safePage - 1) * safeSize);
+            ps.setInt(idx, safeSize);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapCourse(rs));
+                }
+            }
+        } catch (Exception e) {
+            throw new DataAccessException(e);
+        }
+        return list;
+    }
+
+    /** Tổng số khóa học của giảng viên khớp keyword (dùng để tính tổng trang). */
+    public int countCoursesByInstructor(int instructorId, String keyword) {
+        String kw = keyword == null ? "" : keyword.trim();
+        String sql = "SELECT COUNT(*) FROM Courses WHERE instructor_id = ?"
+                + (kw.isEmpty() ? "" : " AND (course_code LIKE ? ESCAPE '\\' OR course_name LIKE ? ESCAPE '\\')");
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, instructorId);
+            if (!kw.isEmpty()) {
+                String pattern = "%" + escapeLike(kw) + "%";
+                ps.setString(2, pattern);
+                ps.setString(3, pattern);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            throw new DataAccessException(e);
+        }
+        return 0;
+    }
+
+    /** Escape ký tự đặc biệt của LIKE ('%', '_', '[' và chính '\') với ESCAPE '\'. */
+    private static String escapeLike(String raw) {
+        StringBuilder sb = new StringBuilder(raw.length());
+        for (int i = 0; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            if (c == '%' || c == '_' || c == '[' || c == '\\') sb.append('\\');
+            sb.append(c);
+        }
+        return sb.toString();
+    }
+
     public List<Assignment> getAssignmentsByCourse(int courseId) {
         AssignmentDAO assignmentDAO = new AssignmentDAO();
         return assignmentDAO.getAssignmentsByCourse(courseId);

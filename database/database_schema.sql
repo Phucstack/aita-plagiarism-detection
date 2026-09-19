@@ -12,6 +12,10 @@ USE master;
 GO
 IF DB_ID(N'AITA_PlagiarismDB') IS NULL CREATE DATABASE [AITA_PlagiarismDB];
 GO
+-- Script này TẠO/SEED database ứng dụng mặc định AITA_PlagiarismDB.
+-- Để migrate một database KHÁC (ví dụ DB test), dùng database/migration_incremental.sql
+-- với tham số:  sqlcmd -d <TenDB> -i database/migration_incremental.sql
+-- (file migration không chứa USE nên luôn chạy đúng DB được chỉ định qua -d).
 USE [AITA_PlagiarismDB];
 GO
 IF OBJECT_ID(N'dbo.Users', N'U') IS NULL
@@ -171,105 +175,8 @@ INSERT INTO MatchingBlocks (report_id, function_name, student_a_start_line, stud
 END;
 GO
 
--- Run in the selected application/test database. Preserves existing users and passwords.
-SET QUOTED_IDENTIFIER ON;
-SET ANSI_NULLS ON;
-SET ANSI_PADDING ON;
-SET ANSI_WARNINGS ON;
-SET CONCAT_NULL_YIELDS_NULL ON;
-SET ARITHABORT ON;
-SET NUMERIC_ROUNDABORT OFF;
-IF COL_LENGTH('dbo.Users', 'google_subject') IS NULL
-    ALTER TABLE dbo.Users ADD google_subject VARCHAR(255) NULL;
-GO
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_Users_GoogleSubject' AND object_id = OBJECT_ID('dbo.Users'))
-    EXEC('CREATE UNIQUE INDEX UX_Users_GoogleSubject ON dbo.Users(google_subject) WHERE google_subject IS NOT NULL');
-GO
-
--- Normalize legacy PlagiarismReports to strict 3NF.
--- assignment_id is derivable from either submission and must not be stored redundantly.
-IF COL_LENGTH('dbo.PlagiarismReports', 'assignment_id') IS NOT NULL
-BEGIN
-    -- Compile legacy-column references only while the column still exists.
-    EXEC sys.sp_executesql N'IF EXISTS (
-        SELECT 1
-        FROM dbo.PlagiarismReports pr
-        LEFT JOIN dbo.Submissions sa ON sa.submission_id = pr.submission_a_id
-        LEFT JOIN dbo.Submissions sb ON sb.submission_id = pr.submission_b_id
-        WHERE sa.submission_id IS NULL
-           OR sb.submission_id IS NULL
-           OR pr.assignment_id <> sa.assignment_id
-           OR pr.assignment_id <> sb.assignment_id
-           OR sa.assignment_id <> sb.assignment_id
-           OR pr.submission_a_id = pr.submission_b_id
-    )
-        THROW 50001, ''Cannot normalize PlagiarismReports: legacy rows contain inconsistent assignment/submission relationships.'', 1;';
-
-    DECLARE @dropAssignmentFk NVARCHAR(MAX) = N'';
-    SELECT @dropAssignmentFk = @dropAssignmentFk
-        + N'ALTER TABLE dbo.PlagiarismReports DROP CONSTRAINT ' + QUOTENAME(fk.name) + N';'
-    FROM sys.foreign_keys fk
-    JOIN sys.foreign_key_columns fkc ON fkc.constraint_object_id = fk.object_id
-    JOIN sys.columns c ON c.object_id = fkc.parent_object_id AND c.column_id = fkc.parent_column_id
-    WHERE fk.parent_object_id = OBJECT_ID(N'dbo.PlagiarismReports')
-      AND c.name = N'assignment_id';
-
-    SET @dropAssignmentFk = @dropAssignmentFk
-        + N'ALTER TABLE dbo.PlagiarismReports DROP COLUMN assignment_id;';
-    EXEC sys.sp_executesql @dropAssignmentFk;
-END;
-GO
-
-IF NOT EXISTS (
-    SELECT 1
-    FROM sys.check_constraints
-    WHERE parent_object_id = OBJECT_ID(N'dbo.PlagiarismReports')
-      AND name = N'CK_PlagiarismReports_DistinctSubmissions'
-)
-    ALTER TABLE dbo.PlagiarismReports WITH CHECK
-        ADD CONSTRAINT CK_PlagiarismReports_DistinctSubmissions
-        CHECK (submission_a_id <> submission_b_id);
-GO
-
--- Database-level invariant: the two submissions in one plagiarism report must belong to the same assignment.
-CREATE OR ALTER TRIGGER dbo.TR_PlagiarismReports_SameAssignment
-ON dbo.PlagiarismReports
-AFTER INSERT, UPDATE
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    IF EXISTS (
-        SELECT 1
-        FROM inserted i
-        JOIN dbo.Submissions sa ON sa.submission_id = i.submission_a_id
-        JOIN dbo.Submissions sb ON sb.submission_id = i.submission_b_id
-        WHERE sa.assignment_id <> sb.assignment_id
-           OR i.submission_a_id = i.submission_b_id
-    )
-    BEGIN
-        THROW 50002, 'PlagiarismReports requires both submissions to belong to the same assignment.', 1;
-    END;
-END;
-GO
-
--- Preserve the same-assignment invariant if a submission is reassigned directly in SQL.
-CREATE OR ALTER TRIGGER dbo.TR_Submissions_PreserveReportAssignment
-ON dbo.Submissions
-AFTER UPDATE
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    IF UPDATE(assignment_id) AND EXISTS (
-        SELECT 1
-        FROM dbo.PlagiarismReports pr
-        JOIN dbo.Submissions sa ON sa.submission_id = pr.submission_a_id
-        JOIN dbo.Submissions sb ON sb.submission_id = pr.submission_b_id
-        WHERE (pr.submission_a_id IN (SELECT submission_id FROM inserted)
-            OR pr.submission_b_id IN (SELECT submission_id FROM inserted))
-          AND sa.assignment_id <> sb.assignment_id
-    )
-        THROW 50003, 'Cannot reassign a submission while it would split an existing plagiarism report across assignments.', 1;
-END;
-GO
+-- Migration tăng dần (google_subject, password_changed_at, 3NF PlagiarismReports,
+-- trigger invariant, ràng buộc role) được tách sang database/migration_incremental.sql
+-- để có thể chạy độc lập trên BẤT KỲ database nào qua:  sqlcmd -d <TenDB> -i ...
+-- File này vẫn áp dụng migration cho DB ứng dụng mặc định bằng lệnh :r của sqlcmd.
+:r migration_incremental.sql

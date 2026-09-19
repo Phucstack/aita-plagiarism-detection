@@ -23,7 +23,7 @@ if ($Stop) {
 }
 if (Test-Path -LiteralPath '.env') {
     foreach ($line in Get-Content -Encoding UTF8 -LiteralPath '.env') {
-        if ($line -match '^\s*(DB_[A-Z_]+|GOOGLE_CLIENT_ID|JWT_SECRET|CATALINA_HOME)\s*=(.*)$') {
+        if ($line -match '^\s*(DB_[A-Z_]+|GOOGLE_CLIENT_ID|JWT_SECRET|CATALINA_HOME|GEMINI_API_KEY)\s*=(.*)$') {
             [Environment]::SetEnvironmentVariable($Matches[1], $Matches[2].Trim().Trim('"').Trim("'"), 'Process')
         }
     }
@@ -31,7 +31,7 @@ if (Test-Path -LiteralPath '.env') {
 if ($EnvironmentFile -ne '.env') {
     $env:DB_URL = $null
     foreach ($line in Get-Content -Encoding UTF8 -LiteralPath $EnvironmentFile) {
-        if ($line -match '^\s*(DB_[A-Z_]+|GOOGLE_CLIENT_ID|JWT_SECRET)\s*=(.*)$') {
+        if ($line -match '^\s*(DB_[A-Z_]+|GOOGLE_CLIENT_ID|JWT_SECRET|GEMINI_API_KEY)\s*=(.*)$') {
             [Environment]::SetEnvironmentVariable($Matches[1], $Matches[2].Trim().Trim('"').Trim("'"), 'Process')
         }
     }

@@ -10,6 +10,7 @@ public class User {
     private String role;
     private String avatarUrl;
     private Timestamp createdAt;
+    private Timestamp passwordChangedAt;
 
     public User() {}
 
@@ -41,4 +42,7 @@ public class User {
 
     public Timestamp getCreatedAt() { return createdAt; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
+
+    public Timestamp getPasswordChangedAt() { return passwordChangedAt; }
+    public void setPasswordChangedAt(Timestamp passwordChangedAt) { this.passwordChangedAt = passwordChangedAt; }
 }

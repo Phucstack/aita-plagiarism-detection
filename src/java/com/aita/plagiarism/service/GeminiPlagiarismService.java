@@ -5,9 +5,14 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Service tích hợp Google Gemini API để phân tích ngữ nghĩa và phát hiện đạo văn.
@@ -16,8 +21,29 @@ import java.util.logging.Logger;
 public class GeminiPlagiarismService {
 
     private static final Logger LOG = Logger.getLogger(GeminiPlagiarismService.class.getName());
-    private static final String GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-    private static final List<String> FALLBACK_MODELS = List.of("gemini-2.0-flash");
+    // gemini-2.0-flash đã bị Google khai tử (HTTP 404, khuyến nghị gemini-3.6-flash).
+    // Thứ tự thử: model mới nhất trước, lùi dần về bản ổn định cũ hơn nếu tài khoản
+    // chưa được cấp quyền. Có thể override hoàn toàn qua GEMINI_MODELS="a,b,c".
+    private static final String DEFAULT_MODEL = "gemini-3.6-flash";
+    private static final String GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/" + DEFAULT_MODEL + ":generateContent";
+    private static final List<String> FALLBACK_MODELS = fallbackModels();
+
+    private static List<String> fallbackModels() {
+        String configured = System.getProperty("GEMINI_MODELS", System.getenv("GEMINI_MODELS"));
+        if (configured != null && !configured.isBlank()) {
+            List<String> models = new java.util.ArrayList<>();
+            for (String m : configured.split(",")) {
+                if (!m.isBlank()) models.add(m.trim());
+            }
+            if (!models.isEmpty()) return List.copyOf(models);
+        }
+        // Đã kiểm chứng với API key thật (19/09/2026): gemini-3.6-flash, gemini-3-flash-preview,
+        // gemini-3.1-flash-lite-preview trả 200; gemini-2.0-flash và gemini-2.5-* đã bị khai tử (404).
+        return List.of(DEFAULT_MODEL, "gemini-3-flash-preview", "gemini-3.1-flash-lite-preview");
+    }
+    private static final ObjectMapper JSON = new ObjectMapper();
+    /** Giá trị verdict được chấp nhận trong structured output; giá trị khác coi như malformed. */
+    private static final Set<String> VALID_VERDICTS = Set.of("PLAGIARIZED", "SUSPICIOUS", "ORIGINAL");
     private final HttpClient httpClient;
     private final String apiKey;
 
@@ -48,8 +74,18 @@ public class GeminiPlagiarismService {
         }
 
         String prompt = "Bạn là chuyên gia phân tích mã nguồn và liêm chính học thuật. "
-                + "Hãy so sánh 2 đoạn mã Java sau xem có sao chép logic, đổi tên biến hay đảo thứ tự hàm không. "
-                + "Trả về kết quả JSON gồm: {similarityScore: float, riskLevel: 'SAFE'|'MEDIUM'|'HIGH_RISK', renamedVariables: [string], summary: string}.\n\n"
+                + "So sánh 2 đoạn mã Java sau và xác định có sao chép logic hay không, kể cả khi đã qua biến đổi bề mặt. "
+                + "Chỉ trả về MỘT đối tượng JSON thuần (không markdown, không ```json, không lời dẫn) đúng cấu trúc:\n"
+                + "{\n"
+                + "  \"verdict\": \"PLAGIARIZED\" | \"SUSPICIOUS\" | \"ORIGINAL\",\n"
+                + "  \"evidence\": [string, ...],          // bằng chứng cụ thể: đoạn/kiểu logic trùng nhau\n"
+                + "  \"techniques\": [string, ...],        // kỹ thuật né tránh thực sự quan sát được:\n"
+                + "                                      // đổi tên biến nào (nêu tên cũ -> mới), tái cấu trúc khối nào\n"
+                + "                                      // (đảo thứ tự hàm, tách/gộp hàm, đổi vòng lặp), dead code được thêm...\n"
+                + "                                      // mảng rỗng nếu không phát hiện\n"
+                + "  \"confidence\": 0.0-1.0               // độ tự tin của chính bạn vào verdict\n"
+                + "}\n"
+                + "Tuyệt đối không thêm trường khác, không suy diễn kỹ thuật không thấy trong mã.\n\n"
                 + "CODE SINH VIÊN A:\n" + safeA + "\n\n"
                 + "CODE SINH VIÊN B:\n" + safeB;
 
@@ -61,7 +97,7 @@ public class GeminiPlagiarismService {
         for (String model : FALLBACK_MODELS) {
             try {
                 HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(GEMINI_ENDPOINT.replace("gemini-2.0-flash", model) + "?key=" + apiKey))
+                        .uri(URI.create(GEMINI_ENDPOINT.replace(DEFAULT_MODEL, model) + "?key=" + apiKey))
                         .header("Content-Type", "application/json")
                         .timeout(Duration.ofSeconds(20))
                         .POST(HttpRequest.BodyPublishers.ofString(jsonPayload, java.nio.charset.StandardCharsets.UTF_8))
@@ -86,6 +122,100 @@ public class GeminiPlagiarismService {
 
     public boolean isConfigured() {
         return apiKey != null;
+    }
+
+    /**
+     * Kết quả phân tích có cấu trúc của Gemini (structured output).
+     * Mọi trường đã được validate kiểu dữ liệu; nội dung văn bản vẫn là lời của mô hình,
+     * không được dùng để điều khiển luồng nghiệp vụ ngoài việc hiển thị.
+     */
+    public record GeminiAnalysis(String verdict, List<String> evidence,
+                                 List<String> techniques, double confidence) {
+    }
+
+    /**
+     * Parse phản hồi Gemini thành {@link GeminiAnalysis}.
+     *
+     * @return kết quả đã validate, hoặc {@code null} nếu phản hồi là fallback gắn nhãn,
+     *         JSON malformed, hoặc thiếu/sai kiểu trường — khi đó người gọi giữ nguyên
+     *         nhận định cục bộ (rule-based) thay vì lưu dữ liệu lỗi.
+     */
+    public static GeminiAnalysis parseAnalysis(String apiResponse) {
+        if (apiResponse == null || apiResponse.isBlank()) return null;
+        if (apiResponse.contains("\"fallback\"")) return null;
+
+        String modelText;
+        try {
+            JsonNode root = JSON.readTree(apiResponse);
+            JsonNode textNode = root.path("candidates").path(0).path("content").path("parts").path(0).path("text");
+            if (!textNode.isTextual()) return null;
+            modelText = textNode.asText();
+        } catch (Exception e) {
+            return null;
+        }
+
+        // Mô hình đôi khi bọc JSON trong ```json ... ``` — gỡ hàng rào trước khi parse.
+        String cleaned = modelText.trim();
+        if (cleaned.startsWith("```")) {
+            cleaned = cleaned.replaceFirst("^```[a-zA-Z]*\\s*", "");
+            int fence = cleaned.lastIndexOf("```");
+            if (fence > 0) cleaned = cleaned.substring(0, fence);
+            cleaned = cleaned.trim();
+        }
+
+        try {
+            JsonNode node = JSON.readTree(cleaned);
+            if (!node.isObject()) return null;
+            String verdict = node.path("verdict").asText(null);
+            if (verdict == null || !VALID_VERDICTS.contains(verdict)) return null;
+            JsonNode confidenceNode = node.path("confidence");
+            if (!confidenceNode.isNumber()) return null;
+            double confidence = confidenceNode.asDouble();
+            if (confidence < 0.0 || confidence > 1.0) return null;
+            List<String> evidence = readStringList(node.get("evidence"));
+            if (evidence == null) return null;
+            List<String> techniques = readStringList(node.get("techniques"));
+            if (techniques == null) return null;
+            return new GeminiAnalysis(verdict, evidence, techniques, confidence);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** @return danh sách chuỗi, hoặc {@code null} nếu node thiếu/không phải mảng chuỗi. */
+    private static List<String> readStringList(JsonNode node) {
+        if (node == null || !node.isArray()) return null;
+        List<String> out = new ArrayList<>();
+        for (JsonNode item : node) {
+            if (!item.isTextual()) return null;
+            out.add(item.asText());
+        }
+        return out;
+    }
+
+    /**
+     * Render {@link GeminiAnalysis} thành văn bản nhiều dòng để lưu vào ai_analysis_summary.
+     * Không tự thêm tiền tố [Gemini] — người gọi chịu trách nhiệm gắn nhãn nguồn.
+     */
+    public static String renderAnalysis(GeminiAnalysis analysis) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Kết luận: ").append(analysis.verdict())
+                .append(String.format(" (độ tự tin của mô hình: %.0f%%)", analysis.confidence() * 100));
+        if (!analysis.evidence().isEmpty()) {
+            sb.append("\nBằng chứng:");
+            for (String ev : analysis.evidence()) {
+                sb.append("\n- ").append(ev);
+            }
+        }
+        sb.append("\nKỹ thuật né tránh phát hiện được:");
+        if (analysis.techniques().isEmpty()) {
+            sb.append(" không ghi nhận kỹ thuật né tránh cụ thể.");
+        } else {
+            for (String tech : analysis.techniques()) {
+                sb.append("\n- ").append(tech);
+            }
+        }
+        return sb.toString();
     }
 
     /**

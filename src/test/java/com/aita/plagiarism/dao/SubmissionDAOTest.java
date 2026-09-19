@@ -31,7 +31,9 @@ public class SubmissionDAOTest {
     @Test
     @DisplayName("Truy vấn bài nộp theo Student ID")
     void testGetSubmissionsByStudent() {
-        List<Submission> list = submissionDAO.getSubmissionsByStudent(3);
+        // user_id=4 (phuctv) là STUDENT trong DB test — sau migration 5d, submission
+        // chỉ hợp lệ khi student_id trỏ tới user có role STUDENT.
+        List<Submission> list = submissionDAO.getSubmissionsByStudent(4);
         assertNotNull(list);
     }
 
@@ -41,7 +43,8 @@ public class SubmissionDAOTest {
         // 1. Create
         Submission s = new Submission();
         s.setAssignmentId(1);
-        s.setStudentId(3);
+        // student_id=4 (phuctv) có role STUDENT — bắt buộc sau CHECK CK_Submissions_StudentRole.
+        s.setStudentId(4);
         s.setFileName("TestSubmission_" + System.currentTimeMillis() + ".java");
         s.setFilePath("C:/uploads/test.java");
         s.setFileType("JAVA");

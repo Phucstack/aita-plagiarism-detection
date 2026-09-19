@@ -13,6 +13,7 @@ Xem [báo cáo kiểm chứng tuần 1–3](BAO_CAO_TIEN_DO_TUAN_1_3.md) để p
 - Google login dùng Google Identity Services, xác minh ID token phía server và liên kết tài khoản đã được cấp sẵn; xem [cấu hình Google login](GOOGLE_LOGIN.md).
 - Chạy test bằng tools/test-java.ps1 với .env.test và database riêng. Test không được chạy trên database ứng dụng.
 - Script database/database_schema.sql không reset dữ liệu hay thay đổi login quản trị.
+- Migrate một database khác (ví dụ DB test) bằng `sqlcmd -d <TenDB> -i database/migration_incremental.sql` — file này không chứa USE nên luôn chạy đúng DB được chỉ định.
 
 
 

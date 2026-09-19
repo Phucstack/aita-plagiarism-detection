@@ -39,6 +39,10 @@ public class AuthFilter implements Filter {
             }
             Map<String, String> claims = JWTUtil.extractClaims(token);
             User user = claims.isEmpty() ? null : userDAO.getUserById(Integer.parseInt(claims.get("userId")));
+            if (user != null && tokenRevoked(claims, user)) {
+                // Mật khẩu đã đổi sau khi token được phát hành -> thu hồi phiên như token hết hạn.
+                user = null;
+            }
             if (user == null) {
                 HttpSession old = req.getSession(false);
                 if (old != null) old.invalidate();
@@ -89,6 +93,27 @@ public class AuthFilter implements Filter {
             res.setStatus(503);
             res.setContentType("text/plain;charset=UTF-8");
             res.getWriter().write("Cấu hình xác thực chưa sẵn sàng.");
+        }
+    }
+
+    /**
+     * Token bị thu hồi nếu JWT iat (epoch giây) nhỏ hơn thời điểm đổi mật khẩu gần nhất.
+     * Không có dấu thời gian đổi mật khẩu (NULL) hoặc claim iat không đọc được -> không thu hồi
+     * (token vẫn bị ràng buộc bởi exp như trước).
+     *
+     * <p>Public để {@code LoginServlet} dùng chung: trang login phải bỏ qua token đã thu hồi
+     * thay vì chuyển hướng theo nó (tránh vòng lặp redirect vô hạn).</p>
+     */
+    public static boolean tokenRevoked(Map<String, String> claims, User user) {
+        java.sql.Timestamp changedAt = user.getPasswordChangedAt();
+        if (changedAt == null) return false;
+        String iatRaw = claims.get("iat");
+        if (iatRaw == null) return false;
+        try {
+            long iatSeconds = Long.parseLong(iatRaw.trim());
+            return iatSeconds * 1000L < changedAt.getTime();
+        } catch (NumberFormatException e) {
+            return false;
         }
     }
 }

@@ -24,17 +24,24 @@ public class LoginServlet extends HttpServlet {
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
 
-        // Kiểm tra nếu người dùng đã có token hợp lệ thì chuyển hướng ngay
+        // Kiểm tra nếu người dùng đã có token hợp lệ thì chuyển hướng ngay.
+        // Token hợp lệ về chữ ký NHƯNG đã bị thu hồi (đổi mật khẩu sau khi phát hành)
+        // phải bị bỏ qua — nếu không sẽ tạo vòng lặp /login ↔ trang đích vô hạn.
         String existingToken = extractAuthToken(request);
         java.util.Map<String, String> claims = JWTUtil.extractClaims(existingToken);
         if (!claims.isEmpty()) {
             int userId = Integer.parseInt(claims.get("userId"));
             User currentUser = userDAO.getUserById(userId);
-            if (currentUser != null && "STUDENT".equalsIgnoreCase(currentUser.getRole())) {
+            if (currentUser != null && com.aita.plagiarism.filter.AuthFilter.tokenRevoked(claims, currentUser)) {
+                // Token bị thu hồi: xoá cookie AUTH_TOKEN để trình bày form đăng nhập sạch.
+                jakarta.servlet.http.Cookie dead = new jakarta.servlet.http.Cookie(AUTH_COOKIE_NAME, "");
+                dead.setMaxAge(0);
+                dead.setPath(request.getContextPath().isEmpty() ? "/" : request.getContextPath());
+                response.addCookie(dead);
+            } else if (currentUser != null && "STUDENT".equalsIgnoreCase(currentUser.getRole())) {
                 response.sendRedirect(request.getContextPath() + "/student-portal");
                 return;
-            }
-            if (currentUser != null) {
+            } else if (currentUser != null) {
                 response.sendRedirect(request.getContextPath() + "/dashboard");
                 return;
             }

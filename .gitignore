@@ -65,3 +65,6 @@ __pycache__/
 
 # Agent working memory (không phải mã nguồn dự án)
 .workbuddy-ai/
+
+# Verification artefacts & scratch logs (kết quả chạy kiểm chứng cục bộ, tái sinh được)
+logs/

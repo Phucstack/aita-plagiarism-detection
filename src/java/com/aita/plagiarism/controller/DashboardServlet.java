@@ -33,14 +33,29 @@ public class DashboardServlet extends HttpServlet {
         HttpSession session = request.getSession();
         User currentUser = (User) session.getAttribute("currentUser");
 
+        // Phân trang + tìm kiếm khóa học: page >= 1, size trong [5..50] (mặc định 10), keyword q.
+        int page = parseIntParam(request.getParameter("page"), 1);
+        if (page < 1) page = 1;
+        int size = parseIntParam(request.getParameter("size"), 10);
+        if (size < 5) size = 5;
+        if (size > 50) size = 50;
+        String keyword = request.getParameter("q");
+        keyword = keyword == null ? "" : keyword.trim();
+
         // Lấy danh sách khóa học theo giảng viên hiện tại hoặc tất cả các môn
         List<Course> courses;
-        if (currentUser != null && "INSTRUCTOR".equalsIgnoreCase(currentUser.getRole())) {
-            courses = courseDAO.getCoursesByInstructor(currentUser.getUserId());
-
+        int totalCourses;
+        boolean instructorView = currentUser != null && "INSTRUCTOR".equalsIgnoreCase(currentUser.getRole());
+        if (instructorView) {
+            totalCourses = courseDAO.countCoursesByInstructor(currentUser.getUserId(), keyword);
+            int totalPages = Math.max(1, (int) Math.ceil(totalCourses / (double) size));
+            if (page > totalPages) page = totalPages;
+            courses = courseDAO.getCoursesByInstructor(currentUser.getUserId(), page, size, keyword);
         } else {
             courses = courseDAO.getAllCourses();
+            totalCourses = courses.size();
         }
+        int totalPages = Math.max(1, (int) Math.ceil(totalCourses / (double) size));
 
         int selectedCourseId = 0;
         String courseParam = request.getParameter("courseId");
@@ -89,7 +104,7 @@ public class DashboardServlet extends HttpServlet {
         }
 
         double threshold = currentAssignment == null ? 75 : currentAssignment.getSimilarityThreshold();
-        request.setAttribute("courseCount", courses.size());
+        request.setAttribute("courseCount", totalCourses);
         request.setAttribute("assignmentCount", assignments.size());
         request.setAttribute("submissionCount", submissions.size());
         request.setAttribute("reportCount", reports.size());
@@ -99,6 +114,12 @@ public class DashboardServlet extends HttpServlet {
                 reports.stream().mapToDouble(PlagiarismReport::getSimilarityScore).average().orElse(0)));
         request.setAttribute("courses", courses);
         request.setAttribute("assignments", assignments);
+        request.setAttribute("instructorView", instructorView);
+        request.setAttribute("coursePage", page);
+        request.setAttribute("courseSize", size);
+        request.setAttribute("courseTotalPages", totalPages);
+        request.setAttribute("courseTotalCount", totalCourses);
+        request.setAttribute("courseKeyword", keyword);
         request.setAttribute("selectedCourseId", selectedCourseId);
         request.setAttribute("selectedAssignmentId", selectedAssignmentId);
         request.setAttribute("currentAssignment", currentAssignment);
@@ -111,5 +132,14 @@ public class DashboardServlet extends HttpServlet {
 
         // Chuyển tiếp sang View JSP chuẩn mô hình MVC2
         request.getRequestDispatcher("/dashboard.jsp").forward(request, response);
+    }
+
+    private static int parseIntParam(String raw, int fallback) {
+        if (raw == null || raw.trim().isEmpty()) return fallback;
+        try {
+            return Integer.parseInt(raw.trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
     }
 }

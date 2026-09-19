@@ -210,6 +210,41 @@
                         </div>
                     </form>
 
+                    <c:if test="${instructorView}">
+                    <!-- Course Search & Pagination Controls -->
+                    <form action="${pageContext.request.contextPath}/dashboard" method="GET" class="flex flex-wrap items-center gap-2">
+                        <div class="flex min-w-0 items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#131424] border border-white/10 text-slate-300">
+                            <i data-lucide="search" class="w-3.5 h-3.5 text-cyan-400"></i>
+                            <input type="text" name="q" value="${fn:escapeXml(courseKeyword)}" placeholder="Tìm mã/tên môn..."
+                                   class="bg-transparent border-none text-white focus:outline-none text-xs w-32 placeholder-slate-500">
+                        </div>
+                        <button type="submit" class="px-2.5 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-all text-xs" title="Tìm kiếm khóa học">
+                            Tìm
+                        </button>
+                    </form>
+                    <div class="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-[#131424] border border-white/10 text-slate-300">
+                        <c:choose>
+                            <c:when test="${coursePage > 1}">
+                                <a href="${pageContext.request.contextPath}/dashboard?page=${coursePage - 1}&size=${courseSize}&q=${fn:escapeXml(courseKeyword)}"
+                                   class="px-2 py-1 rounded-lg hover:bg-cyan-500/10 text-slate-300 hover:text-cyan-300 transition-all" title="Trang trước">&laquo; Trước</a>
+                            </c:when>
+                            <c:otherwise>
+                                <span class="px-2 py-1 text-slate-600 cursor-not-allowed">&laquo; Trước</span>
+                            </c:otherwise>
+                        </c:choose>
+                        <span class="text-[11px] font-mono text-slate-400">Trang ${coursePage}/${courseTotalPages}</span>
+                        <c:choose>
+                            <c:when test="${coursePage < courseTotalPages}">
+                                <a href="${pageContext.request.contextPath}/dashboard?page=${coursePage + 1}&size=${courseSize}&q=${fn:escapeXml(courseKeyword)}"
+                                   class="px-2 py-1 rounded-lg hover:bg-cyan-500/10 text-slate-300 hover:text-cyan-300 transition-all" title="Trang sau">Sau &raquo;</a>
+                            </c:when>
+                            <c:otherwise>
+                                <span class="px-2 py-1 text-slate-600 cursor-not-allowed">Sau &raquo;</span>
+                            </c:otherwise>
+                        </c:choose>
+                    </div>
+                    </c:if>
+
                     <!-- Course CRUD Actions -->
                     <div class="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10">
                         <button type="button" onclick="openAddCourseModal()" class="px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-all flex items-center gap-1" title="Thêm Khóa Học Mới">

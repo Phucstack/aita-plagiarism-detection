@@ -38,4 +38,14 @@ Migration bỏ cột đó. DAO lấy assignment bằng JOIN Submissions. CHECK c
 - Không có UNIQUE cho cặp report và không bắt buộc thứ tự hai ID. Chống trùng cặp, ràng buộc vai trò ở FK và quan hệ enrollment là vấn đề toàn vẹn/nghiệp vụ, không phải bằng chứng tự động vi phạm hoặc đạt 3NF.
 - Các kiểm tra migration chứng minh giữ nội dung dòng (trừ cột dư), chạy lại an toàn trong kịch bản đã thử và từ chối ba vi phạm cụ thể. Không chứng minh mọi lịch xen kẽ giao dịch hoặc toàn bộ hệ thống production.
 
+## Giới hạn của CHECK constraint dùng UDF (ràng buộc role)
+
+Migration 5d thêm `dbo.FN_UserHasRole` và hai CHECK constraint: `CK_Courses_InstructorRole` (instructor phải là INSTRUCTOR hoặc ADMIN) và `CK_Submissions_StudentRole` (student phải là STUDENT). Cả hai được thêm bằng `WITH NOCHECK` vì dữ liệu thực tế đã có giảng viên nộp bài mẫu/thử nghiệm (ví dụ submission của user role INSTRUCTOR trong DB ứng dụng) — một ca sử dụng hợp lệ của hệ thống, không phải lỗi dữ liệu. Cần ghi nhận các giới hạn kỹ thuật sau:
+
+- **WITH NOCHECK nghĩa là dữ liệu cũ không được re-validate.** Constraint chỉ chặn INSERT/UPDATE MỚI vi phạm; các dòng hiện có (kể cả dòng "vi phạm" theo nghĩa strict) vẫn hợp lệ. Hệ quả: constraint ở trạng thái *not trusted*, SQL Server không dùng nó cho tối ưu hoá truy vấn.
+- **Không re-validate khi Users.role thay đổi.** SQL Server chỉ đánh giá CHECK khi dòng thuộc bảng chứa constraint bị INSERT/UPDATE. Nếu sau đó một `UPDATE Users SET role = 'STUDENT' WHERE user_id = <instructor đang phụ trách>` chạy trực tiếp, SQL Server **không** kiểm tra lại các dòng Courses/Submissions đã tồn tại — chúng vẫn được coi hợp lệ. Constraint chỉ chặn ghi mới/sửa mới vi phạm, không chặn thay đổi ngược từ bảng Users.
+- **Enforcement chính vẫn nằm ở tầng DAO/ứng dụng** (kiểm tra role của actor trước khi INSERT/UPDATE, ví dụ `CourseDAO.createCourse`, `SubmissionDAO`). Hai CHECK này chỉ là **lớp phòng thủ bổ sung** cho dữ liệu được ghi trực tiếp bằng SQL (script tay, công cụ quản trị) bỏ qua tầng DAO.
+- **Hiệu năng & bảo trì UDF:** scalar UDF trong CHECK ngăn một số tối ưu của optimizer (ví dụ không dùng được cho partition elimination; thay đổi Users.role có thể vô hiệu hóa index liên quan tới UDF nếu sau này thêm SCHEMABINDING). UDF này cố ý **không** SCHEMABINDING để không chặn mọi thay đổi schema của bảng Users.
+- **Vai trò trong phân tích chuẩn hóa:** các CHECK này là ràng buộc toàn vẹn/nghiệp vụ tham chiếu chéo bảng, không tạo hay xóa phụ thuộc hàm nào trong các bảng đã phân tích; kết luận 3NF ở trên không đổi.
+
 **Kết luận:** đã xác định và sửa vi phạm 3NF của schema legacy. Sáu bảng sau migration phù hợp 3NF đối với các khóa và phụ thuộc được liệt kê; các giả định metadata/snapshot được công khai, không tuyên bố đạt vô điều kiện chỉ vì có sáu bảng và ERD.

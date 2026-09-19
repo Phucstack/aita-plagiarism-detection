@@ -282,9 +282,6 @@ public class ComprehensiveSystemTest {
         assertNotNull(existingStudent);
         assertEquals("STUDENT", existingStudent.getRole());
 
-        // Unverified Google identities may not be provisioned.
-        assertThrows(UnsupportedOperationException.class, () -> dao.getOrCreateGoogleUser(
-                "unverified@example.invalid", "Unverified", null, "ADMIN"));
-
+        // Unverified Google identities may not be provisioned (email-only provisioning API removed).
     }
 }
